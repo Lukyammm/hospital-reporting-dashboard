@@ -82,7 +82,7 @@ function doGet(e) {
   }
 
   if (params.api === 'configrel') {
-    return responderJson(obterConfigRelCosep());
+    return responderJson(obterConfigRelCosep(params.refresh === '1' || params.refresh === 'true'));
   }
 
   try {
@@ -406,9 +406,10 @@ function configPadraoRel() {
   };
 }
 
-function obterConfigRel() {
+function obterConfigRel(forcarRefresh) {
   const padrao = configPadraoRel();
-  const cfgCache = obterCacheConfigRel();
+  if (forcarRefresh) invalidarCacheConfigRel();
+  const cfgCache = forcarRefresh ? null : obterCacheConfigRel();
   if (cfgCache) return mesclarConfigRel(padrao, cfgCache);
 
   try {
@@ -669,10 +670,10 @@ function usuarioPodeEditarRel() {
   return !!email && admins.indexOf(email) !== -1;
 }
 
-function obterConfigRelCosep() {
+function obterConfigRelCosep(forcarRefresh) {
   return executarRota('rpc-configrel-get', () => ({
     success: true,
-    config: obterConfigRel(),
+    config: obterConfigRel(forcarRefresh === true || forcarRefresh === '1'),
     podeEditar: usuarioPodeEditarRel(),
     usuario: emailUsuarioAtualRel(),
     geradoEm: Utilities.formatDate(new Date(), FUSO_HORARIO, "dd/MM/yyyy 'às' HH:mm")
@@ -985,6 +986,7 @@ function processarRelatorioCRP(filtros, base, cfg) {
   const porSatisfacao = {};
   const porStatus = {};
   const evolucaoMap = {};
+  const resumoSetores = {};
   let conformes = 0;
   let naoConformes = 0;
   let naoSeAplica = 0;
@@ -1009,6 +1011,8 @@ function processarRelatorioCRP(filtros, base, cfg) {
     incrementarMapa(porSatisfacao, satisfacao);
     incrementarMapa(porStatus, status);
     if (!evolucaoMap[mes]) evolucaoMap[mes] = { conformes: 0, naoConformes: 0 };
+    if (!resumoSetores[unidade]) resumoSetores[unidade] = { setor: unidade, avaliacoes: 0, conformes: 0, naoConformes: 0 };
+    resumoSetores[unidade].avaliacoes++;
 
     const num = Number(row[col.numerador]);
     const den = Number(row[col.denominador]);
@@ -1027,11 +1031,13 @@ function processarRelatorioCRP(filtros, base, cfg) {
         indicador.avaliados++;
         conformes++;
         evolucaoMap[mes].conformes++;
+        resumoSetores[unidade].conformes++;
       } else if (classe === 'naoConforme') {
         indicador.naoConformes++;
         indicador.avaliados++;
         naoConformes++;
         evolucaoMap[mes].naoConformes++;
+        resumoSetores[unidade].naoConformes++;
       } else if (classe === 'naoSeAplica') {
         indicador.naoSeAplica++;
         naoSeAplica++;
@@ -1064,23 +1070,16 @@ function processarRelatorioCRP(filtros, base, cfg) {
     percentual: percentualRelatorio(evolucaoMap[mes].conformes, evolucaoMap[mes].naoConformes) || 0
   }));
 
-  const rankingSetores = Object.keys(porUnidade).sort((a, b) => a.localeCompare(b, 'pt-BR')).map(setor => {
-    const resumo = linhasFiltradas.filter(row => (String(row[col.unidade] || '').trim() || 'Não informado') === setor).reduce((acc, row) => {
-      indicadores.forEach(ind => {
-        const classe = classifica(row[ind.idx]);
-        if (classe === 'conforme') acc.conformes++;
-        if (classe === 'naoConforme') acc.naoConformes++;
-      });
-      return acc;
-    }, { conformes: 0, naoConformes: 0 });
+  const rankingSetores = Object.keys(resumoSetores).map(setor => {
+    const resumo = resumoSetores[setor];
     return {
       setor: setor,
-      avaliacoes: porUnidade[setor],
+      avaliacoes: resumo.avaliacoes,
       conformes: resumo.conformes,
       naoConformes: resumo.naoConformes,
       percentual: percentualRelatorio(resumo.conformes, resumo.naoConformes)
     };
-  }).sort((a, b) => (a.percentual == null ? 101 : a.percentual) - (b.percentual == null ? 101 : b.percentual));
+  }).sort((a, b) => (a.percentual == null ? 101 : a.percentual) - (b.percentual == null ? 101 : b.percentual) || a.setor.localeCompare(b.setor, 'pt-BR'));
 
   const amostra = linhasFiltradas.slice(0, 25).map(row => ({
     prontuario: String(row[col.prontuario] || '').trim(),

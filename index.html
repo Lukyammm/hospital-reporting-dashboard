@@ -761,6 +761,342 @@
     html[data-theme="dark"] .adm-input { background: rgba(13,24,28,.92) !important; border-color: rgba(148,180,190,.22) !important; color: #e7eef0 !important; }
     html[data-theme="dark"] .adm-ind-n { background: rgba(45,212,191,.16); color: #9ef0e2; }
 
+
+    /* ════════════ FORMULÁRIOS PREMIUM: glassmorphism + rings animados + microinterações ════════════ */
+    :root {
+      --ease-premium: cubic-bezier(.22, 1, .36, 1);
+      --ring-teal: rgba(20, 184, 166, .28);
+      --ring-cyan: rgba(14, 165, 233, .20);
+      --glass-border: rgba(255, 255, 255, .58);
+      --glass-sheen: linear-gradient(135deg, rgba(255,255,255,.78), rgba(255,255,255,.38));
+    }
+
+    .editor-card,
+    .preview-card,
+    .loading-box,
+    .page-header {
+      position: relative;
+      overflow: hidden;
+      isolation: isolate;
+      border-color: rgba(255,255,255,.62);
+      background:
+        linear-gradient(145deg, rgba(255,255,255,.88), rgba(255,255,255,.62)),
+        radial-gradient(circle at 0% 0%, rgba(45,212,191,.10), transparent 32rem),
+        rgba(255,255,255,.72);
+      box-shadow: 0 24px 70px rgba(15, 23, 42, .10), inset 0 1px 0 rgba(255,255,255,.85);
+      backdrop-filter: blur(24px) saturate(1.35);
+      -webkit-backdrop-filter: blur(24px) saturate(1.35);
+    }
+    .editor-card::before,
+    .preview-card::before,
+    .page-header::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      z-index: -1;
+      pointer-events: none;
+      background:
+        radial-gradient(circle at 18% 0%, rgba(20,184,166,.14), transparent 30%),
+        radial-gradient(circle at 100% 18%, rgba(14,116,144,.13), transparent 34%);
+      opacity: .9;
+    }
+    .card-section {
+      position: relative;
+      transition: background-color .28s var(--ease-premium), transform .28s var(--ease-premium);
+    }
+    .card-section:hover { background: rgba(255,255,255,.26); }
+
+    .filter-grid {
+      grid-template-columns: repeat(12, minmax(0, 1fr));
+      gap: 16px;
+    }
+    .filter-field {
+      grid-column: span 3;
+      position: relative;
+      overflow: hidden;
+      min-height: 100%;
+      padding: 16px;
+      border: 1px solid rgba(255,255,255,.64);
+      border-radius: 26px;
+      background:
+        linear-gradient(145deg, rgba(255,255,255,.80), rgba(255,255,255,.46)),
+        radial-gradient(circle at 12% 0%, rgba(20,184,166,.12), transparent 46%);
+      box-shadow: 0 16px 34px rgba(15,23,42,.075), inset 0 1px 0 rgba(255,255,255,.88);
+      backdrop-filter: blur(18px) saturate(1.18);
+      -webkit-backdrop-filter: blur(18px) saturate(1.18);
+      transform: translateY(0);
+      transition: transform .28s var(--ease-premium), box-shadow .28s var(--ease-premium), border-color .28s var(--ease-premium), background .28s var(--ease-premium);
+    }
+    .filter-field:first-child { grid-column: span 3; }
+    .filter-field::before {
+      content: '';
+      position: absolute;
+      inset: -1px;
+      border-radius: inherit;
+      padding: 1px;
+      background: linear-gradient(135deg, rgba(20,184,166,.62), rgba(14,165,233,.24), rgba(255,255,255,.78));
+      -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+      -webkit-mask-composite: xor;
+      mask-composite: exclude;
+      opacity: 0;
+      transition: opacity .28s var(--ease-premium);
+      pointer-events: none;
+    }
+    .filter-field::after {
+      content: '';
+      position: absolute;
+      width: 118px;
+      height: 118px;
+      right: -52px;
+      top: -58px;
+      border-radius: 999px;
+      background: radial-gradient(circle, rgba(45,212,191,.22), transparent 68%);
+      transform: scale(.72);
+      opacity: 0;
+      transition: opacity .35s var(--ease-premium), transform .35s var(--ease-premium);
+      pointer-events: none;
+    }
+    .filter-field:hover,
+    .filter-field:focus-within {
+      transform: translateY(-4px);
+      border-color: rgba(45,212,191,.42);
+      box-shadow: 0 24px 54px rgba(15,23,42,.12), 0 0 0 6px rgba(20,184,166,.055), inset 0 1px 0 rgba(255,255,255,.92);
+    }
+    .filter-field:focus-within::before,
+    .filter-field:focus-within::after { opacity: 1; transform: scale(1); }
+
+    .field-label span,
+    .adm-field label,
+    .editor-field-shell__meta span {
+      letter-spacing: -.01em;
+    }
+
+    .commission-option,
+    select,
+    textarea,
+    .adm-input,
+    .rms-trigger,
+    .rms-search,
+    .rms-act,
+    .tab-button,
+    .filter-chip,
+    .btn {
+      transition-duration: .24s;
+      transition-timing-function: var(--ease-premium);
+    }
+    .commission-option {
+      overflow: hidden;
+      border-color: rgba(190,211,207,.58);
+      background: rgba(255,255,255,.72);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,.84);
+    }
+    .commission-option::after {
+      content: '';
+      position: absolute;
+      inset: auto -24px -38px auto;
+      width: 94px;
+      height: 94px;
+      border-radius: 999px;
+      background: radial-gradient(circle, rgba(20,184,166,.18), transparent 70%);
+      transition: transform .28s var(--ease-premium), opacity .28s var(--ease-premium);
+      opacity: .55;
+    }
+    .commission-option:hover { transform: translateY(-2px); border-color: rgba(20,184,166,.38); box-shadow: 0 16px 32px rgba(15,23,42,.09); }
+    .commission-option:has(input:checked) { box-shadow: 0 18px 42px rgba(15,118,110,.15), 0 0 0 5px rgba(20,184,166,.10); }
+
+    select,
+    textarea,
+    .adm-input,
+    .rms-trigger,
+    .rms-search {
+      border: 1px solid rgba(190,211,207,.74);
+      background: rgba(255,255,255,.76);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,.86);
+    }
+    select:focus,
+    textarea:focus,
+    .adm-input:focus,
+    .rms-search:focus,
+    .rms.open .rms-trigger {
+      border-color: rgba(20,184,166,.72);
+      box-shadow: 0 0 0 1px rgba(20,184,166,.46), 0 0 0 7px var(--ring-teal), 0 16px 34px rgba(15,23,42,.08);
+      outline: none;
+    }
+
+    .text-editor-surface {
+      display: grid;
+      gap: 14px;
+      padding: 12px;
+      border: 1px solid rgba(255,255,255,.62);
+      border-radius: 28px;
+      background:
+        linear-gradient(145deg, rgba(255,255,255,.72), rgba(255,255,255,.42)),
+        radial-gradient(circle at 100% 0%, rgba(14,165,233,.09), transparent 38%);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,.86), 0 18px 46px rgba(15,23,42,.07);
+    }
+    .text-editor-surface .tabs {
+      margin-bottom: 0;
+      background: rgba(238,246,245,.72);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+    }
+    .tab-button:hover { color: var(--brand-dark); background: rgba(255,255,255,.64); transform: translateY(-1px); }
+    .tab-button.active { box-shadow: 0 12px 30px rgba(15,118,110,.12); }
+    .editor-field-shell {
+      position: relative;
+      padding: 14px;
+      border: 1px solid rgba(255,255,255,.62);
+      border-radius: 24px;
+      background: rgba(255,255,255,.54);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,.86);
+      transition: border-color .24s var(--ease-premium), box-shadow .24s var(--ease-premium), transform .24s var(--ease-premium);
+    }
+    .editor-field-shell:focus-within {
+      transform: translateY(-2px);
+      border-color: rgba(20,184,166,.48);
+      box-shadow: 0 22px 48px rgba(15,23,42,.10), 0 0 0 7px rgba(20,184,166,.075), inset 0 1px 0 rgba(255,255,255,.92);
+    }
+    .editor-field-shell__meta {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 10px;
+      color: var(--muted-strong);
+      font-size: 12px;
+      font-weight: 900;
+      text-transform: uppercase;
+      letter-spacing: .08em;
+    }
+    .editor-field-shell__meta i { color: var(--brand); }
+    .editor-field-shell__meta small {
+      color: var(--muted);
+      font-size: 11px;
+      text-transform: none;
+      letter-spacing: 0;
+    }
+    .editor-field-shell textarea { min-height: 350px; }
+
+    .rms-trigger {
+      min-height: 54px;
+      border-radius: 18px;
+      padding: 9px 12px;
+    }
+    .rms-pop {
+      border-color: rgba(255,255,255,.68);
+      border-radius: 20px;
+      background: rgba(255,255,255,.92);
+      box-shadow: 0 26px 70px rgba(15,23,42,.18);
+      backdrop-filter: blur(20px) saturate(1.2);
+      -webkit-backdrop-filter: blur(20px) saturate(1.2);
+      transition: opacity .22s var(--ease-premium), transform .22s var(--ease-premium);
+    }
+    .rms-opt { transition: background .18s var(--ease-premium), transform .18s var(--ease-premium), color .18s var(--ease-premium); }
+    .rms-opt:hover { transform: translateX(3px); }
+    .rms-act { border-radius: 12px; }
+
+    .btn { position: relative; overflow: hidden; box-shadow: inset 0 1px 0 rgba(255,255,255,.6); }
+    .btn::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(110deg, transparent, rgba(255,255,255,.22), transparent);
+      transform: translateX(-130%);
+      transition: transform .55s var(--ease-premium);
+      pointer-events: none;
+    }
+    .btn:hover { transform: translateY(-2px); box-shadow: 0 18px 34px rgba(15,23,42,.11); }
+    .btn:hover::before { transform: translateX(130%); }
+    .btn-primary:hover { box-shadow: 0 18px 42px rgba(15,118,110,.28); }
+
+    .filter-chip { animation: floatIn .32s var(--ease-premium) both; }
+    .toast-card {
+      pointer-events: auto;
+      position: relative;
+      overflow: hidden;
+      border: 1px solid rgba(255,255,255,.54);
+      border-radius: 22px;
+      padding: 14px 15px;
+      color: var(--toast-color);
+      background:
+        linear-gradient(145deg, rgba(255,255,255,.86), rgba(255,255,255,.58)),
+        var(--toast-bg);
+      box-shadow: 0 22px 52px rgba(15,23,42,.18), inset 0 1px 0 rgba(255,255,255,.82);
+      backdrop-filter: blur(20px) saturate(1.25);
+      -webkit-backdrop-filter: blur(20px) saturate(1.25);
+      transform: translateX(18px) scale(.98);
+      opacity: 0;
+      transition: transform .32s var(--ease-premium), opacity .32s var(--ease-premium);
+    }
+    .toast-card.is-visible { transform: translateX(0) scale(1); opacity: 1; }
+    .toast-card.is-leaving { transform: translateX(18px) scale(.98); opacity: 0; }
+    .toast-card__inner { display: flex; align-items: flex-start; gap: 12px; }
+    .toast-card__icon {
+      width: 32px;
+      height: 32px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      flex: 0 0 auto;
+      border-radius: 12px;
+      background: color-mix(in srgb, var(--toast-dot), transparent 82%);
+      color: var(--toast-dot);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,.72);
+    }
+    .toast-card strong { display: block; font-size: 14px; font-weight: 950; letter-spacing: -.015em; }
+    .toast-card p { margin: 3px 0 0; font-size: 13px; font-weight: 730; line-height: 1.5; }
+    .toast-card button { border: 0; background: transparent; color: currentColor; padding: 2px; opacity: .66; transition: opacity .18s var(--ease-premium), transform .18s var(--ease-premium); }
+    .toast-card button:hover { opacity: 1; transform: scale(1.08); }
+    .toast-card__progress { position: absolute; left: 0; bottom: 0; height: 3px; width: 100%; background: var(--toast-dot); opacity: .72; transform-origin: left; animation: toastLife var(--toast-duration, 4200ms) linear forwards; }
+
+    .structure-alert {
+      position: relative;
+      overflow: hidden;
+      border-color: rgba(245,158,11,.34);
+      background:
+        linear-gradient(145deg, rgba(255,251,235,.96), rgba(255,247,214,.84)),
+        radial-gradient(circle at 0% 0%, rgba(245,158,11,.20), transparent 42%);
+      box-shadow: 0 14px 34px rgba(245,158,11,.11), 0 0 0 0 rgba(245,158,11,.22);
+      animation: pulseStructure 2.8s var(--ease-premium) infinite;
+    }
+    .structure-alert::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(110deg, transparent 8%, rgba(255,255,255,.42), transparent 30%);
+      transform: translateX(-130%);
+      animation: sheenStructure 3.8s var(--ease-premium) infinite;
+      pointer-events: none;
+    }
+
+    @keyframes floatIn { from { opacity: 0; transform: translateY(6px) scale(.98); } to { opacity: 1; transform: translateY(0) scale(1); } }
+    @keyframes toastLife { from { transform: scaleX(1); } to { transform: scaleX(0); } }
+    @keyframes pulseStructure { 0%, 100% { box-shadow: 0 14px 34px rgba(245,158,11,.11), 0 0 0 0 rgba(245,158,11,.22); } 50% { box-shadow: 0 18px 42px rgba(245,158,11,.16), 0 0 0 8px rgba(245,158,11,0); } }
+    @keyframes sheenStructure { 0%, 42% { transform: translateX(-130%); } 70%, 100% { transform: translateX(130%); } }
+
+    @media (max-width: 1100px) { .filter-field, .filter-field:first-child { grid-column: span 6; } }
+    @media (max-width: 720px) { .filter-field, .filter-field:first-child { grid-column: 1 / -1; } .text-editor-surface { padding: 8px; } }
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { animation-duration: .001ms !important; animation-iteration-count: 1 !important; scroll-behavior: auto !important; transition-duration: .001ms !important; }
+    }
+
+    html[data-theme="dark"] .filter-field,
+    html[data-theme="dark"] .editor-field-shell,
+    html[data-theme="dark"] .text-editor-surface {
+      border-color: rgba(148,180,190,.20);
+      background:
+        linear-gradient(145deg, rgba(24,42,49,.76), rgba(13,24,28,.54)),
+        radial-gradient(circle at 12% 0%, rgba(45,212,191,.12), transparent 46%);
+      box-shadow: 0 18px 42px rgba(0,0,0,.26), inset 0 1px 0 rgba(255,255,255,.05);
+    }
+    html[data-theme="dark"] .card-section:hover { background: rgba(45,212,191,.035); }
+    html[data-theme="dark"] .rms-pop,
+    html[data-theme="dark"] .toast-card {
+      background: linear-gradient(145deg, rgba(24,42,49,.92), rgba(13,24,28,.82)) !important;
+      border-color: rgba(148,180,190,.20) !important;
+    }
+    html[data-theme="dark"] .text-editor-surface .tabs { background: rgba(13,24,28,.62); }
+
   </style>
 </head>
 <body class="antialiased selection:bg-cosep-soft selection:text-cosep-teal">
@@ -803,7 +1139,7 @@
         </div>
 
         <div class="filter-grid">
-          <div class="filter-field">
+          <div class="filter-field transition-all duration-300 ease-out hover:-translate-y-1">
             <div class="field-label"><span>Comissão</span><small>atual</small></div>
             <div class="commission-switch" role="radiogroup" aria-label="Comissão do relatório">
               <label class="commission-option"><input type="radio" name="comissao" value="CRP" checked><strong>CRP</strong><span>Prontuário / registros assistenciais</span></label>
@@ -811,17 +1147,17 @@
             </div>
           </div>
 
-          <div class="filter-field">
+          <div class="filter-field transition-all duration-300 ease-out hover:-translate-y-1">
             <label class="field-label" for="anos"><span>Ano</span><small>multi</small></label>
             <div class="select-shell" data-count="0"><select id="anos" multiple aria-label="Filtrar por ano"></select></div>
           </div>
 
-          <div class="filter-field">
+          <div class="filter-field transition-all duration-300 ease-out hover:-translate-y-1">
             <label class="field-label" for="meses"><span>Mês</span><small>multi</small></label>
             <div class="select-shell" data-count="0"><select id="meses" multiple aria-label="Filtrar por mês"></select></div>
           </div>
 
-          <div class="filter-field">
+          <div class="filter-field transition-all duration-300 ease-out hover:-translate-y-1">
             <label class="field-label" for="unidades"><span>Setores</span><small>multi</small></label>
             <div class="select-shell" data-count="0"><select id="unidades" multiple aria-label="Filtrar por setores"></select></div>
           </div>
@@ -832,8 +1168,8 @@
         </div>
 
         <div class="filter-actions">
-          <button class="btn btn-primary" type="button" id="btn-aplicar-filtros"><i class="fa-solid fa-filter-circle-check"></i> Aplicar filtros</button>
-          <button class="btn btn-secondary" type="button" id="btn-limpar-filtros"><i class="fa-solid fa-eraser"></i> Limpar filtros</button>
+          <button class="btn btn-primary transition-all duration-300 ease-out" type="button" id="btn-aplicar-filtros"><i class="fa-solid fa-filter-circle-check"></i> Aplicar filtros</button>
+          <button class="btn btn-secondary transition-all duration-300 ease-out" type="button" id="btn-limpar-filtros"><i class="fa-solid fa-eraser"></i> Limpar filtros</button>
         </div>
       </section>
 
@@ -850,10 +1186,10 @@
       </section>
 
       <footer class="card-section footer-actions" aria-label="Ações do relatório">
-        <button class="btn btn-primary" type="button" id="btn-gerar"><i class="fa-solid fa-chart-line"></i> Gerar relatório</button>
+        <button class="btn btn-primary transition-all duration-300 ease-out" type="button" id="btn-gerar"><i class="fa-solid fa-chart-line"></i> Gerar relatório</button>
         <div class="footer-actions__secondary">
-          <button class="btn btn-secondary" type="button" id="btn-texto"><i class="fa-solid fa-rotate-left"></i> Restaurar texto padrão</button>
-          <button class="btn btn-secondary" type="button" id="btn-imprimir"><i class="fa-solid fa-print"></i> Imprimir / salvar PDF</button>
+          <button class="btn btn-secondary transition-all duration-300 ease-out" type="button" id="btn-texto"><i class="fa-solid fa-rotate-left"></i> Restaurar texto padrão</button>
+          <button class="btn btn-secondary transition-all duration-300 ease-out" type="button" id="btn-imprimir"><i class="fa-solid fa-print"></i> Imprimir / salvar PDF</button>
         </div>
       </footer>
     </section>
@@ -862,8 +1198,8 @@
     <div id="loading" class="loading-box"><span class="spinner" aria-hidden="true"></span><span>Carregando filtros e preparando relatório...</span></div>
     <section class="preview-card" aria-label="Prévia do relatório">
       <div class="report-tools hidden" id="report-tools">
-        <button class="btn btn-secondary" type="button" id="btn-topo"><i class="fa-solid fa-arrow-up"></i> Topo</button>
-        <button class="btn btn-secondary" type="button" id="btn-copiar"><i class="fa-solid fa-copy"></i> Copiar resumo</button>
+        <button class="btn btn-secondary transition-all duration-300 ease-out" type="button" id="btn-topo"><i class="fa-solid fa-arrow-up"></i> Topo</button>
+        <button class="btn btn-secondary transition-all duration-300 ease-out" type="button" id="btn-copiar"><i class="fa-solid fa-copy"></i> Copiar resumo</button>
       </div>
       <article id="relatorio" class="hidden"></article>
     </section>
@@ -918,9 +1254,9 @@
         </section>
 
         <footer class="card-section footer-actions">
-          <button class="btn btn-primary" type="submit" id="arel-salvar"><i class="fa-solid fa-floppy-disk"></i> Salvar configurações</button>
+          <button class="btn btn-primary transition-all duration-300 ease-out" type="submit" id="arel-salvar"><i class="fa-solid fa-floppy-disk"></i> Salvar configurações</button>
           <div class="footer-actions__secondary">
-            <button class="btn btn-secondary" type="button" id="arel-restaurar"><i class="fa-solid fa-rotate-left"></i> Restaurar padrão</button>
+            <button class="btn btn-secondary transition-all duration-300 ease-out" type="button" id="arel-restaurar"><i class="fa-solid fa-rotate-left"></i> Restaurar padrão</button>
             <span id="arel-info" class="adm-info"></span>
           </div>
         </footer>
@@ -944,11 +1280,11 @@
       const root = document.getElementById('report-text-react');
       if (!root) return;
       if (!window.React || !window.ReactDOM) {
-        root.innerHTML = `<div class="tabs" role="tablist" aria-label="Seções do texto do relatório">${textTabs.map(tab => `<button class="tab-button ${tab.key === activeTab ? 'active' : ''}" type="button" role="tab" aria-selected="${tab.key === activeTab}" aria-controls="${tab.panelId}" data-tab="${tab.key}">${tab.label}</button>`).join('')}</div>${textTabs.map(tab => `<div class="tab-panel ${tab.key === activeTab ? 'active' : ''}" id="${tab.panelId}" role="tabpanel"><textarea id="${tab.textareaId}" aria-label="${tab.aria}"></textarea></div>`).join('')}`;
+        root.innerHTML = `<div class="text-editor-surface"><div class="tabs" role="tablist" aria-label="Seções do texto do relatório">${textTabs.map(tab => `<button class="tab-button ${tab.key === activeTab ? 'active' : ''}" type="button" role="tab" aria-selected="${tab.key === activeTab}" aria-controls="${tab.panelId}" data-tab="${tab.key}">${tab.label}</button>`).join('')}</div>${textTabs.map(tab => `<div class="tab-panel ${tab.key === activeTab ? 'active' : ''}" id="${tab.panelId}" role="tabpanel"><div class="editor-field-shell"><div class="editor-field-shell__meta"><span><i class="fa-solid fa-wand-magic-sparkles"></i> ${tab.label}</span><small>edição ao vivo</small></div><textarea id="${tab.textareaId}" aria-label="${tab.aria}"></textarea></div></div>`).join('')}</div>`;
         return;
       }
       const h = React.createElement;
-      const app = h(React.Fragment, null,
+      const app = h('div', { className: 'text-editor-surface' },
         h('div', { className: 'tabs', role: 'tablist', 'aria-label': 'Seções do texto do relatório' },
           textTabs.map(tab => h('button', {
             key: `button-${tab.key}`,
@@ -965,7 +1301,13 @@
           className: `tab-panel ${tab.key === activeTab ? 'active' : ''}`,
           id: tab.panelId,
           role: 'tabpanel'
-        }, h('textarea', { id: tab.textareaId, 'aria-label': tab.aria })))
+        }, h('div', { className: 'editor-field-shell' },
+          h('div', { className: 'editor-field-shell__meta' },
+            h('span', null, h('i', { className: 'fa-solid fa-wand-magic-sparkles', 'aria-hidden': 'true' }), ` ${tab.label}`),
+            h('small', null, 'edição ao vivo')
+          ),
+          h('textarea', { id: tab.textareaId, 'aria-label': tab.aria })
+        )))
       );
       if (!root.__cosepReactRoot) root.__cosepReactRoot = ReactDOM.createRoot(root);
       root.__cosepReactRoot.render(app);
@@ -1087,33 +1429,42 @@
       const root = document.getElementById('toast-root');
       if (!root) return;
       const estilos = {
-        success: { bg: '#ecfdf5', color: '#064e3b', border: '#bbf7d0', dot: '#10b981' },
-        error: { bg: '#fff1f2', color: '#881337', border: '#fecdd3', dot: '#f43f5e' },
-        warning: { bg: '#fffbeb', color: '#78350f', border: '#fde68a', dot: '#f59e0b' },
-        info: { bg: '#eff6ff', color: '#1e3a8a', border: '#bfdbfe', dot: '#3b82f6' }
+        success: { bg: '#ecfdf5', color: '#064e3b', dot: '#10b981', icon: 'fa-circle-check' },
+        error: { bg: '#fff1f2', color: '#881337', dot: '#f43f5e', icon: 'fa-triangle-exclamation' },
+        warning: { bg: '#fffbeb', color: '#78350f', dot: '#f59e0b', icon: 'fa-bell' },
+        info: { bg: '#eff6ff', color: '#1e3a8a', dot: '#3b82f6', icon: 'fa-sparkles' }
       };
       const cfg = estilos[tipo] || estilos.info;
+      const duracao = tipo === 'error' ? 7200 : 4200;
       const toastEl = document.createElement('section');
+      toastEl.className = `toast-card toast-card--${tipo}`;
       toastEl.setAttribute('role', tipo === 'error' ? 'alert' : 'status');
-      toastEl.style.cssText = `pointer-events:auto;border:1px solid ${cfg.border};background:${cfg.bg};color:${cfg.color};border-radius:18px;padding:14px 15px;box-shadow:0 18px 36px rgba(15,23,42,.14);transform:translateX(16px);opacity:0;transition:.24s ease;`;
+      toastEl.style.setProperty('--toast-bg', cfg.bg);
+      toastEl.style.setProperty('--toast-color', cfg.color);
+      toastEl.style.setProperty('--toast-dot', cfg.dot);
+      toastEl.style.setProperty('--toast-duration', `${duracao}ms`);
       toastEl.innerHTML = `
-        <div style="display:flex;align-items:flex-start;gap:11px">
-          <span style="width:10px;height:10px;border-radius:999px;background:${cfg.dot};margin-top:7px;flex:0 0 auto"></span>
+        <div class="toast-card__inner">
+          <span class="toast-card__icon" aria-hidden="true"><i class="fa-solid ${cfg.icon}"></i></span>
           <div style="min-width:0;flex:1">
-            ${titulo ? `<strong style="display:block;font-size:14px;font-weight:900">${escapeHtml(titulo)}</strong>` : ''}
-            <p style="margin:2px 0 0;font-size:13px;font-weight:700;line-height:1.5">${escapeHtml(message)}</p>
+            ${titulo ? `<strong>${escapeHtml(titulo)}</strong>` : ''}
+            <p>${escapeHtml(message)}</p>
           </div>
-          <button type="button" style="border:0;background:transparent;color:currentColor;padding:2px;opacity:.65" aria-label="Fechar notificação"><i class="fa-solid fa-xmark"></i></button>
-        </div>`;
+          <button type="button" aria-label="Fechar notificação"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <span class="toast-card__progress" aria-hidden="true"></span>`;
+      let fechado = false;
       const fechar = () => {
-        toastEl.style.transform = 'translateX(16px)';
-        toastEl.style.opacity = '0';
-        window.setTimeout(() => toastEl.remove(), 260);
+        if (fechado) return;
+        fechado = true;
+        toastEl.classList.remove('is-visible');
+        toastEl.classList.add('is-leaving');
+        window.setTimeout(() => toastEl.remove(), 320);
       };
       toastEl.querySelector('button').addEventListener('click', fechar);
       root.appendChild(toastEl);
-      window.requestAnimationFrame(() => { toastEl.style.transform = 'translateX(0)'; toastEl.style.opacity = '1'; });
-      window.setTimeout(fechar, tipo === 'error' ? 7200 : 4200);
+      window.requestAnimationFrame(() => toastEl.classList.add('is-visible'));
+      window.setTimeout(fechar, duracao);
     }
 
     function toast(message, tipo = 'info', titulo = '') { mostrarToast(message, tipo, titulo); }
@@ -1130,8 +1481,8 @@
               <p id="confirm-message">${escapeHtml(mensagem || 'Deseja continuar com esta ação?')}</p>
             </div>
             <div class="confirm-actions">
-              <button type="button" class="btn btn-secondary" data-confirm="cancel">${escapeHtml(textoCancelar)}</button>
-              <button type="button" class="btn btn-primary" data-confirm="ok">${escapeHtml(textoConfirmar)}</button>
+              <button type="button" class="btn btn-secondary transition-all duration-300 ease-out" data-confirm="cancel">${escapeHtml(textoCancelar)}</button>
+              <button type="button" class="btn btn-primary transition-all duration-300 ease-out" data-confirm="ok">${escapeHtml(textoConfirmar)}</button>
             </div>
           </section>`;
         const finalizar = resposta => {

@@ -8,335 +8,91 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: ['class', '[data-theme="dark"]'],
+      theme: {
+        extend: {
+          fontFamily: { sans: ['Inter', 'ui-sans-serif', 'system-ui'] },
+          colors: { cosep: { teal: '#0f766e', tealDark: '#115e59', ink: '#17262b', line: '#dde7e5', mist: '#e5f3f1' } },
+          borderRadius: { executive: '8px' },
+          boxShadow: { executive: '0 10px 28px rgba(15, 23, 42, .07)' }
+        }
+      }
+    };
+  </script>
   <script>
     (function () {
-      try {
-        document.documentElement.setAttribute('data-theme', localStorage.getItem('cosep-theme') || 'light');
-      } catch (e) {
-        document.documentElement.setAttribute('data-theme', 'light');
-      }
+      try { document.documentElement.setAttribute('data-theme', localStorage.getItem('cosep-theme') || 'light'); }
+      catch (_) { document.documentElement.setAttribute('data-theme', 'light'); }
     })();
   </script>
   <style>
-    :root {
-      --bg: #f4f7f7;
-      --surface: #ffffff;
-      --surface-muted: #f8faf9;
-      --surface-strong: #eef5f4;
-      --border: #dde7e5;
-      --border-strong: #c4d4d1;
-      --text: #17262b;
-      --muted: #607176;
-      --muted-strong: #40535a;
-      --brand: #0f766e;
-      --brand-dark: #115e59;
-      --brand-soft: #e5f3f1;
-      --info: #0e7490;
-      --success: #15803d;
-      --warning: #b45309;
-      --danger: #b42318;
-      --shadow: 0 8px 24px rgba(15, 23, 42, .07);
-      --radius: 8px;
-      --radius-sm: 6px;
-      --focus: 0 0 0 3px rgba(15, 118, 110, .16);
-    }
-
-    html[data-theme="dark"] {
-      --bg: #0f171a;
-      --surface: #172226;
-      --surface-muted: #111c20;
-      --surface-strong: #1d3034;
-      --border: rgba(171, 194, 199, .16);
-      --border-strong: rgba(171, 194, 199, .28);
-      --text: #edf4f5;
-      --muted: #a8b8bc;
-      --muted-strong: #cbd8db;
-      --brand: #2dd4bf;
-      --brand-dark: #7ddbd1;
-      --brand-soft: rgba(45, 212, 191, .13);
-      --info: #67e8f9;
-      --success: #86efac;
-      --warning: #facc15;
-      --danger: #fca5a5;
-      --shadow: 0 10px 26px rgba(0, 0, 0, .28);
-    }
-
+    :root { color-scheme: light; --brand: #0f766e; --brand-dark: #115e59; --text: #17262b; --muted: #667085; --line: #e4e7ec; }
+    html[data-theme="dark"] { color-scheme: dark; --brand: #2dd4bf; --brand-dark: #7ddbd1; --text: #edf4f5; --muted: #a8b8bc; --line: rgba(171,194,199,.18); }
     * { box-sizing: border-box; }
-    html { scroll-behavior: smooth; }
-    html, body { min-height: 100%; }
-    body {
-      margin: 0;
-      color: var(--text);
-      background: var(--bg);
-      font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-      font-size: 14px;
-      line-height: 1.5;
-    }
-    body, button, input, select, textarea { font: inherit; }
+    body { margin: 0; font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+    button, input, select, textarea { font: inherit; }
     button { cursor: pointer; }
-    a { color: inherit; }
     .hidden { display: none !important; }
-
-    .app-shell {
-      width: min(1440px, calc(100% - 32px));
-      margin: 0 auto;
-      padding: 18px 0 40px;
-    }
-
-    .topbar {
-      position: sticky;
-      top: 0;
-      z-index: 40;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 16px;
-      min-height: 58px;
-      margin: -18px calc((100vw - min(1440px, calc(100vw - 32px))) / -2) 18px;
-      padding: 10px max(16px, calc((100vw - 1440px) / 2 + 16px));
-      border-bottom: 1px solid var(--border);
-      background: color-mix(in srgb, var(--surface) 92%, transparent);
-      backdrop-filter: blur(16px);
-    }
-    .brand-lockup { display: flex; align-items: center; gap: 10px; min-width: 0; }
-    .brand-mark {
-      width: 34px;
-      height: 34px;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      border-radius: var(--radius);
-      background: var(--brand);
-      color: #fff;
-    }
-    .brand-copy { display: grid; gap: 1px; min-width: 0; }
-    .brand-copy strong { font-size: 14px; line-height: 1.2; letter-spacing: -.01em; }
-    .brand-copy span { color: var(--muted); font-size: 12px; font-weight: 650; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .topbar-actions { display: flex; align-items: center; gap: 8px; }
-
-    .nav-tabs {
-      display: inline-flex;
-      gap: 4px;
-      padding: 4px;
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      background: var(--surface-muted);
-    }
-    .nav-tab,
-    .icon-btn,
-    .btn {
-      min-height: 38px;
-      border: 1px solid transparent;
-      border-radius: var(--radius-sm);
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      gap: 8px;
-      padding: 9px 12px;
-      color: var(--muted-strong);
-      background: transparent;
-      font-weight: 780;
-      text-decoration: none;
-      transition: background .16s ease, border-color .16s ease, color .16s ease, box-shadow .16s ease;
-    }
-    .nav-tab.active { color: var(--text); background: var(--surface); border-color: var(--border); box-shadow: 0 1px 2px rgba(15,23,42,.04); }
-    .icon-btn { width: 38px; padding: 0; border-color: var(--border); background: var(--surface); }
-    .btn { border-color: var(--border); background: var(--surface); }
-    .btn:hover, .icon-btn:hover { border-color: var(--border-strong); box-shadow: 0 1px 3px rgba(15,23,42,.08); }
-    .btn-primary { color: #fff; background: var(--brand); border-color: var(--brand); }
-    .btn-primary:hover { background: var(--brand-dark); border-color: var(--brand-dark); }
-    .btn-danger { color: var(--danger); border-color: color-mix(in srgb, var(--danger) 28%, var(--border)); }
-    .btn-ghost { border-color: transparent; background: transparent; }
-    .btn[disabled], .icon-btn[disabled] { cursor: wait; opacity: .62; box-shadow: none; }
-    .btn .spinner { width: 15px; height: 15px; border-width: 2px; }
-
-    .dashboard { display: grid; gap: 16px; }
-    .kpi-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
-    .kpi-card {
-      min-height: 92px;
-      padding: 15px;
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      background: var(--surface);
-      box-shadow: 0 1px 2px rgba(15,23,42,.03);
-    }
-    .kpi-card span { display: block; color: var(--muted); font-size: 11px; font-weight: 850; letter-spacing: .05em; text-transform: uppercase; }
-    .kpi-card strong { display: block; margin-top: 8px; color: var(--text); font-size: clamp(23px, 2.6vw, 32px); line-height: 1; letter-spacing: -.04em; }
-    .kpi-card small { display: block; margin-top: 7px; color: var(--muted); font-size: 12px; }
-
-    .workspace { display: grid; grid-template-columns: minmax(340px, 420px) minmax(0, 1fr); gap: 16px; align-items: start; }
-    .side-stack, .main-stack, .admin-stack { display: grid; gap: 12px; }
-    .side-stack { position: sticky; top: 76px; }
-    .panel {
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      background: var(--surface);
-      box-shadow: 0 1px 2px rgba(15,23,42,.03);
-      overflow: visible;
-    }
-    .panel-head {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 12px;
-      padding: 14px 16px;
-      border-bottom: 1px solid var(--border);
-    }
-    .panel-title { display: grid; gap: 2px; min-width: 0; }
-    .panel-title h1, .panel-title h2, .panel-title h3 { margin: 0; color: var(--text); font-size: 16px; line-height: 1.25; letter-spacing: -.02em; }
-    .panel-title p { margin: 0; color: var(--muted); font-size: 12px; font-weight: 620; }
-    .panel-body { padding: 16px; }
-    .panel-footer {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      flex-wrap: wrap;
-      gap: 10px;
-      padding: 12px 16px;
-      border-top: 1px solid var(--border);
-      background: var(--surface-muted);
-    }
-
-    .status-pill, .chip {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      max-width: 100%;
-      min-height: 24px;
-      padding: 4px 8px;
-      border: 1px solid var(--border);
-      border-radius: 999px;
-      background: var(--surface-muted);
-      color: var(--muted-strong);
-      font-size: 11px;
-      font-weight: 800;
-      white-space: nowrap;
-    }
-    .status-pill.good, .chip.good { border-color: color-mix(in srgb, var(--success) 28%, var(--border)); color: var(--success); background: color-mix(in srgb, var(--success) 10%, var(--surface)); }
-    .status-pill.warn, .chip.warn { border-color: color-mix(in srgb, var(--warning) 30%, var(--border)); color: var(--warning); background: color-mix(in srgb, var(--warning) 10%, var(--surface)); }
-    .chip button { border: 0; background: transparent; color: inherit; padding: 0; line-height: 1; }
-
-    .filter-grid { display: grid; gap: 12px; }
-    .field { display: grid; gap: 7px; min-width: 0; }
-    .field-label { display: flex; align-items: center; justify-content: space-between; gap: 8px; color: var(--muted-strong); font-size: 12px; font-weight: 820; }
-    .field-label small { color: var(--muted); font-weight: 750; }
-    .input, .textarea, .multi-trigger {
-      width: 100%;
-      min-height: 40px;
-      border: 1px solid var(--border-strong);
-      border-radius: var(--radius-sm);
-      background: var(--surface);
-      color: var(--text);
-      outline: none;
-    }
+    .panel { border: 1px solid var(--line); border-radius: 8px; background: #fff; box-shadow: 0 1px 2px rgba(15,23,42,.03); }
+    html[data-theme="dark"] .panel { background: #172226; }
+    .btn { min-height: 38px; display: inline-flex; align-items: center; justify-content: center; gap: 8px; border: 1px solid var(--line); border-radius: 6px; padding: 8px 12px; background: #fff; color: #40535a; font-weight: 800; }
+    html[data-theme="dark"] .btn { background: #111c20; color: #d6e2e4; }
+    .btn-primary { background: #0f766e; border-color: #0f766e; color: #fff; }
+    .btn-danger { color: #b42318; border-color: rgba(180,35,24,.32); }
+    .btn[disabled] { opacity: .6; cursor: wait; }
+    .icon-btn { width: 38px; min-height: 38px; display: inline-flex; align-items: center; justify-content: center; border: 1px solid var(--line); border-radius: 6px; background: #fff; }
+    html[data-theme="dark"] .icon-btn { background: #111c20; }
+    .input, .textarea, .multi-trigger { width: 100%; min-height: 40px; border: 1px solid #cbd5d1; border-radius: 6px; background: #fff; color: #17262b; outline: none; }
+    html[data-theme="dark"] .input, html[data-theme="dark"] .textarea, html[data-theme="dark"] .multi-trigger { background: #111c20; color: #edf4f5; border-color: rgba(171,194,199,.28); }
     .input { padding: 8px 10px; }
     .textarea { min-height: 96px; padding: 10px; resize: vertical; line-height: 1.55; }
-    .input:focus, .textarea:focus, .multi.open .multi-trigger, .multi-search:focus { border-color: var(--brand); box-shadow: var(--focus); }
-
-    .commission-switch { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-    .commission-option {
-      position: relative;
-      min-height: 74px;
-      display: grid;
-      align-content: center;
-      gap: 3px;
-      padding: 11px;
-      border: 1px solid var(--border);
-      border-radius: var(--radius-sm);
-      background: var(--surface-muted);
-      color: var(--muted-strong);
-    }
-    .commission-option input { position: absolute; opacity: 0; pointer-events: none; }
-    .commission-option strong { color: var(--text); font-size: 15px; }
-    .commission-option span { color: var(--muted); font-size: 11px; font-weight: 650; }
-    .commission-option:has(input:checked) { border-color: var(--brand); background: var(--brand-soft); }
-    .commission-option.disabled { opacity: .48; cursor: not-allowed; }
-
+    .input:focus, .textarea:focus, .multi.open .multi-trigger, .multi-search:focus { border-color: #0f766e; box-shadow: 0 0 0 3px rgba(15,118,110,.16); }
+    .field { display: grid; gap: 7px; min-width: 0; }
+    .field-label { display: flex; align-items: center; justify-content: space-between; gap: 8px; color: #40535a; font-size: 12px; font-weight: 850; }
+    html[data-theme="dark"] .field-label { color: #cbd8db; }
+    .field-label small { color: #667085; font-weight: 760; }
+    .spinner { width: 18px; height: 18px; border: 2.5px solid #dde7e5; border-top-color: #0f766e; border-radius: 999px; animation: spin .75s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .chip, .status-pill { display: inline-flex; align-items: center; gap: 6px; min-height: 24px; padding: 4px 8px; border: 1px solid var(--line); border-radius: 999px; background: #f8faf9; color: #40535a; font-size: 11px; font-weight: 850; white-space: nowrap; }
+    html[data-theme="dark"] .chip, html[data-theme="dark"] .status-pill { background: #111c20; color: #cbd8db; }
     .multi { position: relative; }
-    .multi-trigger {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 8px;
-      padding: 6px 9px;
-      text-align: left;
-    }
+    .multi-trigger { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 7px 9px; text-align: left; }
     .multi-value { display: flex; align-items: center; flex-wrap: wrap; gap: 5px; min-width: 0; }
-    .multi-placeholder { color: var(--muted); font-weight: 700; }
-    .multi-pop {
-      position: absolute;
-      z-index: 50;
-      top: calc(100% + 6px);
-      left: 0;
-      right: 0;
-      display: none;
-      padding: 10px;
-      border: 1px solid var(--border-strong);
-      border-radius: var(--radius);
-      background: var(--surface);
-      box-shadow: var(--shadow);
-    }
-    .multi.open .multi-pop { display: grid; gap: 8px; }
-    .multi-search { width: 100%; min-height: 36px; border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 7px 9px; outline: none; background: var(--surface); color: var(--text); }
-    .multi-actions { display: flex; gap: 7px; }
-    .multi-action { flex: 1; min-height: 31px; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--surface-muted); color: var(--muted-strong); font-size: 12px; font-weight: 800; }
-    .multi-list { max-height: 210px; overflow: auto; display: grid; gap: 2px; }
-    .multi-option { display: flex; align-items: center; gap: 8px; min-height: 33px; padding: 6px 8px; border-radius: var(--radius-sm); color: var(--text); font-weight: 650; }
-    .multi-option:hover { background: var(--surface-muted); }
-    .multi-option.selected { background: var(--brand-soft); color: var(--brand-dark); }
-    .multi-option input { width: 16px; height: 16px; accent-color: var(--brand); }
-    .multi-empty { color: var(--muted); padding: 12px 8px; text-align: center; font-size: 12px; }
-    .filter-summary { display: flex; flex-wrap: wrap; gap: 6px; min-height: 26px; }
-
-    .tabs { display: flex; gap: 4px; padding: 4px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface-muted); overflow-x: auto; }
-    .tab-button { flex: 0 0 auto; min-height: 34px; border: 1px solid transparent; border-radius: var(--radius-sm); padding: 7px 10px; background: transparent; color: var(--muted-strong); font-size: 12px; font-weight: 820; }
-    .tab-button.active { color: var(--text); background: var(--surface); border-color: var(--border); }
+    .multi-placeholder { color: #667085; font-weight: 750; }
+    .multi-pop { position: absolute; z-index: 60; top: calc(100% + 6px); left: 0; right: 0; display: none; gap: 8px; padding: 10px; border: 1px solid #cbd5d1; border-radius: 8px; background: #fff; box-shadow: 0 14px 34px rgba(15,23,42,.12); }
+    html[data-theme="dark"] .multi-pop { background: #172226; border-color: rgba(171,194,199,.28); }
+    .multi.open .multi-pop { display: grid; }
+    .multi-search { min-height: 36px; border: 1px solid var(--line); border-radius: 6px; padding: 7px 9px; outline: none; }
+    .multi-list { max-height: 220px; overflow: auto; display: grid; gap: 2px; }
+    .multi-option { display: flex; align-items: center; gap: 8px; min-height: 34px; padding: 6px 8px; border-radius: 6px; color: var(--text); font-weight: 650; }
+    .multi-option:hover, .multi-option.selected { background: #e5f3f1; color: #115e59; }
     .tab-panel { display: none; margin-top: 10px; }
     .tab-panel.active { display: block; }
-    .editor-meta { display: flex; justify-content: space-between; gap: 8px; margin-bottom: 7px; color: var(--muted); font-size: 11px; font-weight: 750; }
-
-    .loading-box {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      min-height: 46px;
-      padding: 12px 14px;
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      background: var(--surface);
-      color: var(--muted-strong);
-      font-weight: 760;
-    }
-    .spinner { width: 18px; height: 18px; border: 2.5px solid var(--border); border-top-color: var(--brand); border-radius: 50%; animation: spin .75s linear infinite; }
-    @keyframes spin { to { transform: rotate(360deg); } }
-
-    .report-tools { display: flex; justify-content: flex-end; flex-wrap: wrap; gap: 8px; margin-bottom: 10px; }
-    .preview-panel { padding: 14px; overflow-x: auto; }
-    .document-page {
-      width: 210mm;
-      min-height: 297mm;
-      margin: 0 auto;
-      padding: 12mm;
-      border: 1px solid #e4e7ec;
-      border-radius: var(--radius);
-      background: #fff;
-      color: #17262b;
-      box-shadow: 0 10px 30px rgba(15,23,42,.08);
-      display: flex;
-      flex-direction: column;
-      gap: 12px;
-      break-after: page;
-      page-break-after: always;
-    }
+    .toast-root { position: fixed; right: 16px; top: 70px; z-index: 100; width: min(390px, calc(100vw - 32px)); display: grid; gap: 8px; pointer-events: none; }
+    .toast { pointer-events: auto; display: grid; grid-template-columns: 24px 1fr 24px; gap: 9px; align-items: start; padding: 12px; border: 1px solid var(--line); border-left: 4px solid var(--toast-dot); border-radius: 8px; background: #fff; color: #17262b; box-shadow: 0 12px 30px rgba(15,23,42,.12); opacity: 0; transform: translateY(-6px); transition: opacity .18s ease, transform .18s ease; }
+    html[data-theme="dark"] .toast { background: #172226; color: #edf4f5; }
+    .toast.visible { opacity: 1; transform: translateY(0); }
+    .toast p { margin: 2px 0 0; color: #667085; font-size: 12px; font-weight: 650; }
+    .toast button { border: 0; background: transparent; color: #667085; padding: 0; }
+    .confirm-overlay { position: fixed; inset: 0; z-index: 200; display: grid; place-items: center; padding: 20px; background: rgba(15,23,42,.42); }
+    .confirm-dialog { width: min(460px, 100%); border: 1px solid var(--line); border-radius: 8px; background: #fff; box-shadow: 0 18px 48px rgba(15,23,42,.2); }
+    html[data-theme="dark"] .confirm-dialog { background: #172226; }
+    .document-page { width: 210mm; min-height: 297mm; height: 297mm; margin: 0 auto; padding: 12mm; background: #fff; color: #17262b; border: 1px solid #e4e7ec; border-radius: 8px; box-shadow: 0 12px 34px rgba(15,23,42,.10); display: flex; flex-direction: column; gap: 10px; overflow: hidden; break-after: page; page-break-after: always; }
+    .document-page + .document-page { margin-top: 14px; }
+    .document-page:last-child { break-after: auto; page-break-after: auto; }
     .doc-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; padding-bottom: 10px; border-bottom: 1px solid #e4e7ec; }
     .doc-brand { display: flex; align-items: flex-start; gap: 10px; min-width: 0; }
-    .doc-logo { width: 42px; height: 42px; object-fit: contain; flex: 0 0 auto; }
+    .doc-logo { width: 42px; height: 42px; object-fit: contain; }
     .doc-top h2 { margin: 0; font-size: 18px; line-height: 1.2; letter-spacing: -.02em; color: #17262b; }
     .doc-top p, .doc-meta { margin: 3px 0 0; color: #667085; font-size: 11px; line-height: 1.45; }
     .doc-meta { min-width: 170px; text-align: right; }
+    .doc-page-body { display: grid; gap: 9px; }
     .doc-hero { display: grid; grid-template-columns: minmax(0, 1fr) 150px; gap: 16px; align-items: start; padding: 4px 0; }
     .doc-kicker { color: #0f766e; font-size: 10px; font-weight: 900; letter-spacing: .12em; text-transform: uppercase; }
-    .doc-title { margin: 4px 0 0; color: #17262b; font-size: 25px; line-height: 1.1; letter-spacing: -.035em; }
+    .doc-title { margin: 4px 0 0; font-size: 25px; line-height: 1.1; letter-spacing: -.035em; }
     .doc-subtitle { margin: 7px 0 0; color: #667085; font-size: 12px; line-height: 1.5; }
     .doc-score { border: 1px solid #d0d5dd; border-radius: 8px; padding: 11px; text-align: right; background: #f9fafb; }
     .doc-score strong { display: block; color: #0f766e; font-size: 28px; line-height: 1; letter-spacing: -.035em; }
@@ -345,12 +101,12 @@
     .doc-metric { border: 1px solid #e4e7ec; border-radius: 8px; padding: 10px; background: #fcfcfd; }
     .doc-metric span { display: block; color: #667085; font-size: 9.5px; font-weight: 900; letter-spacing: .06em; text-transform: uppercase; }
     .doc-metric strong { display: block; margin-top: 5px; color: #17262b; font-size: 21px; line-height: 1; letter-spacing: -.03em; }
-    .doc-section { margin-top: 7px; break-inside: avoid; }
-    .doc-section h3 { margin: 0 0 7px; color: #17262b; font-size: 14px; line-height: 1.25; letter-spacing: -.01em; }
-    .doc-text { color: #344054; font-size: 11.5px; line-height: 1.66; text-align: justify; white-space: pre-line; }
+    .doc-section { margin-top: 6px; break-inside: avoid; }
+    .doc-section h3 { margin: 0 0 7px; color: #17262b; font-size: 14px; line-height: 1.25; }
+    .doc-text { color: #344054; font-size: 10.8px; line-height: 1.55; text-align: justify; white-space: pre-line; }
     .doc-grid { display: grid; grid-template-columns: 1.08fr .92fr; gap: 10px; margin-top: 8px; }
-    .chart-box { height: 210px; min-height: 210px; border: 1px solid #e4e7ec; border-radius: 8px; padding: 9px; background: #fcfcfd; break-inside: avoid; }
-    .chart-box canvas, .chart-box img { display: block; width: 100% !important; height: 190px !important; object-fit: contain; }
+    .chart-box { height: 198px; min-height: 198px; border: 1px solid #e4e7ec; border-radius: 8px; padding: 9px; background: #fcfcfd; break-inside: avoid; }
+    .chart-box canvas, .chart-box img { display: block; width: 100% !important; height: 176px !important; object-fit: contain; }
     .table-wrap { border: 1px solid #e4e7ec; border-radius: 8px; overflow: hidden; margin-top: 7px; break-inside: avoid; }
     table { width: 100%; border-collapse: collapse; font-size: 10.4px; }
     th, td { padding: 7px 8px; border-bottom: 1px solid #eef0f3; text-align: left; vertical-align: top; }
@@ -363,232 +119,85 @@
     .structure-alert { border: 1px solid #fedf89; background: #fffaeb; color: #93370d; border-radius: 8px; padding: 9px 11px; font-size: 10.5px; line-height: 1.5; break-inside: avoid; }
     .structure-alert strong { display: block; margin-bottom: 4px; color: #7a2e0e; }
     .structure-alert ul { margin: 0; padding-left: 17px; }
-    .doc-footer { margin-top: auto; padding-top: 8px; border-top: 1px solid #e4e7ec; display: flex; justify-content: center; align-items: center; }
-    .footer-brand { height: 34px; max-width: 155mm; object-fit: contain; }
-
-    .admin-shell { display: grid; gap: 12px; }
-    .admin-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
-    .admin-grid.three { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-    .admin-full { grid-column: 1 / -1; }
-    .indicator-admin-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
-    .indicator-row { display: grid; grid-template-columns: 32px minmax(0, 1fr); gap: 8px; align-items: center; }
-    .indicator-number { min-height: 34px; display: inline-flex; align-items: center; justify-content: center; border-radius: var(--radius-sm); background: var(--surface-muted); color: var(--muted-strong); font-size: 12px; font-weight: 900; }
-    .admin-info { color: var(--muted); font-size: 12px; font-weight: 650; }
-    .readonly-banner { display: flex; align-items: center; gap: 8px; padding: 10px 12px; border: 1px solid color-mix(in srgb, var(--warning) 30%, var(--border)); border-radius: var(--radius); background: color-mix(in srgb, var(--warning) 9%, var(--surface)); color: var(--warning); font-weight: 820; }
-
-    #toast-root { position: fixed; right: 16px; top: 70px; z-index: 100; display: grid; gap: 8px; width: min(390px, calc(100vw - 32px)); pointer-events: none; }
-    .toast { pointer-events: auto; display: grid; grid-template-columns: 24px minmax(0, 1fr) 24px; gap: 9px; align-items: start; padding: 12px; border: 1px solid var(--border); border-left: 4px solid var(--toast-dot); border-radius: var(--radius); background: var(--surface); color: var(--text); box-shadow: var(--shadow); opacity: 0; transform: translateY(-6px); transition: opacity .2s ease, transform .2s ease; }
-    .toast.visible { opacity: 1; transform: translateY(0); }
-    .toast.leaving { opacity: 0; transform: translateY(-6px); }
-    .toast i { color: var(--toast-dot); margin-top: 2px; }
-    .toast strong { display: block; font-size: 13px; }
-    .toast p { margin: 2px 0 0; color: var(--muted); font-size: 12px; font-weight: 650; }
-    .toast button { border: 0; background: transparent; color: var(--muted); padding: 0; }
-
-    .confirm-overlay { position: fixed; inset: 0; z-index: 200; display: grid; place-items: center; padding: 20px; background: rgba(15, 23, 42, .42); opacity: 0; transition: opacity .18s ease; }
-    .confirm-overlay.open { opacity: 1; }
-    .confirm-dialog { width: min(460px, 100%); border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface); box-shadow: var(--shadow); }
-    .confirm-body { padding: 18px; }
-    .confirm-body h3 { margin: 0; font-size: 18px; letter-spacing: -.02em; }
-    .confirm-body p { margin: 8px 0 0; color: var(--muted); font-weight: 650; }
-    .confirm-actions { display: flex; justify-content: flex-end; gap: 8px; padding: 12px 18px 18px; }
-
+    .doc-footer { margin-top: auto; padding-top: 8px; border-top: 1px solid #e4e7ec; display: flex; justify-content: space-between; gap: 12px; align-items: center; color: #667085; font-size: 9px; font-weight: 800; }
+    .footer-brand { height: 24px; max-width: 94mm; object-fit: contain; }
     .pdf-capture-stage { position: fixed; inset: 0; z-index: 2147483647; overflow: auto; background: #fff; pointer-events: none; opacity: 1; }
     .pdf-capture-stage > article { width: 210mm; max-width: 210mm; margin: 0 auto; background: #fff; }
+    .pdf-capture-stage .document-page { margin: 0 auto !important; border: 0 !important; border-radius: 0 !important; box-shadow: none !important; }
     body.pdf-export .document-page, body.pdf-export .doc-metric, body.pdf-export .chart-box { background: #fff !important; box-shadow: none !important; }
-
-    @media (max-width: 1180px) {
-      .workspace { grid-template-columns: 1fr; }
-      .side-stack { position: static; }
-      .kpi-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-      .document-page { width: 100%; min-height: auto; }
-    }
-    @media (max-width: 760px) {
-      .app-shell { width: min(100% - 20px, 1440px); padding-bottom: 24px; }
-      .topbar { margin-left: -10px; margin-right: -10px; padding-left: 10px; padding-right: 10px; align-items: flex-start; }
-      .brand-copy span { display: none; }
-      .topbar-actions { flex-wrap: wrap; justify-content: flex-end; }
-      .nav-tab span, .btn.hide-text-mobile span { display: none; }
-      .kpi-grid, .admin-grid, .admin-grid.three, .indicator-admin-grid, .doc-metrics, .doc-grid, .doc-hero { grid-template-columns: 1fr; }
-      .panel-head, .panel-footer, .doc-top { align-items: flex-start; flex-direction: column; }
-      .doc-meta, .doc-score { text-align: left; min-width: 0; }
-      .document-page { padding: 18px; }
-      .commission-switch { grid-template-columns: 1fr; }
-    }
-
-    @media print {
-      @page { size: A4 portrait; margin: 0; }
-      html, body { width: 210mm; background: #fff !important; }
-      .topbar, .kpi-grid, .side-stack, .report-tools, .loading-box, #toast-root, #admin-view { display: none !important; }
-      .app-shell { width: auto; max-width: none; padding: 0; }
-      .workspace { display: block; }
-      .main-stack, .panel, .preview-panel { display: block; border: 0; box-shadow: none; padding: 0; }
-      .document-page { width: 210mm; min-height: 297mm; margin: 0; border: 0; border-radius: 0; box-shadow: none; break-after: page; page-break-after: always; }
-    }
-
-    @media (prefers-reduced-motion: reduce) {
-      *, *::before, *::after { animation-duration: .001ms !important; animation-iteration-count: 1 !important; transition-duration: .001ms !important; scroll-behavior: auto !important; }
-    }
+    @media (max-width: 1180px) { .document-page { width: 100%; height: auto; min-height: auto; overflow: visible; } }
+    @media (max-width: 760px) { .document-page { padding: 18px; } .doc-metrics, .doc-grid, .doc-hero { grid-template-columns: 1fr; } .doc-meta, .doc-score { min-width: 0; text-align: left; } .doc-top { flex-direction: column; } }
+    @media print { @page { size: A4 portrait; margin: 0; } html, body { width: 210mm; background: #fff !important; } .no-print, #toast-root, #admin-view { display: none !important; } .document-page { width: 210mm; min-height: 297mm; height: 297mm; margin: 0; border: 0; border-radius: 0; box-shadow: none; break-after: page; page-break-after: always; } }
+    @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: .001ms !important; animation-iteration-count: 1 !important; transition-duration: .001ms !important; scroll-behavior: auto !important; } }
   </style>
 </head>
-<body>
-  <div id="toast-root" aria-live="polite" aria-atomic="true"></div>
+<body class="min-h-screen bg-slate-50 text-slate-900 antialiased dark:bg-slate-950 dark:text-slate-100">
+  <div id="toast-root" class="toast-root" aria-live="polite" aria-atomic="true"></div>
 
-  <header class="topbar">
-    <div class="brand-lockup">
-      <span class="brand-mark" aria-hidden="true"><i class="fa-solid fa-chart-simple"></i></span>
-      <div class="brand-copy">
-        <strong>Relatório Analítico COSEP</strong>
-        <span>Dashboard executivo para avaliação institucional</span>
+  <header class="no-print sticky top-0 z-40 border-b border-slate-200/80 bg-white/95 backdrop-blur dark:border-slate-800 dark:bg-slate-900/90">
+    <div class="mx-auto flex min-h-[58px] w-[min(1440px,calc(100%-32px))] items-center justify-between gap-4 py-2">
+      <div class="flex min-w-0 items-center gap-3">
+        <span class="flex h-9 w-9 items-center justify-center rounded-executive bg-cosep-teal text-white"><i class="fa-solid fa-chart-simple" aria-hidden="true"></i></span>
+        <div class="min-w-0">
+          <strong class="block text-sm font-extrabold leading-tight tracking-tight">Relatório Analítico COSEP</strong>
+          <span class="block truncate text-xs font-semibold text-slate-500">Dashboard executivo para avaliação institucional</span>
+        </div>
       </div>
-    </div>
-    <div class="topbar-actions">
-      <nav class="nav-tabs" aria-label="Visualizações">
-        <a href="#" class="nav-tab active" data-view-rel="relatorio"><i class="fa-solid fa-chart-line" aria-hidden="true"></i><span>Relatório</span></a>
-        <a href="#" class="nav-tab" data-view-rel="admin"><i class="fa-solid fa-gear" aria-hidden="true"></i><span>Admin</span></a>
-      </nav>
-      <button type="button" class="icon-btn theme-toggle" aria-label="Alternar tema" aria-pressed="false" title="Alternar tema">
-        <i class="fa-solid fa-moon" aria-hidden="true"></i>
-      </button>
+      <div class="flex items-center gap-2">
+        <nav class="flex rounded-executive border border-slate-200 bg-slate-50 p-1 dark:border-slate-800 dark:bg-slate-950" aria-label="Visualizações">
+          <a href="#" class="nav-tab rounded-md px-3 py-2 text-xs font-extrabold text-slate-600 data-[active=true]:bg-white data-[active=true]:text-slate-950 data-[active=true]:shadow-sm dark:text-slate-300 dark:data-[active=true]:bg-slate-800 dark:data-[active=true]:text-white" data-view-rel="relatorio" data-active="true"><i class="fa-solid fa-chart-line" aria-hidden="true"></i> <span>Relatório</span></a>
+          <a href="#" class="nav-tab rounded-md px-3 py-2 text-xs font-extrabold text-slate-600 data-[active=true]:bg-white data-[active=true]:text-slate-950 data-[active=true]:shadow-sm dark:text-slate-300 dark:data-[active=true]:bg-slate-800 dark:data-[active=true]:text-white" data-view-rel="admin" data-active="false"><i class="fa-solid fa-gear" aria-hidden="true"></i> <span>Admin</span></a>
+        </nav>
+        <button type="button" class="icon-btn theme-toggle" aria-label="Alternar tema" aria-pressed="false" title="Alternar tema"><i class="fa-solid fa-moon" aria-hidden="true"></i></button>
+      </div>
     </div>
   </header>
 
-  <main class="app-shell">
-    <section id="dashboard-view" class="dashboard" aria-label="Relatório COSEP">
-      <section class="kpi-grid" aria-label="Indicadores principais">
-        <article class="kpi-card"><span>Comissão</span><strong id="hero-comissao">CRP</strong><small id="hero-fonte">Fonte não carregada</small></article>
-        <article class="kpi-card"><span>Conformidade</span><strong id="hero-conformidade">--</strong><small id="hero-meta">Meta --</small></article>
-        <article class="kpi-card"><span>Avaliações</span><strong id="hero-avaliacoes">--</strong><small id="hero-base">Base --</small></article>
-        <article class="kpi-card"><span>Indicadores</span><strong id="hero-indicadores">--</strong><small id="hero-alertas">Estrutura OK</small></article>
+  <main class="mx-auto grid w-[min(1440px,calc(100%-32px))] gap-4 py-4 md:py-5">
+    <section id="dashboard-view" class="grid gap-4" aria-label="Relatório COSEP">
+      <section class="grid gap-3 md:grid-cols-2 xl:grid-cols-4" aria-label="Indicadores principais">
+        <article class="panel p-4"><span class="text-[11px] font-black uppercase tracking-wider text-slate-500">Comissão</span><strong id="hero-comissao" class="mt-2 block text-3xl font-black tracking-tight">CRP</strong><small id="hero-fonte" class="mt-1 block text-xs font-semibold text-slate-500">Fonte não carregada</small></article>
+        <article class="panel p-4"><span class="text-[11px] font-black uppercase tracking-wider text-slate-500">Conformidade</span><strong id="hero-conformidade" class="mt-2 block text-3xl font-black tracking-tight">--</strong><small id="hero-meta" class="mt-1 block text-xs font-semibold text-slate-500">Meta --</small></article>
+        <article class="panel p-4"><span class="text-[11px] font-black uppercase tracking-wider text-slate-500">Avaliações</span><strong id="hero-avaliacoes" class="mt-2 block text-3xl font-black tracking-tight">--</strong><small id="hero-base" class="mt-1 block text-xs font-semibold text-slate-500">Base --</small></article>
+        <article class="panel p-4"><span class="text-[11px] font-black uppercase tracking-wider text-slate-500">Indicadores</span><strong id="hero-indicadores" class="mt-2 block text-3xl font-black tracking-tight">--</strong><small id="hero-alertas" class="mt-1 block text-xs font-semibold text-slate-500">Estrutura OK</small></article>
       </section>
 
-      <div class="workspace">
-        <aside class="side-stack" aria-label="Controles do relatório">
+      <div class="grid gap-4 xl:grid-cols-[minmax(340px,420px)_minmax(0,1fr)]">
+        <aside class="no-print grid gap-3 xl:sticky xl:top-[76px] xl:self-start" aria-label="Controles do relatório">
           <section class="panel">
-            <div class="panel-head">
-              <div class="panel-title">
-                <h2>Filtros</h2>
-                <p id="filter-source">Aguardando dados</p>
-              </div>
-              <span class="status-pill"><i class="fa-solid fa-filter" aria-hidden="true"></i> CRP</span>
+            <div class="flex items-start justify-between gap-3 border-b border-slate-200 p-4 dark:border-slate-800"><div><h2 class="text-base font-black tracking-tight">Filtros</h2><p id="filter-source" class="text-xs font-semibold text-slate-500">Aguardando dados</p></div><span class="status-pill"><i class="fa-solid fa-filter" aria-hidden="true"></i> CRP</span></div>
+            <div class="grid gap-3 p-4">
+              <div class="field"><div class="field-label"><span>Comissão</span><small>atual</small></div><div class="grid grid-cols-2 gap-2" role="radiogroup" aria-label="Comissão do relatório"><label class="grid cursor-pointer gap-1 rounded-md border border-cosep-teal bg-cosep-mist p-3 text-sm font-black text-cosep-tealDark"><input class="sr-only" type="radio" name="comissao" value="CRP" checked>CRP<span class="text-[11px] font-semibold text-slate-500">Registros assistenciais</span></label><label class="grid cursor-not-allowed gap-1 rounded-md border border-slate-200 bg-slate-50 p-3 text-sm font-black text-slate-400"><input class="sr-only" type="radio" name="comissao" value="CRO" disabled>CRO<span class="text-[11px] font-semibold">Versão futura</span></label></div></div>
+              <div id="filters-root" class="grid gap-3"></div>
+              <div class="field"><div class="field-label"><span>Seleção ativa</span><small id="active-filter-count">0</small></div><div class="flex min-h-7 flex-wrap gap-1.5" id="active-filters"><span class="chip"><i class="fa-solid fa-layer-group" aria-hidden="true"></i> Todos os dados</span></div></div>
             </div>
-            <div class="panel-body filter-grid">
-              <div class="field">
-                <div class="field-label"><span>Comissão</span><small>atual</small></div>
-                <div class="commission-switch" role="radiogroup" aria-label="Comissão do relatório">
-                  <label class="commission-option"><input type="radio" name="comissao" value="CRP" checked><strong>CRP</strong><span>Registros assistenciais</span></label>
-                  <label class="commission-option disabled"><input type="radio" name="comissao" value="CRO" disabled><strong>CRO</strong><span>Em versão futura</span></label>
-                </div>
-              </div>
-              <div id="filters-root" class="filter-grid"></div>
-              <div class="field">
-                <div class="field-label"><span>Seleção ativa</span><small id="active-filter-count">0</small></div>
-                <div class="filter-summary" id="active-filters"><span class="chip"><i class="fa-solid fa-layer-group" aria-hidden="true"></i> Todos os dados</span></div>
-              </div>
-            </div>
-            <footer class="panel-footer">
-              <button class="btn btn-primary" type="button" id="btn-aplicar-filtros"><i class="fa-solid fa-filter-circle-check" aria-hidden="true"></i><span>Aplicar</span></button>
-              <button class="btn" type="button" id="btn-limpar-filtros"><i class="fa-solid fa-eraser" aria-hidden="true"></i><span>Limpar</span></button>
-            </footer>
+            <footer class="flex flex-wrap justify-between gap-2 border-t border-slate-200 bg-slate-50 p-3 dark:border-slate-800 dark:bg-slate-950"><button class="btn btn-primary" type="button" id="btn-aplicar-filtros"><i class="fa-solid fa-filter-circle-check" aria-hidden="true"></i><span>Aplicar</span></button><button class="btn" type="button" id="btn-limpar-filtros"><i class="fa-solid fa-eraser" aria-hidden="true"></i><span>Limpar</span></button></footer>
           </section>
 
           <section class="panel">
-            <div class="panel-head">
-              <div class="panel-title">
-                <h2>Texto do relatório</h2>
-                <p>Blocos narrativos editáveis</p>
-              </div>
-              <span class="status-pill"><i class="fa-solid fa-pen" aria-hidden="true"></i> Ao vivo</span>
-            </div>
-            <div class="panel-body">
-              <div class="tabs" role="tablist" aria-label="Seções do texto">
-                <button class="tab-button active" type="button" role="tab" aria-selected="true" aria-controls="tab-intro" data-tab="intro">Introdução</button>
-                <button class="tab-button" type="button" role="tab" aria-selected="false" aria-controls="tab-metodo" data-tab="metodo">Metodologia</button>
-                <button class="tab-button" type="button" role="tab" aria-selected="false" aria-controls="tab-analise" data-tab="analise">Análise</button>
-                <button class="tab-button" type="button" role="tab" aria-selected="false" aria-controls="tab-plano" data-tab="plano">Plano</button>
-                <button class="tab-button" type="button" role="tab" aria-selected="false" aria-controls="tab-conclusao" data-tab="conclusao">Conclusão</button>
-              </div>
-              <div class="tab-panel active" id="tab-intro" role="tabpanel"><div class="editor-meta"><span>Introdução</span><span>editável</span></div><textarea id="texto-intro" class="textarea" aria-label="Texto da introdução"></textarea></div>
-              <div class="tab-panel" id="tab-metodo" role="tabpanel"><div class="editor-meta"><span>Metodologia</span><span>editável</span></div><textarea id="texto-metodo" class="textarea" aria-label="Texto da metodologia"></textarea></div>
-              <div class="tab-panel" id="tab-analise" role="tabpanel"><div class="editor-meta"><span>Análise crítica</span><span>editável</span></div><textarea id="texto-analise" class="textarea" aria-label="Texto da análise crítica"></textarea></div>
-              <div class="tab-panel" id="tab-plano" role="tabpanel"><div class="editor-meta"><span>Plano de ação</span><span>editável</span></div><textarea id="texto-plano" class="textarea" aria-label="Texto do plano de ação"></textarea></div>
-              <div class="tab-panel" id="tab-conclusao" role="tabpanel"><div class="editor-meta"><span>Conclusão</span><span>editável</span></div><textarea id="texto-conclusao" class="textarea" aria-label="Texto da conclusão"></textarea></div>
-            </div>
-            <footer class="panel-footer">
-              <button class="btn btn-primary" type="button" id="btn-gerar"><i class="fa-solid fa-chart-line" aria-hidden="true"></i><span>Gerar relatório</span></button>
-              <button class="btn" type="button" id="btn-texto"><i class="fa-solid fa-rotate-left" aria-hidden="true"></i><span>Texto padrão</span></button>
-            </footer>
+            <div class="flex items-start justify-between gap-3 border-b border-slate-200 p-4 dark:border-slate-800"><div><h2 class="text-base font-black tracking-tight">Texto do relatório</h2><p class="text-xs font-semibold text-slate-500">Blocos narrativos editáveis</p></div><span class="status-pill"><i class="fa-solid fa-pen" aria-hidden="true"></i> Ao vivo</span></div>
+            <div class="p-4"><div class="flex gap-1 overflow-x-auto rounded-executive border border-slate-200 bg-slate-50 p-1 dark:border-slate-800 dark:bg-slate-950" role="tablist" aria-label="Seções do texto"><button class="tab-button rounded-md bg-white px-3 py-2 text-xs font-extrabold shadow-sm dark:bg-slate-800" type="button" data-tab="intro">Introdução</button><button class="tab-button rounded-md px-3 py-2 text-xs font-extrabold" type="button" data-tab="metodo">Metodologia</button><button class="tab-button rounded-md px-3 py-2 text-xs font-extrabold" type="button" data-tab="analise">Análise</button><button class="tab-button rounded-md px-3 py-2 text-xs font-extrabold" type="button" data-tab="plano">Plano</button><button class="tab-button rounded-md px-3 py-2 text-xs font-extrabold" type="button" data-tab="conclusao">Conclusão</button></div><div class="tab-panel active" id="tab-intro"><textarea id="texto-intro" class="textarea" aria-label="Texto da introdução"></textarea></div><div class="tab-panel" id="tab-metodo"><textarea id="texto-metodo" class="textarea" aria-label="Texto da metodologia"></textarea></div><div class="tab-panel" id="tab-analise"><textarea id="texto-analise" class="textarea" aria-label="Texto da análise crítica"></textarea></div><div class="tab-panel" id="tab-plano"><textarea id="texto-plano" class="textarea" aria-label="Texto do plano de ação"></textarea></div><div class="tab-panel" id="tab-conclusao"><textarea id="texto-conclusao" class="textarea" aria-label="Texto da conclusão"></textarea></div></div>
+            <footer class="flex flex-wrap justify-between gap-2 border-t border-slate-200 bg-slate-50 p-3 dark:border-slate-800 dark:bg-slate-950"><button class="btn btn-primary" type="button" id="btn-gerar"><i class="fa-solid fa-chart-line" aria-hidden="true"></i><span>Gerar relatório</span></button><button class="btn" type="button" id="btn-texto"><i class="fa-solid fa-rotate-left" aria-hidden="true"></i><span>Texto padrão</span></button></footer>
           </section>
         </aside>
 
-        <section class="main-stack" aria-label="Prévia do relatório">
-          <div id="loading" class="loading-box"><span class="spinner" aria-hidden="true"></span><span>Carregando relatório...</span></div>
+        <section class="grid gap-3" aria-label="Prévia do relatório">
+          <div id="loading" class="no-print panel flex min-h-12 items-center gap-3 p-3 text-sm font-bold text-slate-600"><span class="spinner" aria-hidden="true"></span><span>Carregando relatório...</span></div>
           <section class="panel">
-            <div class="panel-head">
-              <div class="panel-title">
-                <h1>Prévia executiva</h1>
-                <p id="preview-subtitle">Relatório A4 pronto para PDF</p>
-              </div>
-              <div class="report-tools hidden" id="report-tools">
-                <button class="btn hide-text-mobile" type="button" id="btn-topo"><i class="fa-solid fa-arrow-up" aria-hidden="true"></i><span>Topo</span></button>
-                <button class="btn hide-text-mobile" type="button" id="btn-copiar"><i class="fa-solid fa-copy" aria-hidden="true"></i><span>Resumo</span></button>
-                <button class="btn btn-primary hide-text-mobile" type="button" id="btn-imprimir"><i class="fa-solid fa-file-pdf" aria-hidden="true"></i><span>PDF</span></button>
-              </div>
-            </div>
-            <div class="preview-panel">
-              <article id="relatorio" class="hidden"></article>
-            </div>
+            <div class="no-print flex flex-wrap items-start justify-between gap-3 border-b border-slate-200 p-4 dark:border-slate-800"><div><h1 class="text-lg font-black tracking-tight">Prévia executiva</h1><p id="preview-subtitle" class="text-xs font-semibold text-slate-500">Relatório A4 pronto para PDF</p></div><div class="hidden flex-wrap gap-2" id="report-tools"><button class="btn" type="button" id="btn-topo"><i class="fa-solid fa-arrow-up" aria-hidden="true"></i><span>Topo</span></button><button class="btn" type="button" id="btn-copiar"><i class="fa-solid fa-copy" aria-hidden="true"></i><span>Resumo</span></button><button class="btn btn-primary" type="button" id="btn-imprimir"><i class="fa-solid fa-file-pdf" aria-hidden="true"></i><span>PDF</span></button></div></div>
+            <div class="overflow-x-auto p-3 md:p-4"><article id="relatorio" class="hidden"></article></div>
           </section>
         </section>
       </div>
     </section>
 
-    <section id="admin-view" class="admin-shell hidden" aria-label="Administração do relatório">
-      <section class="panel">
-        <div class="panel-head">
-          <div class="panel-title">
-            <h1>Administração do relatório</h1>
-            <p>Configurações salvas na aba COSEP_REL_CONFIG</p>
-          </div>
-          <span class="status-pill"><i class="fa-solid fa-shield-halved" aria-hidden="true"></i> Operacional</span>
-        </div>
-        <div class="panel-body">
-          <div id="admin-rel-bloqueio" class="readonly-banner" hidden><i class="fa-solid fa-lock" aria-hidden="true"></i> Modo somente leitura para o usuário atual.</div>
-          <div id="admin-rel-loading" class="loading-box"><span class="spinner" aria-hidden="true"></span><span>Carregando configurações...</span></div>
-        </div>
-      </section>
-
-      <form id="admin-rel-form" class="admin-stack" hidden>
-        <section class="panel">
-          <div class="panel-head"><div class="panel-title"><h2>Base e meta</h2><p>Parâmetros de leitura e cálculo</p></div></div>
-          <div class="panel-body admin-grid">
-            <div class="field"><label class="field-label" for="arel-meta"><span>Meta institucional</span><small>%</small></label><input type="number" id="arel-meta" class="input" min="0" max="100" step="1" inputmode="numeric"></div>
-            <div class="field"><label class="field-label" for="arel-aba"><span>Aba da base CRP</span><small>nome</small></label><input type="text" id="arel-aba" class="input" placeholder="BASE_DADOS(NÃOEDITAR)"></div>
-            <div class="field admin-full"><label class="field-label" for="arel-planilha"><span>ID da planilha do relatório</span><small>Google Sheets</small></label><input type="text" id="arel-planilha" class="input" placeholder="ID da planilha do relatório"></div>
-          </div>
-        </section>
-
-        <section class="panel">
-          <div class="panel-head"><div class="panel-title"><h2>Termos de classificação</h2><p>Um termo por linha</p></div></div>
-          <div class="panel-body admin-grid three">
-            <div class="field"><label class="field-label" for="arel-conforme"><span>Conforme</span></label><textarea id="arel-conforme" class="textarea" rows="3"></textarea></div>
-            <div class="field"><label class="field-label" for="arel-naoconforme"><span>Não conforme</span></label><textarea id="arel-naoconforme" class="textarea" rows="3"></textarea></div>
-            <div class="field"><label class="field-label" for="arel-naoaplica"><span>Não se aplica</span></label><textarea id="arel-naoaplica" class="textarea" rows="3"></textarea></div>
-          </div>
-        </section>
-
-        <section class="panel">
-          <div class="panel-head"><div class="panel-title"><h2>Indicadores da CRP</h2><p>Renomeação mantendo a ordem da base</p></div></div>
-          <div class="panel-body"><div id="arel-indicadores" class="indicator-admin-grid"></div></div>
-          <footer class="panel-footer">
-            <div class="admin-info" id="arel-info"></div>
-            <div class="topbar-actions">
-              <button class="btn" type="button" id="arel-recarregar"><i class="fa-solid fa-rotate" aria-hidden="true"></i><span>Recarregar da planilha</span></button>
-              <button class="btn btn-danger" type="button" id="arel-restaurar"><i class="fa-solid fa-rotate-left" aria-hidden="true"></i><span>Restaurar padrão</span></button>
-              <button class="btn btn-primary" type="submit" id="arel-salvar"><i class="fa-solid fa-floppy-disk" aria-hidden="true"></i><span>Salvar</span></button>
-            </div>
-          </footer>
-        </section>
+    <section id="admin-view" class="hidden grid gap-3" aria-label="Administração do relatório">
+      <section class="panel"><div class="flex items-start justify-between gap-3 border-b border-slate-200 p-4 dark:border-slate-800"><div><h1 class="text-lg font-black tracking-tight">Administração do relatório</h1><p class="text-xs font-semibold text-slate-500">Configurações do backend e mensagens padrão</p></div><span class="status-pill"><i class="fa-solid fa-shield-halved" aria-hidden="true"></i> Operacional</span></div><div class="p-4"><div id="admin-rel-bloqueio" class="hidden rounded-executive border border-amber-200 bg-amber-50 p-3 text-sm font-bold text-amber-800"><i class="fa-solid fa-lock" aria-hidden="true"></i> Modo somente leitura para o usuário atual.</div><div id="admin-rel-loading" class="flex min-h-12 items-center gap-3 text-sm font-bold text-slate-600"><span class="spinner" aria-hidden="true"></span><span>Carregando configurações...</span></div></div></section>
+      <form id="admin-rel-form" class="hidden grid gap-3">
+        <section class="panel"><div class="border-b border-slate-200 p-4 dark:border-slate-800"><h2 class="text-base font-black tracking-tight">Base e meta</h2><p class="text-xs font-semibold text-slate-500">Parâmetros de leitura e tipo do documento</p></div><div class="grid gap-3 p-4 md:grid-cols-2 xl:grid-cols-3"><div class="field"><label class="field-label" for="arel-meta"><span>Meta institucional</span><small>%</small></label><input type="number" id="arel-meta" class="input" min="0" max="100" step="1" inputmode="numeric"></div><div class="field"><label class="field-label" for="arel-aba"><span>Aba da base CRP</span><small>nome</small></label><input type="text" id="arel-aba" class="input" placeholder="BASE_DADOS(NÃOEDITAR)"></div><div class="field"><label class="field-label" for="arel-tipo-doc"><span>Tipo do relatório</span><small>modelo</small></label><select id="arel-tipo-doc" class="input"><option value="executivo">Executivo</option><option value="tecnico">Técnico</option><option value="sintese">Síntese</option></select></div><div class="field md:col-span-2 xl:col-span-3"><label class="field-label" for="arel-planilha"><span>ID da planilha do relatório</span><small>Google Sheets</small></label><input type="text" id="arel-planilha" class="input" placeholder="ID da planilha do relatório"></div></div></section>
+        <section class="panel"><div class="flex flex-wrap items-start justify-between gap-3 border-b border-slate-200 p-4 dark:border-slate-800"><div><h2 class="text-base font-black tracking-tight">Mensagens padrão</h2><p class="text-xs font-semibold text-slate-500">Templates com tokens aplicados no relatório e no PDF</p></div><span class="status-pill"><i class="fa-solid fa-message" aria-hidden="true"></i> Tokens</span></div><div class="grid gap-3 p-4 md:grid-cols-2"><div class="field md:col-span-2"><label class="field-label" for="arel-texto-intro"><span>Introdução</span><small>{periodo}</small></label><textarea id="arel-texto-intro" class="textarea" rows="3"></textarea></div><div class="field md:col-span-2"><label class="field-label" for="arel-texto-metodo"><span>Metodologia</span><small>{abaEncontrada}</small></label><textarea id="arel-texto-metodo" class="textarea" rows="3"></textarea></div><div class="field md:col-span-2"><label class="field-label" for="arel-texto-analise"><span>Análise crítica</span><small>{criticos}</small></label><textarea id="arel-texto-analise" class="textarea" rows="4"></textarea></div><div class="field"><label class="field-label" for="arel-texto-plano"><span>Plano de ação</span><small>{setores}</small></label><textarea id="arel-texto-plano" class="textarea" rows="4"></textarea></div><div class="field"><label class="field-label" for="arel-texto-conclusao"><span>Conclusão</span><small>{metaInstitucional}</small></label><textarea id="arel-texto-conclusao" class="textarea" rows="4"></textarea></div></div><footer class="flex flex-wrap justify-between gap-2 border-t border-slate-200 bg-slate-50 p-3 text-xs font-semibold text-slate-500 dark:border-slate-800 dark:bg-slate-950"><span>Tokens: {comissao}, {periodo}, {setores}, {totalAvaliacoes}, {conformidadeGeral}, {criticos}, {fortalezas}, {metaInstitucional}.</span><div class="flex flex-wrap gap-2"><button class="btn" type="button" id="arel-aplicar-textos"><i class="fa-solid fa-file-import" aria-hidden="true"></i><span>Aplicar ao relatório</span></button><button class="btn" type="button" id="arel-restaurar-textos"><i class="fa-solid fa-wand-magic-sparkles" aria-hidden="true"></i><span>Restaurar mensagens</span></button></div></footer></section>
+        <section class="panel"><div class="border-b border-slate-200 p-4 dark:border-slate-800"><h2 class="text-base font-black tracking-tight">Termos de classificação</h2><p class="text-xs font-semibold text-slate-500">Um termo por linha</p></div><div class="grid gap-3 p-4 md:grid-cols-3"><div class="field"><label class="field-label" for="arel-conforme"><span>Conforme</span></label><textarea id="arel-conforme" class="textarea" rows="3"></textarea></div><div class="field"><label class="field-label" for="arel-naoconforme"><span>Não conforme</span></label><textarea id="arel-naoconforme" class="textarea" rows="3"></textarea></div><div class="field"><label class="field-label" for="arel-naoaplica"><span>Não se aplica</span></label><textarea id="arel-naoaplica" class="textarea" rows="3"></textarea></div></div></section>
+        <section class="panel"><div class="border-b border-slate-200 p-4 dark:border-slate-800"><h2 class="text-base font-black tracking-tight">Indicadores da CRP</h2><p class="text-xs font-semibold text-slate-500">Renomeação mantendo a ordem da base</p></div><div class="p-4"><div id="arel-indicadores" class="grid gap-2 md:grid-cols-2"></div></div><footer class="flex flex-wrap items-center justify-between gap-2 border-t border-slate-200 bg-slate-50 p-3 dark:border-slate-800 dark:bg-slate-950"><div class="text-xs font-semibold text-slate-500" id="arel-info"></div><div class="flex flex-wrap gap-2"><button class="btn" type="button" id="arel-recarregar"><i class="fa-solid fa-rotate" aria-hidden="true"></i><span>Recarregar</span></button><button class="btn btn-danger" type="button" id="arel-restaurar"><i class="fa-solid fa-rotate-left" aria-hidden="true"></i><span>Restaurar config</span></button><button class="btn btn-primary" type="submit" id="arel-salvar"><i class="fa-solid fa-floppy-disk" aria-hidden="true"></i><span>Salvar</span></button></div></footer></section>
       </form>
     </section>
   </main>
@@ -599,7 +208,7 @@
     const RODAPE_INSTITUCIONAL = 'https://i.ibb.co/VYv0RyF3/Rodape-1.png';
     const CHART_SRC = 'https://cdn.jsdelivr.net/npm/chart.js';
     const HTML2PDF_SRC = 'https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js';
-
+    const TEXT_STORE_KEY = 'cosep-rel-text-defaults-v2';
     const filterDefs = [
       { id: 'anos', label: 'Ano', short: 'Ano', endpoint: 'anos' },
       { id: 'meses', label: 'Mês', short: 'Mês', endpoint: 'meses' },
@@ -609,689 +218,90 @@
       { id: 'satisfacoes', label: 'Satisfação', short: 'Satisfação', endpoint: 'satisfacoes' },
       { id: 'status', label: 'Status da avaliação', short: 'Status', endpoint: 'status' }
     ];
-
-    const state = {
-      payload: null,
-      charts: [],
-      available: {},
-      selected: {},
-      busy: false,
-      chartLoader: null,
-      pdfLoader: null
+    const templateKeys = ['intro', 'metodo', 'analise', 'plano', 'conclusao'];
+    const templatesPadrao = {
+      intro: 'Este relatório apresenta a análise consolidada da comissão {comissao} para o período {periodo}, considerando {setores}. O objetivo é sintetizar o desempenho dos registros avaliados, evidenciar conformidades e não conformidades e apoiar decisões de melhoria contínua.',
+      metodo: 'A base foi lida diretamente da aba {abaEncontrada} da planilha institucional, usando a estrutura oficial da CRP de A até AQ. Para cálculo de conformidade, entram no denominador apenas itens classificados como Conforme ou Não Conforme; itens Não se Aplica, vazios ou marcados com hífen são apresentados separadamente para transparência da amostra.',
+      analise: 'No recorte selecionado, foram identificadas {totalAvaliacoes} avaliações e {totalAuditavel} itens auditáveis. A conformidade geral foi de {conformidadeGeral}, com {conformes} conformidades e {naoConformes} não conformidades. Os principais pontos de atenção foram: {criticos}. Como fortalezas, destacam-se: {fortalezas}.',
+      plano: 'Recomenda-se priorizar os indicadores com menor conformidade, revisar rotinas de preenchimento junto às equipes assistenciais, reforçar orientação sobre completude documental e acompanhar mensalmente os setores com maior volume de não conformidades. A gestão deve pactuar responsáveis, prazos e evidências de conclusão para cada ação corretiva.',
+      conclusao: 'A análise demonstra o panorama atual da qualidade dos registros da comissão {comissao} e direciona intervenções objetivas para elevar a aderência documental. A continuidade do monitoramento por período, setor e categoria permitirá verificar tendência, sustentabilidade das melhorias e alinhamento à meta institucional de {metaInstitucional}.'
     };
+    const tipoLabel = { executivo: 'Relatório executivo', tecnico: 'Relatório técnico', sintese: 'Síntese executiva' };
+    const state = { payload: null, available: {}, selected: {}, charts: [], busy: false, chartLoader: null, pdfLoader: null, templates: loadSavedTemplates(), tipoRelatorio: 'executivo' };
+    const textAreas = { intro: el('texto-intro'), metodo: el('texto-metodo'), analise: el('texto-analise'), plano: el('texto-plano'), conclusao: el('texto-conclusao') };
 
-    const textAreas = {
-      intro: document.getElementById('texto-intro'),
-      metodo: document.getElementById('texto-metodo'),
-      analise: document.getElementById('texto-analise'),
-      plano: document.getElementById('texto-plano'),
-      conclusao: document.getElementById('texto-conclusao')
-    };
+    function el(id) { return document.getElementById(id); }
+    function escapeHtml(value) { return String(value == null ? '' : value).replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;').replaceAll('"', '&quot;').replaceAll("'", '&#039;'); }
+    function fmtPct(value) { return value == null || Number.isNaN(Number(value)) ? 'N/A' : `${Number(value).toLocaleString('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%`; }
+    function fmtNum(value) { return Number(value || 0).toLocaleString('pt-BR'); }
+    function loadSavedTemplates() { try { return normalizarTemplates(JSON.parse(localStorage.getItem(TEXT_STORE_KEY) || '{}')); } catch (_) { return { ...templatesPadrao }; } }
+    function saveTemplates() { try { localStorage.setItem(TEXT_STORE_KEY, JSON.stringify({ tipoRelatorio: state.tipoRelatorio, textosPadrao: state.templates })); } catch (_) {} }
+    function normalizarTemplates(raw = {}) { const source = raw.textosPadrao || raw; const merged = { ...templatesPadrao }; templateKeys.forEach(k => { if (source[k] != null && String(source[k]).trim()) merged[k] = String(source[k]).trim(); }); return merged; }
+    function setLoading(message, active = true) { const box = el('loading'); box.classList.toggle('hidden', !active); box.innerHTML = active ? `<span class="spinner" aria-hidden="true"></span><span>${escapeHtml(message)}</span>` : ''; }
+    function setBusy(active, button, label) { state.busy = active; document.querySelectorAll('.btn, .icon-btn, .multi-trigger').forEach(item => { if (active) { item.dataset.wasDisabled = item.disabled ? '1' : '0'; item.disabled = true; } else { item.disabled = item.dataset.wasDisabled === '1'; delete item.dataset.wasDisabled; } }); if (!button) return; if (active) { button.dataset.originalHtml = button.innerHTML; button.innerHTML = `<span class="spinner" aria-hidden="true"></span><span>${escapeHtml(label || 'Processando')}</span>`; } else if (button.dataset.originalHtml) { button.innerHTML = button.dataset.originalHtml; delete button.dataset.originalHtml; } }
+    async function runAction({ button, label, loading }, task) { if (state.busy) { toast('Aguarde a operação atual terminar.', 'warning', 'Processando'); return null; } setBusy(true, button, label); if (loading) setLoading(loading, true); try { return await task(); } finally { setBusy(false, button); } }
+    function toast(message, type = 'info', title = '') { const cfg = { success: ['#15803d', 'fa-circle-check', title || 'Concluído'], error: ['#b42318', 'fa-triangle-exclamation', title || 'Erro'], warning: ['#b45309', 'fa-bell', title || 'Atenção'], info: ['#0e7490', 'fa-circle-info', title || 'Informação'] }[type] || ['#0e7490', 'fa-circle-info', title || 'Informação']; const node = document.createElement('section'); node.className = 'toast'; node.setAttribute('role', type === 'error' ? 'alert' : 'status'); node.style.setProperty('--toast-dot', cfg[0]); node.innerHTML = `<i class="fa-solid ${cfg[1]}" aria-hidden="true"></i><div><strong>${escapeHtml(cfg[2])}</strong><p>${escapeHtml(message)}</p></div><button type="button" aria-label="Fechar"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button>`; const close = () => { node.classList.remove('visible'); window.setTimeout(() => node.remove(), 180); }; node.querySelector('button').addEventListener('click', close); el('toast-root').appendChild(node); requestAnimationFrame(() => node.classList.add('visible')); window.setTimeout(close, type === 'error' ? 7200 : 4300); }
+    function confirmDialog({ title, message, confirmText = 'Confirmar', cancelText = 'Cancelar', danger = false }) { return new Promise(resolve => { const previous = document.activeElement; const overlay = document.createElement('div'); overlay.className = 'confirm-overlay'; overlay.innerHTML = `<section class="confirm-dialog" role="dialog" aria-modal="true"><div class="p-5"><h3 class="m-0 text-lg font-black">${escapeHtml(title)}</h3><p class="mt-2 text-sm font-semibold text-slate-500">${escapeHtml(message)}</p></div><div class="flex justify-end gap-2 px-5 pb-5"><button class="btn" type="button" data-cancel>${escapeHtml(cancelText)}</button><button class="btn ${danger ? 'btn-danger' : 'btn-primary'}" type="button" data-ok>${escapeHtml(confirmText)}</button></div></section>`; const done = value => { overlay.remove(); previous && previous.focus && previous.focus(); resolve(value); }; overlay.querySelector('[data-cancel]').addEventListener('click', () => done(false)); overlay.querySelector('[data-ok]').addEventListener('click', () => done(true)); overlay.addEventListener('keydown', ev => { if (ev.key === 'Escape') done(false); }); document.body.appendChild(overlay); overlay.querySelector('[data-cancel]').focus(); }); }
+    function loadScript(src, globalName) { return new Promise((resolve, reject) => { if (globalName && window[globalName]) return resolve(window[globalName]); const script = document.createElement('script'); script.src = src; script.async = true; script.onload = () => resolve(globalName ? window[globalName] : true); script.onerror = () => reject(new Error(`Falha ao carregar ${src}`)); document.head.appendChild(script); }); }
+    function ensureChartJs() { if (!state.chartLoader) state.chartLoader = loadScript(CHART_SRC, 'Chart'); return state.chartLoader; }
+    function ensureHtml2Pdf() { if (!state.pdfLoader) state.pdfLoader = loadScript(HTML2PDF_SRC, 'html2pdf'); return state.pdfLoader; }
+    function withTimeout(promise, ms, message) { let timer; const timeout = new Promise((_, reject) => { timer = window.setTimeout(() => reject(new Error(message)), ms); }); return Promise.race([promise, timeout]).finally(() => window.clearTimeout(timer)); }
+    function validarPayload(payload) { if (!payload || payload.success === false) throw new Error((payload && (payload.mensagem || payload.detalhe)) || 'Resposta inválida do Apps Script.'); sincronizarTemplatesPayload(payload); return payload; }
+    function sincronizarTemplatesPayload(payload) { const rel = payload?.relatorio || {}; if (rel.tipoRelatorio) state.tipoRelatorio = String(rel.tipoRelatorio).trim() || state.tipoRelatorio; if (rel.textosPadrao) state.templates = normalizarTemplates(rel.textosPadrao); }
+    function fetchViaGoogleScript(params) { return new Promise((resolve, reject) => { if (!(window.google && google.script && google.script.run)) return reject(new Error('google.script.run indisponível.')); google.script.run.withSuccessHandler(resolve).withFailureHandler(reject).obterPayloadRelatorios(params); }); }
+    async function fetchViaHttp(params = {}) { const query = new URLSearchParams({ api: 'relatorios' }); Object.entries(params).forEach(([key, value]) => { if (Array.isArray(value)) { if (value.length) query.set(key, value.join('|')); } else if (value != null && String(value).trim()) query.set(key, String(value)); }); const response = await fetch(`${APP_URL || location.pathname}?${query.toString()}`, { cache: 'no-store' }); if (!response.ok) throw new Error('Falha ao carregar relatório.'); return response.json(); }
+    async function fetchPayload(params = {}) { const usingGoogle = Boolean(window.google && google.script && google.script.run); const payload = usingGoogle ? await withTimeout(fetchViaGoogleScript(params), 45000, 'A planilha demorou demais para responder.') : await withTimeout(fetchViaHttp(params), 45000, 'A planilha demorou demais para responder.'); return validarPayload(payload); }
 
-    function escapeHtml(value) {
-      return String(value == null ? '' : value)
-        .replaceAll('&', '&amp;')
-        .replaceAll('<', '&lt;')
-        .replaceAll('>', '&gt;')
-        .replaceAll('"', '&quot;')
-        .replaceAll("'", '&#039;');
-    }
+    function buildFilters() { const root = el('filters-root'); root.innerHTML = filterDefs.map(def => `<div class="field"><div class="field-label"><span>${escapeHtml(def.label)}</span><small>multi</small></div><div class="multi" data-filter="${def.id}"><button type="button" class="multi-trigger" aria-haspopup="listbox" aria-expanded="false"><span class="multi-value"><span class="multi-placeholder">Todos</span></span><i class="fa-solid fa-chevron-down" aria-hidden="true"></i></button><div class="multi-pop" role="listbox" aria-label="${escapeHtml(def.label)}"><input type="search" class="multi-search" placeholder="Buscar ${escapeHtml(def.short.toLowerCase())}"><div class="grid grid-cols-2 gap-2"><button type="button" class="btn" data-act="all">Tudo</button><button type="button" class="btn" data-act="none">Limpar</button></div><div class="multi-list"></div></div></div></div>`).join(''); root.querySelectorAll('.multi').forEach(multi => { const id = multi.dataset.filter; const trigger = multi.querySelector('.multi-trigger'); const search = multi.querySelector('.multi-search'); trigger.addEventListener('click', ev => { ev.stopPropagation(); closeMultis(multi); const open = multi.classList.toggle('open'); trigger.setAttribute('aria-expanded', String(open)); if (open) { search.value = ''; renderMultiList(id); setTimeout(() => search.focus(), 10); } }); search.addEventListener('input', () => renderMultiList(id, search.value)); multi.querySelectorAll('[data-act]').forEach(btn => btn.addEventListener('click', () => { state.selected[id] = btn.dataset.act === 'all' ? (state.available[id] || []).slice() : []; renderMulti(id); renderMultiList(id, search.value); renderActiveFilters(); })); }); document.addEventListener('click', () => closeMultis()); document.addEventListener('keydown', ev => { if (ev.key === 'Escape') closeMultis(); }); }
+    function closeMultis(except) { document.querySelectorAll('.multi.open').forEach(multi => { if (multi === except) return; multi.classList.remove('open'); const trigger = multi.querySelector('.multi-trigger'); if (trigger) trigger.setAttribute('aria-expanded', 'false'); }); }
+    function setFilterOptions(filtros = {}) { filterDefs.forEach(def => { state.available[def.id] = filtros[def.endpoint] || []; state.selected[def.id] = (state.selected[def.id] || []).filter(v => state.available[def.id].includes(v)); renderMulti(def.id); }); el('filter-source').textContent = filtros.abaEncontrada ? `Fonte: ${filtros.abaEncontrada}` : 'Fonte não localizada'; renderActiveFilters(); }
+    function renderMulti(id) { const multi = document.querySelector(`.multi[data-filter="${id}"]`); if (!multi) return; const values = state.selected[id] || []; const valueEl = multi.querySelector('.multi-value'); valueEl.innerHTML = values.length ? values.slice(0, 2).map(v => `<span class="chip">${escapeHtml(v)}</span>`).join('') + (values.length > 2 ? `<span class="chip">+${values.length - 2}</span>` : '') : '<span class="multi-placeholder">Todos</span>'; }
+    function renderMultiList(id, query = '') { const multi = document.querySelector(`.multi[data-filter="${id}"]`); if (!multi) return; const list = multi.querySelector('.multi-list'); const selected = new Set(state.selected[id] || []); const q = String(query || '').trim().toLowerCase(); const options = (state.available[id] || []).filter(v => !q || String(v).toLowerCase().includes(q)); list.innerHTML = options.length ? options.map(value => `<label class="multi-option ${selected.has(value) ? 'selected' : ''}"><input type="checkbox" ${selected.has(value) ? 'checked' : ''} value="${escapeHtml(value)}"><span>${escapeHtml(value)}</span></label>`).join('') : '<div class="p-3 text-center text-xs font-semibold text-slate-500">Nenhuma opção</div>'; list.querySelectorAll('input').forEach(input => input.addEventListener('change', () => { const set = new Set(state.selected[id] || []); if (input.checked) set.add(input.value); else set.delete(input.value); state.selected[id] = [...set]; renderMulti(id); renderMultiList(id, q); renderActiveFilters(); })); }
+    function renderActiveFilters() { const chips = []; filterDefs.forEach(def => (state.selected[def.id] || []).forEach(v => chips.push({ label: def.short, value: v }))); el('active-filter-count').textContent = chips.length; el('active-filters').innerHTML = chips.length ? chips.slice(0, 14).map(c => `<span class="chip"><strong>${escapeHtml(c.label)}</strong> ${escapeHtml(c.value)}</span>`).join('') : '<span class="chip"><i class="fa-solid fa-layer-group" aria-hidden="true"></i> Todos os dados</span>'; }
+    function getSelectedFilters() { const filters = { comissao: document.querySelector('input[name="comissao"]:checked')?.value || 'CRP' }; filterDefs.forEach(def => { if ((state.selected[def.id] || []).length) filters[def.endpoint] = state.selected[def.id]; }); return filters; }
+    function clearFilters() { filterDefs.forEach(def => { state.selected[def.id] = []; renderMulti(def.id); }); renderActiveFilters(); gerarRelatorio(false, el('btn-limpar-filtros')); }
 
-    function fmtPct(value) {
-      if (value == null || Number.isNaN(Number(value))) return 'N/A';
-      return `${Number(value).toLocaleString('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%`;
-    }
+    function periodoTexto(aplicado = {}) { const anos = aplicado.anos?.length ? aplicado.anos.join(', ') : 'todos os anos'; const meses = aplicado.meses?.length ? aplicado.meses.join(', ') : 'todos os meses'; return `${meses} de ${anos}`; }
+    function tokensRelatorioAtual() { const payload = state.payload || {}; const rel = payload.relatorio || {}; const aplicado = payload.aplicado || {}; const setores = aplicado.unidades?.length ? aplicado.unidades.join(', ') : 'todos os setores elegíveis'; const criticos = (rel.indicadoresCriticos || []).slice(0, 4).map(item => `${item.nome} (${fmtPct(item.percentual)})`).join('; ') || 'sem indicadores críticos no recorte selecionado'; const fortalezas = (rel.indicadoresExcelencia || []).slice(0, 3).map(item => `${item.nome} (${fmtPct(item.percentual)})`).join('; ') || 'sem destaques disponíveis'; return { comissao: rel.comissao || 'CRP', periodo: periodoTexto(aplicado), setores, totalAvaliacoes: fmtNum(rel.totalAvaliacoes), totalAuditavel: fmtNum(rel.totalAuditavel), conformidadeGeral: fmtPct(rel.conformidadeGeral), conformes: fmtNum(rel.conformes), naoConformes: fmtNum(rel.naoConformes), criticos, fortalezas, metaInstitucional: fmtPct(rel.metaInstitucional), abaEncontrada: rel.abaEncontrada || 'CRP' }; }
+    function aplicarTokensTexto(template, tokens) { return String(template || '').replace(/\{([a-zA-Z0-9_]+)\}/g, (match, key) => tokens[key] != null ? tokens[key] : match); }
+    function gerarTextosPadrao() { const tokens = tokensRelatorioAtual(); templateKeys.forEach(key => { textAreas[key].value = aplicarTokensTexto(state.templates[key], tokens); }); }
+    function atualizarHero() { const rel = state.payload?.relatorio || {}; el('hero-comissao').textContent = rel.comissao || 'CRP'; el('hero-fonte').textContent = rel.abaEncontrada ? `Fonte ${rel.abaEncontrada}` : 'Fonte não carregada'; el('hero-conformidade').textContent = fmtPct(rel.conformidadeGeral); el('hero-meta').textContent = `Meta ${fmtPct(rel.metaInstitucional)}`; el('hero-avaliacoes').textContent = fmtNum(rel.totalAvaliacoes); el('hero-base').textContent = `${fmtNum(rel.totalRegistrosBase)} registros na base`; el('hero-indicadores').textContent = fmtNum((rel.indicadores || []).length); el('hero-alertas').textContent = (rel.alertasEstrutura || []).length ? `${rel.alertasEstrutura.length} alerta(s)` : 'Estrutura OK'; el('preview-subtitle').textContent = `${rel.comissao || 'CRP'} · ${periodoTexto(state.payload?.aplicado || {})}`; }
+    function tagPct(value) { const n = Number(value); const klass = n >= 80 ? 'green' : n >= 60 ? 'amber' : 'red'; return `<span class="tag ${klass}">${fmtPct(value)}</span>`; }
+    function renderTabelaIndicadores(rel) { const rows = (rel.indicadoresCriticos || []).map(item => `<tr><td>${escapeHtml(item.nome)}</td><td>${fmtNum(item.avaliados)}</td><td>${fmtNum(item.conformes)}</td><td>${fmtNum(item.naoConformes)}</td><td>${tagPct(item.percentual)}</td></tr>`).join(''); return `<div class="table-wrap"><table><thead><tr><th>Indicador crítico</th><th>Avaliados</th><th>Conformes</th><th>Não conformes</th><th>Resultado</th></tr></thead><tbody>${rows || '<tr><td colspan="5">Sem indicadores no recorte selecionado.</td></tr>'}</tbody></table></div>`; }
+    function renderTabelaSetores(rel) { const rows = (rel.rankingSetores || []).slice(0, 10).map(item => `<tr><td>${escapeHtml(item.setor)}</td><td>${fmtNum(item.avaliacoes)}</td><td>${fmtNum(item.conformes)}</td><td>${fmtNum(item.naoConformes)}</td><td>${tagPct(item.percentual)}</td></tr>`).join(''); return `<div class="table-wrap"><table><thead><tr><th>Setor</th><th>Avaliações</th><th>Conformes</th><th>Não conformes</th><th>Resultado</th></tr></thead><tbody>${rows || '<tr><td colspan="5">Sem setores no recorte selecionado.</td></tr>'}</tbody></table></div>`; }
+    function renderTexto(titulo, conteudo) { return `<section class="doc-section"><h3>${escapeHtml(titulo)}</h3><div class="doc-text">${escapeHtml(conteudo)}</div></section>`; }
+    function renderMetricas(rel) { return `<section class="doc-metrics"><article class="doc-metric"><span>Avaliações</span><strong>${fmtNum(rel.totalAvaliacoes)}</strong></article><article class="doc-metric"><span>Conformidade</span><strong>${fmtPct(rel.conformidadeGeral)}</strong></article><article class="doc-metric"><span>Conformes</span><strong>${fmtNum(rel.conformes)}</strong></article><article class="doc-metric"><span>Não conformes</span><strong>${fmtNum(rel.naoConformes)}</strong></article></section>`; }
+    function renderAlertasEstrutura(rel) { const alertas = (rel.alertasEstrutura || []).slice(0, 8); if (!alertas.length) return ''; const itens = alertas.map(item => `<li>${escapeHtml(item)}</li>`).join(''); return `<div class="structure-alert"><strong>Alertas de estrutura</strong><ul>${itens}</ul></div>`; }
+    function renderChartsSlots() { return `<section class="doc-grid"><div class="chart-box"><canvas id="chart-evolucao" aria-label="Evolução mensal"></canvas></div><div class="chart-box"><canvas id="chart-distribuicao" aria-label="Distribuição dos itens"></canvas></div></section>`; }
+    function renderDocHeader(rel, aplicado, subtitulo) { const tipo = tipoLabel[state.tipoRelatorio] || tipoLabel.executivo; return `<header class="doc-top"><div class="doc-brand"><img class="doc-logo" src="${LOGO_INSTITUCIONAL}" alt="Logo institucional"><div><h2>Relatório Analítico COSEP</h2><p>${escapeHtml(tipo)} · Comissão ${escapeHtml(rel.comissao || 'CRP')} · ${escapeHtml(periodoTexto(aplicado))}</p></div></div><p class="doc-meta">${escapeHtml(subtitulo)}<br>Gerado em ${new Date().toLocaleDateString('pt-BR')}<br>Fonte: ${escapeHtml(rel.abaEncontrada || 'CRP')}</p></header>`; }
+    function renderDocFooter(page, total) { return `<footer class="doc-footer"><span>COSEP · Documento institucional</span><img class="footer-brand" src="${RODAPE_INSTITUCIONAL}" alt="Rodapé institucional"><span>Página ${page} de ${total}</span></footer>`; }
+    function renderDocPage(rel, aplicado, page, total, title, body) { return `<section class="document-page">${renderDocHeader(rel, aplicado, title)}<main class="doc-page-body">${body}</main>${renderDocFooter(page, total)}</section>`; }
+    function renderRelatorio() { const rel = state.payload?.relatorio; if (!rel) return; destroyCharts(); const aplicado = state.payload.aplicado || {}; const recorte = aplicado.unidades?.length ? aplicado.unidades.join(', ') : 'todos os setores elegíveis'; const page1 = `<section class="doc-hero"><div><span class="doc-kicker">Análise institucional</span><h1 class="doc-title">Panorama de conformidade dos registros assistenciais</h1><p class="doc-subtitle">Recorte: ${escapeHtml(recorte)}.</p></div><aside class="doc-score"><strong>${fmtPct(rel.conformidadeGeral)}</strong><span>Conformidade geral</span></aside></section>${renderMetricas(rel)}${renderTexto('1. Introdução', textAreas.intro.value)}${renderTexto('2. Metodologia', textAreas.metodo.value)}${renderChartsSlots()}`; const page2 = `${renderTexto('3. Análise crítica', textAreas.analise.value)}${renderAlertasEstrutura(rel)}<section class="doc-section"><h3>4. Indicadores críticos</h3>${renderTabelaIndicadores(rel)}</section>`; const page3 = `<section class="doc-section"><h3>5. Setores com maior oportunidade</h3>${renderTabelaSetores(rel)}</section>${renderTexto('6. Plano de ação recomendado', textAreas.plano.value)}${renderTexto('7. Conclusão', textAreas.conclusao.value)}`; el('relatorio').innerHTML = [renderDocPage(rel, aplicado, 1, 3, 'Panorama executivo', page1), renderDocPage(rel, aplicado, 2, 3, 'Análise de criticidade', page2), renderDocPage(rel, aplicado, 3, 3, 'Recomendações e encaminhamentos', page3)].join(''); el('relatorio').classList.remove('hidden'); el('report-tools').classList.remove('hidden'); el('report-tools').classList.add('flex'); renderCharts(rel).catch(console.error); }
+    function destroyCharts() { state.charts.forEach(chart => chart.destroy()); state.charts = []; }
+    async function renderCharts(rel) { destroyCharts(); const Chart = await ensureChartJs(); const evolucao = rel.evolucaoMensal || []; const chartEvolucao = el('chart-evolucao'); const chartDistribuicao = el('chart-distribuicao'); if (chartEvolucao) state.charts.push(new Chart(chartEvolucao, { type: 'line', data: { labels: evolucao.map(i => i.mes), datasets: [{ label: 'Conformidade', data: evolucao.map(i => i.percentual), borderColor: '#0f766e', backgroundColor: 'rgba(15,118,110,.08)', tension: .28, fill: true, pointRadius: 2 }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, title: { display: true, text: 'Evolução mensal (%)', color: '#344054', font: { size: 11, weight: '700' } } }, scales: { y: { min: 0, max: 100, ticks: { color: '#667085', font: { size: 10 } }, grid: { color: '#eef0f3' } }, x: { ticks: { color: '#667085', font: { size: 10 } }, grid: { display: false } } } } })); if (chartDistribuicao) state.charts.push(new Chart(chartDistribuicao, { type: 'doughnut', data: { labels: ['Conforme', 'Não conforme', 'Não se aplica'], datasets: [{ data: [rel.conformes || 0, rel.naoConformes || 0, rel.naoSeAplica || 0], backgroundColor: ['#15803d', '#b42318', '#b45309'], borderWidth: 0 }] }, options: { responsive: true, maintainAspectRatio: false, cutout: '66%', plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, color: '#475467', font: { size: 10 } } }, title: { display: true, text: 'Distribuição dos itens', color: '#344054', font: { size: 11, weight: '700' } } } } })); }
+    async function gerarRelatorio(recriarTexto = false, button = null) { return runAction({ button, label: button && button.id === 'btn-aplicar-filtros' ? 'Aplicando' : 'Gerando', loading: 'Lendo planilha e consolidando indicadores...' }, async () => { try { state.payload = await fetchPayload(getSelectedFilters()); setFilterOptions(state.payload.filtros || {}); if (recriarTexto || !textAreas.intro.value.trim()) gerarTextosPadrao(); atualizarHero(); renderRelatorio(); setLoading('', false); toast('Relatório atualizado e pronto para exportação.', 'success', 'Relatório'); } catch (error) { console.error(error); setLoading(error.message || 'Não foi possível gerar o relatório.'); toast(error.message || 'Falha ao gerar relatório.', 'error', 'Relatório'); } }); }
+    function copiarResumo() { const rel = state.payload?.relatorio || {}; const resumo = `Relatório ${rel.comissao || 'CRP'} — conformidade ${fmtPct(rel.conformidadeGeral)}, ${fmtNum(rel.totalAvaliacoes)} avaliações, ${fmtNum(rel.naoConformes)} não conformidades.`; navigator.clipboard?.writeText(resumo).then(() => toast('Resumo copiado para a área de transferência.', 'success', 'Resumo'), () => toast(resumo, 'info', 'Resumo')); }
+    async function aguardarEstabilidadeRelatorio() { if (document.fonts && document.fonts.ready) { try { await document.fonts.ready; } catch (_) {} } await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))); await new Promise(resolve => setTimeout(resolve, 120)); }
+    function cloneRelatorioParaPdf() { const original = el('relatorio'); const clone = original.cloneNode(true); clone.classList.remove('hidden'); const originais = original.querySelectorAll('canvas'); clone.querySelectorAll('canvas').forEach((canvas, idx) => { const origem = originais[idx]; if (!origem) return; const img = document.createElement('img'); try { img.src = origem.toDataURL('image/png'); } catch (_) { return; } img.alt = canvas.getAttribute('aria-label') || ''; img.style.width = '100%'; img.style.height = '176px'; img.style.objectFit = 'contain'; canvas.replaceWith(img); }); clone.querySelectorAll('[id]').forEach(item => item.removeAttribute('id')); return clone; }
+    async function baixarRelatorioPdf() { if (!state.payload?.relatorio) return; const html2pdf = await ensureHtml2Pdf(); const rel = state.payload.relatorio; const nomeArquivo = `relatorio-${String(rel.comissao || 'crp').toLowerCase()}-${new Date().toISOString().slice(0, 10)}.pdf`; await aguardarEstabilidadeRelatorio(); const clone = cloneRelatorioParaPdf(); const palco = document.createElement('div'); palco.className = 'pdf-capture-stage'; palco.setAttribute('aria-hidden', 'true'); palco.appendChild(clone); document.body.appendChild(palco); document.body.classList.add('pdf-export'); try { await aguardarEstabilidadeRelatorio(); await html2pdf().set({ margin: [0, 0, 0, 0], filename: nomeArquivo, image: { type: 'jpeg', quality: 0.92 }, html2canvas: { scale: 1.45, useCORS: true, scrollX: 0, scrollY: 0, windowWidth: Math.max(clone.scrollWidth, palco.clientWidth, 794), windowHeight: Math.max(clone.scrollHeight, palco.clientHeight, 1123), backgroundColor: '#ffffff' }, jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait', compress: true }, pagebreak: { mode: ['css'], avoid: ['.chart-box', '.doc-metric', '.doc-section'] } }).from(clone).save(); toast('PDF gerado em A4 com páginas controladas.', 'success', 'PDF'); } finally { document.body.classList.remove('pdf-export'); palco.remove(); } }
 
-    function fmtNum(value) {
-      return Number(value || 0).toLocaleString('pt-BR');
-    }
-
-    function setLoading(message, active = true) {
-      const loading = document.getElementById('loading');
-      loading.classList.toggle('hidden', !active);
-      loading.innerHTML = active ? `<span class="spinner" aria-hidden="true"></span><span>${escapeHtml(message)}</span>` : '';
-    }
-
-    function setBusy(active, button, label) {
-      state.busy = active;
-      document.querySelectorAll('.btn, .icon-btn, .multi-trigger, .multi-action').forEach(el => {
-        if (active) {
-          if (!el.dataset.wasDisabled) el.dataset.wasDisabled = el.disabled ? '1' : '0';
-          el.disabled = true;
-          el.setAttribute('aria-busy', button && el === button ? 'true' : 'false');
-        } else {
-          el.disabled = el.dataset.wasDisabled === '1';
-          el.removeAttribute('aria-busy');
-          delete el.dataset.wasDisabled;
-        }
-      });
-      if (button) {
-        if (active) {
-          button.dataset.originalHtml = button.innerHTML;
-          button.innerHTML = `<span class="spinner" aria-hidden="true"></span><span>${escapeHtml(label || 'Processando')}</span>`;
-        } else if (button.dataset.originalHtml) {
-          button.innerHTML = button.dataset.originalHtml;
-          delete button.dataset.originalHtml;
-        }
-      }
-    }
-
-    async function runAction({ button, label, loading }, task) {
-      if (state.busy) {
-        toast('Aguarde a operação atual terminar antes de iniciar outra.', 'warning', 'Processando');
-        return null;
-      }
-      setBusy(true, button || null, label || 'Processando');
-      if (loading) setLoading(loading, true);
-      try {
-        return await task();
-      } finally {
-        setBusy(false, button || null);
-      }
-    }
-
-    function toast(message, type = 'info', title = '') {
-      const root = document.getElementById('toast-root');
-      const cfg = {
-        success: { dot: 'var(--success)', icon: 'fa-circle-check', title: title || 'Concluído' },
-        error: { dot: 'var(--danger)', icon: 'fa-triangle-exclamation', title: title || 'Erro' },
-        warning: { dot: 'var(--warning)', icon: 'fa-bell', title: title || 'Atenção' },
-        info: { dot: 'var(--info)', icon: 'fa-circle-info', title: title || 'Informação' }
-      }[type] || { dot: 'var(--info)', icon: 'fa-circle-info', title: title || 'Informação' };
-      const el = document.createElement('section');
-      el.className = 'toast';
-      el.setAttribute('role', type === 'error' ? 'alert' : 'status');
-      el.style.setProperty('--toast-dot', cfg.dot);
-      el.innerHTML = `<i class="fa-solid ${cfg.icon}" aria-hidden="true"></i><div><strong>${escapeHtml(cfg.title)}</strong><p>${escapeHtml(message)}</p></div><button type="button" aria-label="Fechar"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button>`;
-      const close = () => {
-        el.classList.remove('visible');
-        el.classList.add('leaving');
-        window.setTimeout(() => el.remove(), 220);
-      };
-      el.querySelector('button').addEventListener('click', close);
-      root.appendChild(el);
-      window.requestAnimationFrame(() => el.classList.add('visible'));
-      window.setTimeout(close, type === 'error' ? 7200 : 4200);
-    }
-
-    function confirmDialog({ title, message, confirmText = 'Confirmar', cancelText = 'Cancelar', danger = false } = {}) {
-      return new Promise(resolve => {
-        const previous = document.activeElement;
-        const overlay = document.createElement('div');
-        overlay.className = 'confirm-overlay';
-        overlay.innerHTML = `<section class="confirm-dialog" role="dialog" aria-modal="true" aria-labelledby="confirm-title" aria-describedby="confirm-message"><div class="confirm-body"><h3 id="confirm-title">${escapeHtml(title || 'Confirmação')}</h3><p id="confirm-message">${escapeHtml(message || 'Deseja continuar?')}</p></div><div class="confirm-actions"><button type="button" class="btn" data-cancel>${escapeHtml(cancelText)}</button><button type="button" class="btn ${danger ? 'btn-danger' : 'btn-primary'}" data-ok>${escapeHtml(confirmText)}</button></div></section>`;
-        const focusableSelector = 'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])';
-        const finish = answer => {
-          overlay.classList.remove('open');
-          window.setTimeout(() => overlay.remove(), 180);
-          if (previous && previous.focus) previous.focus();
-          resolve(answer);
-        };
-        overlay.addEventListener('click', ev => { if (ev.target === overlay) finish(false); });
-        overlay.querySelector('[data-cancel]').addEventListener('click', () => finish(false));
-        overlay.querySelector('[data-ok]').addEventListener('click', () => finish(true));
-        overlay.addEventListener('keydown', ev => {
-          if (ev.key === 'Escape') finish(false);
-          if (ev.key !== 'Tab') return;
-          const focusables = Array.from(overlay.querySelectorAll(focusableSelector));
-          const first = focusables[0];
-          const last = focusables[focusables.length - 1];
-          if (ev.shiftKey && document.activeElement === first) { ev.preventDefault(); last.focus(); }
-          else if (!ev.shiftKey && document.activeElement === last) { ev.preventDefault(); first.focus(); }
-        });
-        document.body.appendChild(overlay);
-        window.requestAnimationFrame(() => overlay.classList.add('open'));
-        overlay.querySelector('[data-ok]').focus();
-      });
-    }
-
-    function loadScript(src, globalName) {
-      if (globalName && window[globalName]) return Promise.resolve(window[globalName]);
-      const existing = document.querySelector(`script[src="${src}"]`);
-      if (existing) {
-        return new Promise(resolve => existing.addEventListener('load', () => resolve(globalName ? window[globalName] : true), { once: true }));
-      }
-      return new Promise((resolve, reject) => {
-        const script = document.createElement('script');
-        script.src = src;
-        script.async = true;
-        script.onload = () => resolve(globalName ? window[globalName] : true);
-        script.onerror = () => reject(new Error('Não foi possível carregar dependência externa.'));
-        document.head.appendChild(script);
-      });
-    }
-
-    async function ensureChartJs() {
-      if (!state.chartLoader) state.chartLoader = loadScript(CHART_SRC, 'Chart');
-      return state.chartLoader;
-    }
-
-    async function ensureHtml2Pdf() {
-      if (!state.pdfLoader) state.pdfLoader = loadScript(HTML2PDF_SRC, 'html2pdf');
-      return state.pdfLoader;
-    }
-
-    function withTimeout(promise, ms, message) {
-      let timer;
-      const timeout = new Promise((_, reject) => { timer = window.setTimeout(() => reject(new Error(message)), ms); });
-      return Promise.race([promise, timeout]).finally(() => window.clearTimeout(timer));
-    }
-
-    function validarPayload(payload) {
-      if (!payload || payload.success === false) throw new Error((payload && (payload.mensagem || payload.detalhe)) || 'Resposta inválida do Apps Script.');
-      return payload;
-    }
-
-    function fetchViaGoogleScript(params = {}) {
-      return new Promise((resolve, reject) => {
-        if (!(window.google && google.script && google.script.run)) return reject(new Error('google.script.run indisponível.'));
-        google.script.run.withSuccessHandler(resolve).withFailureHandler(reject).obterPayloadRelatorios(params);
-      });
-    }
-
-    async function fetchViaHttp(params = {}) {
-      const query = new URLSearchParams({ api: 'relatorios' });
-      Object.entries(params).forEach(([key, value]) => {
-        if (Array.isArray(value)) { if (value.length) query.set(key, value.join('|')); }
-        else if (value != null && String(value).trim()) query.set(key, String(value));
-      });
-      const endpoint = APP_URL || location.pathname;
-      const response = await fetch(`${endpoint}?${query.toString()}`, { cache: 'no-store' });
-      if (!response.ok) throw new Error('Falha ao carregar relatório.');
-      return response.json();
-    }
-
-    async function fetchPayload(params = {}) {
-      const timeoutMessage = 'A planilha demorou demais para responder. Confira permissões, nome da aba e volume de linhas.';
-      const usingGoogle = Boolean(window.google && google.script && google.script.run);
-      const payload = usingGoogle
-        ? await withTimeout(fetchViaGoogleScript(params), 45000, timeoutMessage)
-        : await withTimeout(fetchViaHttp(params), 45000, timeoutMessage);
-      return validarPayload(payload);
-    }
-
-    function buildFilters() {
-      const root = document.getElementById('filters-root');
-      root.innerHTML = filterDefs.map(def => `<div class="field"><div class="field-label"><span>${escapeHtml(def.label)}</span><small>multi</small></div><div class="multi" data-filter="${def.id}"><button type="button" class="multi-trigger" aria-haspopup="listbox" aria-expanded="false"><span class="multi-value"><span class="multi-placeholder">Todos</span></span><i class="fa-solid fa-chevron-down" aria-hidden="true"></i></button><div class="multi-pop" role="listbox" aria-label="${escapeHtml(def.label)}"><input type="search" class="multi-search" placeholder="Buscar ${escapeHtml(def.short.toLowerCase())}"><div class="multi-actions"><button type="button" class="multi-action" data-act="all">Tudo</button><button type="button" class="multi-action" data-act="none">Limpar</button></div><div class="multi-list"></div></div></div></div>`).join('');
-      root.querySelectorAll('.multi').forEach(multi => {
-        const id = multi.dataset.filter;
-        const trigger = multi.querySelector('.multi-trigger');
-        const search = multi.querySelector('.multi-search');
-        trigger.addEventListener('click', ev => {
-          ev.stopPropagation();
-          closeMultis(multi);
-          const open = multi.classList.toggle('open');
-          trigger.setAttribute('aria-expanded', String(open));
-          if (open) { search.value = ''; renderMultiList(id); window.setTimeout(() => search.focus(), 10); }
-        });
-        search.addEventListener('input', () => renderMultiList(id, search.value));
-        multi.querySelectorAll('.multi-action').forEach(btn => btn.addEventListener('click', () => {
-          const options = state.available[id] || [];
-          state.selected[id] = btn.dataset.act === 'all' ? options.slice() : [];
-          renderMulti(id);
-          renderMultiList(id, search.value);
-          renderActiveFilters();
-        }));
-      });
-      document.addEventListener('click', () => closeMultis());
-      document.addEventListener('keydown', ev => { if (ev.key === 'Escape') closeMultis(); });
-    }
-
-    function closeMultis(except) {
-      document.querySelectorAll('.multi.open').forEach(multi => {
-        if (multi === except) return;
-        multi.classList.remove('open');
-        const trigger = multi.querySelector('.multi-trigger');
-        if (trigger) trigger.setAttribute('aria-expanded', 'false');
-      });
-    }
-
-    function setFilterOptions(filtros = {}) {
-      filterDefs.forEach(def => {
-        state.available[def.id] = filtros[def.endpoint] || [];
-        state.selected[def.id] = (state.selected[def.id] || []).filter(value => state.available[def.id].includes(value));
-        renderMulti(def.id);
-      });
-      document.getElementById('filter-source').textContent = filtros.abaEncontrada ? `Fonte: ${filtros.abaEncontrada}` : 'Fonte não localizada';
-      renderActiveFilters();
-    }
-
-    function renderMulti(id) {
-      const multi = document.querySelector(`.multi[data-filter="${id}"]`);
-      if (!multi) return;
-      const selected = state.selected[id] || [];
-      const value = multi.querySelector('.multi-value');
-      if (!selected.length) {
-        value.innerHTML = '<span class="multi-placeholder">Todos</span>';
-        return;
-      }
-      const visible = selected.slice(0, 2).map(item => `<span class="chip">${escapeHtml(item)}<button type="button" data-rm="${escapeHtml(item)}" aria-label="Remover ${escapeHtml(item)}">&times;</button></span>`).join('');
-      const extra = selected.length > 2 ? `<span class="chip">+${selected.length - 2}</span>` : '';
-      value.innerHTML = visible + extra;
-      value.querySelectorAll('[data-rm]').forEach(btn => btn.addEventListener('click', ev => {
-        ev.stopPropagation();
-        const item = btn.getAttribute('data-rm');
-        state.selected[id] = (state.selected[id] || []).filter(value => value !== item);
-        renderMulti(id);
-        renderMultiList(id);
-        renderActiveFilters();
-      }));
-    }
-
-    function renderMultiList(id, term = '') {
-      const multi = document.querySelector(`.multi[data-filter="${id}"]`);
-      const list = multi && multi.querySelector('.multi-list');
-      if (!list) return;
-      const selected = new Set(state.selected[id] || []);
-      const query = String(term || '').trim().toLowerCase();
-      const options = (state.available[id] || []).filter(item => !query || item.toLowerCase().includes(query));
-      list.innerHTML = options.map(item => `<label class="multi-option ${selected.has(item) ? 'selected' : ''}"><input type="checkbox" value="${escapeHtml(item)}" ${selected.has(item) ? 'checked' : ''}><span>${escapeHtml(item)}</span></label>`).join('') || '<div class="multi-empty">Nada encontrado</div>';
-      list.querySelectorAll('input[type="checkbox"]').forEach(input => input.addEventListener('change', () => {
-        const value = input.value;
-        const current = new Set(state.selected[id] || []);
-        if (input.checked) current.add(value); else current.delete(value);
-        state.selected[id] = Array.from(current);
-        renderMulti(id);
-        renderMultiList(id, term);
-        renderActiveFilters();
-      }));
-    }
-
-    function renderActiveFilters() {
-      const chips = [];
-      filterDefs.forEach(def => {
-        const values = state.selected[def.id] || [];
-        if (!values.length) return;
-        const label = values.length > 2 ? `${values.slice(0, 2).join(', ')} +${values.length - 2}` : values.join(', ');
-        chips.push(`<span class="chip good"><i class="fa-solid fa-circle-check" aria-hidden="true"></i> ${escapeHtml(def.short)}: ${escapeHtml(label)}</span>`);
-      });
-      document.getElementById('active-filter-count').textContent = `${chips.length} filtro(s)`;
-      document.getElementById('active-filters').innerHTML = chips.join('') || '<span class="chip"><i class="fa-solid fa-layer-group" aria-hidden="true"></i> Todos os dados</span>';
-    }
-
-    function getSelectedFilters() {
-      const filtros = { comissao: document.querySelector('input[name="comissao"]:checked')?.value || 'CRP' };
-      filterDefs.forEach(def => { filtros[def.id] = state.selected[def.id] || []; });
-      return filtros;
-    }
-
-    function clearFilters() {
-      filterDefs.forEach(def => { state.selected[def.id] = []; renderMulti(def.id); });
-      renderActiveFilters();
-      toast('Filtros limpos. O relatório usará todos os dados.', 'info', 'Filtros');
-    }
-
-    function periodoTexto(aplicado = {}) {
-      const anos = aplicado.anos?.length ? aplicado.anos.join(', ') : 'todos os anos';
-      const meses = aplicado.meses?.length ? aplicado.meses.join(', ') : 'todos os meses';
-      return `${meses} / ${anos}`;
-    }
-
-    function listaTop(map, limite = 4) {
-      return Object.entries(map || {}).slice(0, limite).map(([nome, total]) => `${nome} (${total})`).join(', ') || 'não informado';
-    }
-
-    function gerarTextosPadrao() {
-      const payload = state.payload || {};
-      const rel = payload.relatorio || {};
-      const aplicado = payload.aplicado || {};
-      const setores = aplicado.unidades?.length ? aplicado.unidades.join(', ') : 'todos os setores elegíveis';
-      const criticos = (rel.indicadoresCriticos || []).slice(0, 4).map(item => `${item.nome} (${fmtPct(item.percentual)})`).join('; ') || 'sem indicadores críticos no recorte selecionado';
-      const fortalezas = (rel.indicadoresExcelencia || []).slice(0, 3).map(item => `${item.nome} (${fmtPct(item.percentual)})`).join('; ') || 'sem destaques disponíveis';
-      textAreas.intro.value = `Este relatório apresenta a análise consolidada da comissão ${rel.comissao || 'CRP'} para o período ${periodoTexto(aplicado)}, considerando ${setores}. O objetivo é sintetizar o desempenho dos registros avaliados, evidenciar conformidades e não conformidades e apoiar decisões de melhoria contínua.`;
-      textAreas.metodo.value = `A base foi lida diretamente da aba ${rel.abaEncontrada || 'CRP'} da planilha institucional, usando a estrutura oficial da CRP de A até AQ. Para cálculo de conformidade, entram no denominador apenas itens classificados como Conforme ou Não Conforme; itens Não se Aplica, vazios ou marcados com hífen são apresentados separadamente para transparência da amostra.`;
-      textAreas.analise.value = `No recorte selecionado, foram identificadas ${fmtNum(rel.totalAvaliacoes)} avaliações e ${fmtNum(rel.totalAuditavel)} itens auditáveis. A conformidade geral foi de ${fmtPct(rel.conformidadeGeral)}, com ${fmtNum(rel.conformes)} conformidades e ${fmtNum(rel.naoConformes)} não conformidades. Os principais pontos de atenção foram: ${criticos}. Como fortalezas, destacam-se: ${fortalezas}.`;
-      textAreas.plano.value = `Recomenda-se priorizar os indicadores com menor conformidade, revisar rotinas de preenchimento junto às equipes assistenciais, reforçar orientação sobre completude documental e acompanhar mensalmente os setores com maior volume de não conformidades. A gestão deve pactuar responsáveis, prazos e evidências de conclusão para cada ação corretiva.`;
-      textAreas.conclusao.value = `A análise demonstra o panorama atual da qualidade dos registros da comissão ${rel.comissao || 'CRP'} e direciona intervenções objetivas para elevar a aderência documental. A continuidade do monitoramento por período, setor e categoria permitirá verificar tendência, sustentabilidade das melhorias e alinhamento à meta institucional de ${fmtPct(rel.metaInstitucional)}.`;
-    }
-
-    function atualizarHero() {
-      const rel = state.payload?.relatorio || {};
-      document.getElementById('hero-comissao').textContent = rel.comissao || 'CRP';
-      document.getElementById('hero-fonte').textContent = rel.abaEncontrada ? `Fonte ${rel.abaEncontrada}` : 'Fonte não carregada';
-      document.getElementById('hero-conformidade').textContent = fmtPct(rel.conformidadeGeral);
-      document.getElementById('hero-meta').textContent = `Meta ${fmtPct(rel.metaInstitucional)}`;
-      document.getElementById('hero-avaliacoes').textContent = fmtNum(rel.totalAvaliacoes);
-      document.getElementById('hero-base').textContent = `${fmtNum(rel.totalRegistrosBase)} registros na base`;
-      document.getElementById('hero-indicadores').textContent = fmtNum((rel.indicadores || []).length);
-      document.getElementById('hero-alertas').textContent = (rel.alertasEstrutura || []).length ? `${rel.alertasEstrutura.length} alerta(s)` : 'Estrutura OK';
-      document.getElementById('preview-subtitle').textContent = `${rel.comissao || 'CRP'} · ${periodoTexto(state.payload?.aplicado || {})}`;
-    }
-
-    function tagPct(value) {
-      const n = Number(value);
-      const klass = n >= 80 ? 'green' : n >= 60 ? 'amber' : 'red';
-      return `<span class="tag ${klass}">${fmtPct(value)}</span>`;
-    }
-
-    function renderTabelaIndicadores(rel) {
-      const rows = (rel.indicadoresCriticos || []).map(item => `<tr><td>${escapeHtml(item.nome)}</td><td>${fmtNum(item.avaliados)}</td><td>${fmtNum(item.conformes)}</td><td>${fmtNum(item.naoConformes)}</td><td>${tagPct(item.percentual)}</td></tr>`).join('');
-      return `<div class="table-wrap"><table><thead><tr><th>Indicador crítico</th><th>Avaliados</th><th>Conformes</th><th>Não conformes</th><th>Resultado</th></tr></thead><tbody>${rows || '<tr><td colspan="5">Sem indicadores no recorte selecionado.</td></tr>'}</tbody></table></div>`;
-    }
-
-    function renderTabelaSetores(rel) {
-      const rows = (rel.rankingSetores || []).slice(0, 10).map(item => `<tr><td>${escapeHtml(item.setor)}</td><td>${fmtNum(item.avaliacoes)}</td><td>${fmtNum(item.conformes)}</td><td>${fmtNum(item.naoConformes)}</td><td>${tagPct(item.percentual)}</td></tr>`).join('');
-      return `<div class="table-wrap"><table><thead><tr><th>Setor</th><th>Avaliações</th><th>Conformes</th><th>Não conformes</th><th>Resultado</th></tr></thead><tbody>${rows || '<tr><td colspan="5">Sem setores no recorte selecionado.</td></tr>'}</tbody></table></div>`;
-    }
-
-    function renderTexto(titulo, conteudo) {
-      return `<section class="doc-section"><h3>${escapeHtml(titulo)}</h3><div class="doc-text">${escapeHtml(conteudo)}</div></section>`;
-    }
-
-    function renderMetricas(rel) {
-      return `<section class="doc-metrics"><article class="doc-metric"><span>Avaliações</span><strong>${fmtNum(rel.totalAvaliacoes)}</strong></article><article class="doc-metric"><span>Conformidade</span><strong>${fmtPct(rel.conformidadeGeral)}</strong></article><article class="doc-metric"><span>Conformes</span><strong>${fmtNum(rel.conformes)}</strong></article><article class="doc-metric"><span>Não conformes</span><strong>${fmtNum(rel.naoConformes)}</strong></article></section>`;
-    }
-
-    function renderAlertasEstrutura(rel) {
-      const alertas = (rel.alertasEstrutura || []).slice(0, 8);
-      if (!alertas.length) return '';
-      const itens = alertas.map(item => `<li>${escapeHtml(item)}</li>`).join('');
-      const extra = rel.alertasEstrutura.length > alertas.length ? `<li>Mais ${fmtNum(rel.alertasEstrutura.length - alertas.length)} alerta(s) oculto(s).</li>` : '';
-      return `<div class="structure-alert"><strong>Alertas de estrutura</strong><ul>${itens}${extra}</ul></div>`;
-    }
-
-    function renderChartsSlots() {
-      return `<section class="doc-grid"><div class="chart-box"><canvas id="chart-evolucao" aria-label="Evolução mensal"></canvas></div><div class="chart-box"><canvas id="chart-distribuicao" aria-label="Distribuição dos itens"></canvas></div></section>`;
-    }
-
-    function renderRelatorio() {
-      const rel = state.payload?.relatorio;
-      if (!rel) return;
-      destroyCharts();
-      const aplicado = state.payload.aplicado || {};
-      const html = `<section class="document-page"><header class="doc-top"><div class="doc-brand"><img class="doc-logo" src="${LOGO_INSTITUCIONAL}" alt="Logo institucional"><div><h2>Relatório Analítico COSEP</h2><p>Comissão ${escapeHtml(rel.comissao || 'CRP')} · ${escapeHtml(periodoTexto(aplicado))}</p></div></div><p class="doc-meta">Gerado em ${new Date().toLocaleDateString('pt-BR')}<br>Fonte: ${escapeHtml(rel.abaEncontrada || 'CRP')}</p></header><main><section class="doc-hero"><div><span class="doc-kicker">Análise institucional</span><h1 class="doc-title">Panorama de conformidade dos registros assistenciais</h1><p class="doc-subtitle">Recorte: ${escapeHtml(aplicado.unidades?.length ? aplicado.unidades.join(', ') : 'todos os setores elegíveis')}.</p></div><aside class="doc-score"><strong>${fmtPct(rel.conformidadeGeral)}</strong><span>Conformidade geral</span></aside></section>${renderMetricas(rel)}${renderTexto('1. Introdução', textAreas.intro.value)}${renderTexto('2. Metodologia', textAreas.metodo.value)}${renderTexto('3. Análise crítica', textAreas.analise.value)}${renderChartsSlots()}${renderAlertasEstrutura(rel)}<section class="doc-section"><h3>4. Indicadores críticos</h3>${renderTabelaIndicadores(rel)}</section><section class="doc-section"><h3>5. Setores com maior oportunidade</h3>${renderTabelaSetores(rel)}</section>${renderTexto('6. Plano de ação recomendado', textAreas.plano.value)}${renderTexto('7. Conclusão', textAreas.conclusao.value)}</main><footer class="doc-footer"><img class="footer-brand" src="${RODAPE_INSTITUCIONAL}" alt="Rodapé institucional"></footer></section>`;
-      document.getElementById('relatorio').innerHTML = html;
-      document.getElementById('relatorio').classList.remove('hidden');
-      document.getElementById('report-tools').classList.remove('hidden');
-      renderCharts(rel).catch(error => console.error(error));
-    }
-
-    function destroyCharts() {
-      state.charts.forEach(chart => chart.destroy());
-      state.charts = [];
-    }
-
-    async function renderCharts(rel) {
-      destroyCharts();
-      const Chart = await ensureChartJs();
-      if (!Chart) return;
-      const evolucao = rel.evolucaoMensal || [];
-      const common = { responsive: true, maintainAspectRatio: false, plugins: { legend: { labels: { boxWidth: 10, color: '#475467', font: { size: 10 } } } } };
-      const chartEvolucao = document.getElementById('chart-evolucao');
-      const chartDistribuicao = document.getElementById('chart-distribuicao');
-      if (chartEvolucao) {
-        state.charts.push(new Chart(chartEvolucao, { type: 'line', data: { labels: evolucao.map(item => item.mes), datasets: [{ label: 'Conformidade', data: evolucao.map(item => item.percentual), borderColor: '#0f766e', backgroundColor: 'rgba(15,118,110,.08)', tension: .28, fill: true, pointRadius: 2 }] }, options: { ...common, plugins: { ...common.plugins, legend: { display: false }, title: { display: true, text: 'Evolução mensal (%)', color: '#344054', font: { size: 11, weight: '700' } } }, scales: { y: { min: 0, max: 100, ticks: { color: '#667085', font: { size: 10 } }, grid: { color: '#eef0f3' } }, x: { ticks: { color: '#667085', font: { size: 10 } }, grid: { display: false } } } } }));
-      }
-      if (chartDistribuicao) {
-        state.charts.push(new Chart(chartDistribuicao, { type: 'doughnut', data: { labels: ['Conforme', 'Não conforme', 'Não se aplica'], datasets: [{ data: [rel.conformes || 0, rel.naoConformes || 0, rel.naoSeAplica || 0], backgroundColor: ['#15803d', '#b42318', '#b45309'], borderWidth: 0 }] }, options: { ...common, cutout: '66%', plugins: { ...common.plugins, legend: { position: 'bottom', labels: { boxWidth: 10, color: '#475467', font: { size: 10 } } }, title: { display: true, text: 'Distribuição dos itens', color: '#344054', font: { size: 11, weight: '700' } } } } }));
-      }
-    }
-
-    async function gerarRelatorio(recriarTexto = false, button = null) {
-      return runAction({ button, label: button && button.id === 'btn-aplicar-filtros' ? 'Aplicando' : 'Gerando', loading: 'Lendo planilha e consolidando indicadores...' }, async () => {
-        try {
-          state.payload = await fetchPayload(getSelectedFilters());
-          setFilterOptions(state.payload.filtros || {});
-          if (recriarTexto || !textAreas.intro.value.trim()) gerarTextosPadrao();
-          atualizarHero();
-          renderRelatorio();
-          setLoading('', false);
-          toast('Relatório atualizado e pronto para exportação.', 'success', 'Relatório');
-        } catch (error) {
-          console.error(error);
-          setLoading(error.message || 'Não foi possível gerar o relatório.');
-          toast(error.message || 'Falha ao gerar relatório.', 'error', 'Relatório');
-        }
-      });
-    }
-
-    function copiarResumo() {
-      const rel = state.payload?.relatorio || {};
-      const resumo = `Relatório ${rel.comissao || 'CRP'} — conformidade ${fmtPct(rel.conformidadeGeral)}, ${fmtNum(rel.totalAvaliacoes)} avaliações, ${fmtNum(rel.naoConformes)} não conformidades.`;
-      navigator.clipboard?.writeText(resumo).then(() => toast('Resumo copiado para a área de transferência.', 'success', 'Resumo'), () => toast(resumo, 'info', 'Resumo'));
-    }
-
-    async function aguardarEstabilidadeRelatorio() {
-      if (document.fonts && document.fonts.ready) {
-        try { await document.fonts.ready; } catch (_) {}
-      }
-      await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
-      await new Promise(resolve => setTimeout(resolve, 120));
-    }
-
-    function cloneRelatorioParaPdf() {
-      const original = document.getElementById('relatorio');
-      const clone = original.cloneNode(true);
-      clone.classList.remove('hidden');
-      const originais = original.querySelectorAll('canvas');
-      clone.querySelectorAll('canvas').forEach((canvas, idx) => {
-        const origem = originais[idx];
-        if (!origem) return;
-        const img = document.createElement('img');
-        try { img.src = origem.toDataURL('image/png'); } catch (_) { return; }
-        img.alt = canvas.getAttribute('aria-label') || '';
-        img.style.width = '100%';
-        img.style.height = '190px';
-        img.style.objectFit = 'contain';
-        canvas.replaceWith(img);
-      });
-      clone.querySelectorAll('[id]').forEach(el => el.removeAttribute('id'));
-      return clone;
-    }
-
-    async function baixarRelatorioPdf() {
-      if (!state.payload?.relatorio) return;
-      const html2pdf = await ensureHtml2Pdf();
-      const rel = state.payload.relatorio;
-      const nomeArquivo = `relatorio-${String(rel.comissao || 'crp').toLowerCase()}-${new Date().toISOString().slice(0, 10)}.pdf`;
-      await aguardarEstabilidadeRelatorio();
-      const clone = cloneRelatorioParaPdf();
-      const palco = document.createElement('div');
-      palco.className = 'pdf-capture-stage';
-      palco.setAttribute('aria-hidden', 'true');
-      palco.appendChild(clone);
-      document.body.appendChild(palco);
-      document.body.classList.add('pdf-export');
-      try {
-        await aguardarEstabilidadeRelatorio();
-        await html2pdf().set({ margin: [0, 0, 0, 0], filename: nomeArquivo, image: { type: 'png', quality: 1 }, html2canvas: { scale: 2.2, useCORS: true, scrollX: 0, scrollY: 0, windowWidth: Math.max(clone.scrollWidth, palco.clientWidth, 794), windowHeight: Math.max(clone.scrollHeight, palco.clientHeight, 1123), backgroundColor: '#ffffff' }, jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }, pagebreak: { mode: ['css', 'legacy'], avoid: ['.chart-box', '.doc-metric', '.doc-section'] } }).from(clone).save();
-        toast('PDF gerado com o novo layout executivo.', 'success', 'PDF');
-      } finally {
-        document.body.classList.remove('pdf-export');
-        palco.remove();
-      }
-    }
-
-    function setupTabs() {
-      document.querySelectorAll('.tab-button').forEach(button => button.addEventListener('click', () => {
-        const tab = button.dataset.tab;
-        document.querySelectorAll('.tab-button').forEach(item => {
-          const active = item === button;
-          item.classList.toggle('active', active);
-          item.setAttribute('aria-selected', String(active));
-        });
-        document.querySelectorAll('.tab-panel').forEach(panel => panel.classList.toggle('active', panel.id === `tab-${tab}`));
-      }));
-    }
-
-    function setupTheme() {
-      const btn = document.querySelector('.theme-toggle');
-      const apply = theme => {
-        document.documentElement.setAttribute('data-theme', theme);
-        btn.setAttribute('aria-pressed', String(theme === 'dark'));
-        btn.innerHTML = `<i class="fa-solid ${theme === 'dark' ? 'fa-sun' : 'fa-moon'}" aria-hidden="true"></i>`;
-        try { localStorage.setItem('cosep-theme', theme); } catch (e) {}
-      };
-      apply(document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'light');
-      btn.addEventListener('click', () => apply(document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark'));
-    }
-
-    function mostrarViewRel(view) {
-      const isAdmin = view === 'admin';
-      document.getElementById('dashboard-view').classList.toggle('hidden', isAdmin);
-      document.getElementById('admin-view').classList.toggle('hidden', !isAdmin);
-      document.querySelectorAll('[data-view-rel]').forEach(item => item.classList.toggle('active', item.dataset.viewRel === view));
-      if (isAdmin) carregarConfigRel(false);
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-    }
-
+    function setupTabs() { document.querySelectorAll('.tab-button').forEach(button => button.addEventListener('click', () => { const tab = button.dataset.tab; document.querySelectorAll('.tab-button').forEach(item => { const active = item === button; item.classList.toggle('bg-white', active); item.classList.toggle('shadow-sm', active); item.setAttribute('aria-selected', String(active)); }); document.querySelectorAll('.tab-panel').forEach(panel => panel.classList.toggle('active', panel.id === `tab-${tab}`)); })); }
+    function setupTheme() { const btn = document.querySelector('.theme-toggle'); const apply = theme => { document.documentElement.setAttribute('data-theme', theme); btn.setAttribute('aria-pressed', String(theme === 'dark')); btn.innerHTML = `<i class="fa-solid ${theme === 'dark' ? 'fa-sun' : 'fa-moon'}" aria-hidden="true"></i>`; try { localStorage.setItem('cosep-theme', theme); } catch (_) {} }; apply(document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'light'); btn.addEventListener('click', () => apply(document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark')); }
+    function mostrarViewRel(view) { const isAdmin = view === 'admin'; el('dashboard-view').classList.toggle('hidden', isAdmin); el('admin-view').classList.toggle('hidden', !isAdmin); document.querySelectorAll('[data-view-rel]').forEach(item => item.dataset.active = String(item.dataset.viewRel === view)); if (isAdmin) carregarConfigRel(false); window.scrollTo({ top: 0, behavior: 'smooth' }); }
     document.querySelectorAll('[data-view-rel]').forEach(item => item.addEventListener('click', ev => { ev.preventDefault(); mostrarViewRel(item.dataset.viewRel); }));
 
     let arelCarregado = false;
     let arelPodeEditar = true;
+    function arelFetch(method, arg = {}) { return new Promise((resolve, reject) => { if (window.google && google.script && google.script.run) { const r = google.script.run.withSuccessHandler(resolve).withFailureHandler(reject); if (method === 'get') r.obterConfigRelCosep(arg.refresh === true); else if (method === 'save') r.salvarConfigRelCosep(arg); else if (method === 'reset') r.restaurarConfigRelCosep(); return; } if (method === 'get') { const query = arg.refresh ? '?api=configrel&refresh=1' : '?api=configrel'; fetch(`${APP_URL || location.pathname}${query}`, { cache: 'no-store' }).then(r => r.ok ? r.json() : Promise.reject(new Error('Falha ao carregar config.'))).then(resolve).catch(reject); } else { reject(new Error('Salvar exige o app publicado com google.script.run disponível.')); } }); }
+    async function carregarConfigRel(forceRefresh = false, button = null) { if (arelCarregado && !forceRefresh) return; const loading = el('admin-rel-loading'); const form = el('admin-rel-form'); const task = async () => { loading.classList.remove('hidden'); loading.innerHTML = `<span class="spinner" aria-hidden="true"></span><span>${forceRefresh ? 'Recarregando da planilha...' : 'Carregando configurações...'}</span>`; try { const resp = await arelFetch('get', { refresh: forceRefresh }); if (!resp || resp.success === false || !resp.config) throw new Error((resp && resp.mensagem) || 'Configuração indisponível.'); arelCarregado = true; arelPodeEditar = resp.podeEditar !== false; renderConfigRel(resp.config); loading.classList.add('hidden'); form.classList.remove('hidden'); el('admin-rel-bloqueio').classList.toggle('hidden', arelPodeEditar); if (forceRefresh) toast('Configurações recarregadas diretamente da planilha.', 'success', 'Admin'); } catch (error) { arelCarregado = false; loading.innerHTML = '<span>Não foi possível carregar as configurações.</span>'; toast(String(error && error.message || error), 'error', 'Admin'); } }; return button ? runAction({ button, label: 'Recarregando', loading: 'Recarregando configurações...' }, task) : task(); }
+    function renderConfigRel(cfg) { const set = (id, value) => { const item = el(id); if (item) item.value = value == null ? '' : value; }; const saved = loadSavedTemplates(); if (cfg.tipoRelatorio) state.tipoRelatorio = cfg.tipoRelatorio; state.templates = normalizarTemplates(cfg.textosPadrao || saved); set('arel-meta', cfg.metaInstitucional); set('arel-aba', cfg.abaNome || ''); set('arel-planilha', cfg.planilhaId || ''); set('arel-tipo-doc', state.tipoRelatorio); set('arel-texto-intro', state.templates.intro); set('arel-texto-metodo', state.templates.metodo); set('arel-texto-analise', state.templates.analise); set('arel-texto-plano', state.templates.plano); set('arel-texto-conclusao', state.templates.conclusao); set('arel-conforme', (cfg.termosConforme || []).join('\n')); set('arel-naoconforme', (cfg.termosNaoConforme || []).join('\n')); set('arel-naoaplica', (cfg.termosNaoSeAplica || []).join('\n')); el('arel-indicadores').innerHTML = (cfg.indicadores || []).map((nome, i) => `<div class="grid grid-cols-[32px_1fr] items-center gap-2"><span class="flex min-h-9 items-center justify-center rounded-md bg-slate-100 text-xs font-black text-slate-500 dark:bg-slate-800">${i + 1}</span><input type="text" class="input arel-ind" value="${escapeHtml(String(nome || ''))}"></div>`).join(''); el('arel-info').innerHTML = cfg.atualizadoEm ? `Última alteração em <strong>${escapeHtml(cfg.atualizadoEm)}</strong>${cfg.atualizadoPor ? ' por <strong>' + escapeHtml(cfg.atualizadoPor) + '</strong>' : ''}` : 'Ainda sem alterações registradas.'; document.querySelectorAll('#admin-rel-form input, #admin-rel-form textarea, #admin-rel-form select').forEach(item => { item.disabled = !arelPodeEditar; }); el('arel-salvar').disabled = !arelPodeEditar; el('arel-restaurar').disabled = !arelPodeEditar; el('arel-restaurar-textos').disabled = !arelPodeEditar; }
+    function coletarTextosAdmin() { return { intro: el('arel-texto-intro').value, metodo: el('arel-texto-metodo').value, analise: el('arel-texto-analise').value, plano: el('arel-texto-plano').value, conclusao: el('arel-texto-conclusao').value }; }
+    function coletarConfigRel() { const val = id => (el(id) || {}).value || ''; const linhas = id => val(id).split('\n').map(item => item.trim()).filter(Boolean); return { metaInstitucional: Number(val('arel-meta')), abaNome: val('arel-aba').trim(), planilhaId: val('arel-planilha').trim(), tipoRelatorio: val('arel-tipo-doc').trim() || 'executivo', textosPadrao: coletarTextosAdmin(), termosConforme: linhas('arel-conforme'), termosNaoConforme: linhas('arel-naoconforme'), termosNaoSeAplica: linhas('arel-naoaplica'), indicadores: Array.from(document.querySelectorAll('#arel-indicadores .arel-ind')).map(input => input.value) }; }
+    function aplicarMensagensAdminAoRelatorio() { state.tipoRelatorio = el('arel-tipo-doc').value || 'executivo'; state.templates = normalizarTemplates(coletarTextosAdmin()); saveTemplates(); if (!state.payload?.relatorio) { toast('Carregue o relatório antes de aplicar as mensagens na prévia.', 'warning', 'Mensagens'); return; } gerarTextosPadrao(); atualizarHero(); renderRelatorio(); toast('Mensagens padrão aplicadas na prévia atual.', 'success', 'Mensagens'); }
+    function restaurarMensagensAdmin() { state.templates = { ...templatesPadrao }; templateKeys.forEach(key => { el(`arel-texto-${key}`).value = state.templates[key]; }); toast('Mensagens automáticas restauradas. Salve para persistir.', 'info', 'Mensagens'); }
+    function setupAdmin() { const form = el('admin-rel-form'); form.addEventListener('submit', async ev => { ev.preventDefault(); if (!arelPodeEditar) return; const btn = el('arel-salvar'); state.tipoRelatorio = el('arel-tipo-doc').value || 'executivo'; state.templates = normalizarTemplates(coletarTextosAdmin()); saveTemplates(); await runAction({ button: btn, label: 'Salvando', loading: 'Salvando configurações...' }, async () => { try { const resp = await arelFetch('save', coletarConfigRel()); if (resp && resp.success) { if (resp.config) renderConfigRel(resp.config); toast('Configurações e mensagens padrão salvas.', 'success', 'Admin'); } else { toast((resp && resp.mensagem) || 'Mensagens salvas localmente; configuração remota indisponível.', 'warning', 'Admin'); } } catch (error) { toast('Mensagens salvas localmente. A configuração remota exige google.script.run.', 'warning', 'Admin'); } finally { setLoading('', false); } }); }); el('arel-aplicar-textos').addEventListener('click', aplicarMensagensAdminAoRelatorio); el('arel-restaurar-textos').addEventListener('click', () => { if (arelPodeEditar) restaurarMensagensAdmin(); }); el('arel-recarregar').addEventListener('click', ev => carregarConfigRel(true, ev.currentTarget)); el('arel-restaurar').addEventListener('click', async ev => { if (!arelPodeEditar) return; const ok = await confirmDialog({ title: 'Restaurar configuração padrão?', message: 'Meta, termos e nomes dos indicadores serão substituídos pelos valores padrão.', confirmText: 'Restaurar padrão', cancelText: 'Manter configuração', danger: true }); if (!ok) return; await runAction({ button: ev.currentTarget, label: 'Restaurando', loading: 'Restaurando configuração padrão...' }, async () => { try { const resp = await arelFetch('reset'); if (resp && resp.success) { if (resp.config) renderConfigRel(resp.config); toast(resp.mensagem || 'Configurações restauradas.', 'success', 'Admin'); } else toast((resp && resp.mensagem) || 'Não foi possível restaurar.', 'error', 'Admin'); } catch (error) { toast(String(error && error.message || error), 'error', 'Admin'); } finally { setLoading('', false); } }); }); }
 
-    function arelFetch(method, arg = {}) {
-      return new Promise((resolve, reject) => {
-        if (window.google && google.script && google.script.run) {
-          const r = google.script.run.withSuccessHandler(resolve).withFailureHandler(reject);
-          if (method === 'get') r.obterConfigRelCosep(arg.refresh === true);
-          else if (method === 'save') r.salvarConfigRelCosep(arg);
-          else if (method === 'reset') r.restaurarConfigRelCosep();
-          return;
-        }
-        if (method === 'get') {
-          const query = arg.refresh ? '?api=configrel&refresh=1' : '?api=configrel';
-          fetch(`${APP_URL || location.pathname}${query}`, { cache: 'no-store' }).then(r => r.ok ? r.json() : Promise.reject(new Error('Falha ao carregar config.'))).then(resolve).catch(reject);
-        } else {
-          reject(new Error('Salvar exige o app publicado com google.script.run disponível.'));
-        }
-      });
-    }
-
-    async function carregarConfigRel(forceRefresh = false, button = null) {
-      if (arelCarregado && !forceRefresh) return;
-      const loading = document.getElementById('admin-rel-loading');
-      const form = document.getElementById('admin-rel-form');
-      const task = async () => {
-        loading.classList.remove('hidden');
-        loading.innerHTML = `<span class="spinner" aria-hidden="true"></span><span>${forceRefresh ? 'Recarregando da planilha...' : 'Carregando configurações...'}</span>`;
-        try {
-          const resp = await arelFetch('get', { refresh: forceRefresh });
-          if (!resp || resp.success === false || !resp.config) throw new Error((resp && resp.mensagem) || 'Configuração indisponível.');
-          arelCarregado = true;
-          arelPodeEditar = resp.podeEditar !== false;
-          renderConfigRel(resp.config);
-          loading.classList.add('hidden');
-          form.hidden = false;
-          const block = document.getElementById('admin-rel-bloqueio');
-          if (block) block.hidden = arelPodeEditar;
-          if (forceRefresh) toast('Configurações recarregadas diretamente da planilha.', 'success', 'Admin');
-        } catch (error) {
-          arelCarregado = false;
-          loading.innerHTML = '<span>Não foi possível carregar as configurações.</span>';
-          toast(String(error && error.message || error), 'error', 'Admin');
-        }
-      };
-      if (button) return runAction({ button, label: 'Recarregando', loading: 'Recarregando configurações...' }, task);
-      return task();
-    }
-
-    function renderConfigRel(cfg) {
-      const set = (id, value) => { const el = document.getElementById(id); if (el) el.value = value; };
-      set('arel-meta', cfg.metaInstitucional);
-      set('arel-aba', cfg.abaNome || '');
-      set('arel-planilha', cfg.planilhaId || '');
-      set('arel-conforme', (cfg.termosConforme || []).join('\n'));
-      set('arel-naoconforme', (cfg.termosNaoConforme || []).join('\n'));
-      set('arel-naoaplica', (cfg.termosNaoSeAplica || []).join('\n'));
-      const wrap = document.getElementById('arel-indicadores');
-      wrap.innerHTML = (cfg.indicadores || []).map((nome, i) => `<div class="indicator-row"><span class="indicator-number">${i + 1}</span><input type="text" class="input arel-ind" value="${escapeHtml(String(nome || ''))}"></div>`).join('');
-      const info = document.getElementById('arel-info');
-      info.innerHTML = cfg.atualizadoEm ? `Última alteração em <strong>${escapeHtml(cfg.atualizadoEm)}</strong>${cfg.atualizadoPor ? ' por <strong>' + escapeHtml(cfg.atualizadoPor) + '</strong>' : ''}` : 'Ainda sem alterações registradas.';
-      document.querySelectorAll('#admin-rel-form input, #admin-rel-form textarea').forEach(el => { el.disabled = !arelPodeEditar; });
-      document.getElementById('arel-salvar').disabled = !arelPodeEditar;
-      document.getElementById('arel-restaurar').disabled = !arelPodeEditar;
-    }
-
-    function coletarConfigRel() {
-      const val = id => (document.getElementById(id) || {}).value || '';
-      const linhas = id => val(id).split('\n').map(item => item.trim()).filter(Boolean);
-      return { metaInstitucional: Number(val('arel-meta')), abaNome: val('arel-aba').trim(), planilhaId: val('arel-planilha').trim(), termosConforme: linhas('arel-conforme'), termosNaoConforme: linhas('arel-naoconforme'), termosNaoSeAplica: linhas('arel-naoaplica'), indicadores: Array.from(document.querySelectorAll('#arel-indicadores .arel-ind')).map(input => input.value) };
-    }
-
-    function setupAdmin() {
-      const form = document.getElementById('admin-rel-form');
-      const btnReset = document.getElementById('arel-restaurar');
-      const btnRefresh = document.getElementById('arel-recarregar');
-      form.addEventListener('submit', async ev => {
-        ev.preventDefault();
-        if (!arelPodeEditar) return;
-        const btn = document.getElementById('arel-salvar');
-        await runAction({ button: btn, label: 'Salvando', loading: 'Salvando configurações...' }, async () => {
-          try {
-            const resp = await arelFetch('save', coletarConfigRel());
-            if (resp && resp.success) {
-              if (resp.config) renderConfigRel(resp.config);
-              toast(resp.mensagem || 'Configurações salvas.', 'success', 'Admin');
-            } else {
-              toast((resp && resp.mensagem) || 'Não foi possível salvar.', 'error', 'Admin');
-            }
-          } catch (error) {
-            toast(String(error && error.message || error), 'error', 'Admin');
-          } finally {
-            setLoading('', false);
-          }
-        });
-      });
-      btnRefresh.addEventListener('click', ev => carregarConfigRel(true, ev.currentTarget));
-      btnReset.addEventListener('click', async ev => {
-        if (!arelPodeEditar) return;
-        const ok = await confirmDialog({ title: 'Restaurar configuração padrão?', message: 'Meta, termos e nomes dos indicadores serão substituídos pelos valores padrão do Relatório Analítico COSEP.', confirmText: 'Restaurar padrão', cancelText: 'Manter configuração', danger: true });
-        if (!ok) return;
-        await runAction({ button: ev.currentTarget, label: 'Restaurando', loading: 'Restaurando configuração padrão...' }, async () => {
-          try {
-            const resp = await arelFetch('reset');
-            if (resp && resp.success) {
-              if (resp.config) renderConfigRel(resp.config);
-              toast(resp.mensagem || 'Configurações restauradas.', 'success', 'Admin');
-            } else {
-              toast((resp && resp.mensagem) || 'Não foi possível restaurar.', 'error', 'Admin');
-            }
-          } catch (error) {
-            toast(String(error && error.message || error), 'error', 'Admin');
-          } finally {
-            setLoading('', false);
-          }
-        });
-      });
-    }
-
-    async function init() {
-      setupTheme();
-      setupTabs();
-      setupAdmin();
-      buildFilters();
-      textAreas.intro.addEventListener('input', renderRelatorio);
-      textAreas.metodo.addEventListener('input', renderRelatorio);
-      textAreas.analise.addEventListener('input', renderRelatorio);
-      textAreas.plano.addEventListener('input', renderRelatorio);
-      textAreas.conclusao.addEventListener('input', renderRelatorio);
-      document.getElementById('btn-gerar').addEventListener('click', ev => gerarRelatorio(false, ev.currentTarget));
-      document.getElementById('btn-aplicar-filtros').addEventListener('click', ev => gerarRelatorio(false, ev.currentTarget));
-      document.getElementById('btn-limpar-filtros').addEventListener('click', clearFilters);
-      document.getElementById('btn-texto').addEventListener('click', () => { gerarTextosPadrao(); renderRelatorio(); toast('Texto padrão restaurado com base nos indicadores atuais.', 'success', 'Texto'); });
-      document.getElementById('btn-topo').addEventListener('click', () => window.scrollTo({ top: 0, behavior: 'smooth' }));
-      document.getElementById('btn-copiar').addEventListener('click', copiarResumo);
-      document.getElementById('btn-imprimir').addEventListener('click', ev => runAction({ button: ev.currentTarget, label: 'Exportando', loading: 'Preparando PDF...' }, () => baixarRelatorioPdf().catch(error => { console.error(error); toast(error.message || 'Não foi possível gerar o PDF.', 'error', 'PDF'); })).finally(() => setLoading('', false)));
-      setLoading('Carregando filtros e preparando relatório...', true);
-      setBusy(true, null, 'Carregando');
-      try {
-        state.payload = await fetchPayload({ comissao: 'CRP' });
-        setFilterOptions(state.payload.filtros || {});
-        gerarTextosPadrao();
-        atualizarHero();
-        renderRelatorio();
-        setLoading('', false);
-        toast('Relatório carregado com o novo layout executivo.', 'success', 'Sistema pronto');
-      } catch (error) {
-        console.error(error);
-        setLoading(error.message || 'Não foi possível carregar os filtros.');
-        toast(error.message || 'Não foi possível carregar os filtros.', 'error', 'Inicialização');
-      } finally {
-        setBusy(false);
-      }
-    }
-
+    async function init() { setupTheme(); setupTabs(); setupAdmin(); buildFilters(); templateKeys.forEach(key => textAreas[key].addEventListener('input', renderRelatorio)); el('btn-gerar').addEventListener('click', ev => gerarRelatorio(false, ev.currentTarget)); el('btn-aplicar-filtros').addEventListener('click', ev => gerarRelatorio(false, ev.currentTarget)); el('btn-limpar-filtros').addEventListener('click', clearFilters); el('btn-texto').addEventListener('click', () => { gerarTextosPadrao(); renderRelatorio(); toast('Texto padrão restaurado com base nos indicadores atuais.', 'success', 'Texto'); }); el('btn-topo').addEventListener('click', () => window.scrollTo({ top: 0, behavior: 'smooth' })); el('btn-copiar').addEventListener('click', copiarResumo); el('btn-imprimir').addEventListener('click', ev => runAction({ button: ev.currentTarget, label: 'Exportando', loading: 'Preparando PDF...' }, () => baixarRelatorioPdf().catch(error => { console.error(error); toast(error.message || 'Não foi possível gerar o PDF.', 'error', 'PDF'); })).finally(() => setLoading('', false))); setLoading('Carregando filtros e preparando relatório...', true); setBusy(true, null, 'Carregando'); try { state.payload = await fetchPayload({ comissao: 'CRP' }); setFilterOptions(state.payload.filtros || {}); gerarTextosPadrao(); atualizarHero(); renderRelatorio(); setLoading('', false); toast('Relatório carregado com layout Tailwind.', 'success', 'Sistema pronto'); } catch (error) { console.error(error); setLoading(error.message || 'Não foi possível carregar os filtros.'); toast(error.message || 'Não foi possível carregar os filtros.', 'error', 'Inicialização'); } finally { setBusy(false); } }
     init();
   </script>
 </body>

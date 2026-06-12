@@ -1,10 +1,25 @@
 /***********************************************************************
- * RELATÓRIO ANALÍTICO COSEP — App independente (mesmo modelo do Boletim)
- * Backend Apps Script. Serve index.html e fornece os dados (CRP).
- * Autossuficiente: não depende do Code.gs do Boletim.
+ * RELATÓRIO ANALÍTICO COSEP — backend Apps Script
+ *
+ * Arquitetura: o servidor lê a base CRP uma única vez por requisição,
+ * classifica cada item dos indicadores (Conforme / Não conforme / N.A.)
+ * e devolve um dataset compacto. Todo o filtro, agregação e montagem do
+ * documento acontecem no navegador — sem novas viagens ao servidor a
+ * cada mudança de filtro.
+ *
+ * Rotas:
+ *   doGet                      → serve index.html
+ *   doGet?api=dados            → dataset compacto + configuração pública
+ *   doGet?api=configrel        → configuração completa (admin)
+ *
+ * RPCs (google.script.run):
+ *   obterDadosRelatorio()      → mesmo payload de api=dados
+ *   obterConfigRelCosep()      → configuração completa (admin)
+ *   salvarConfigRelCosep(cfg)  → grava configuração
+ *   restaurarConfigRelCosep()  → restaura configuração padrão
  ***********************************************************************/
 
-/* ===== Configuração ===== */
+/* ===== Parametrização ===== */
 const PLANILHAS = {
   principal: '1XUtI9TSMJmTpbtfLjZbJ-uarRN94lu_Aqpsc46Lxmt4',
   relatorios: '1DjE-1Gx33RfWPkUtUW883-5SM2NVdeuDsq4wQ0XxGUw'
@@ -13,251 +28,26 @@ const ABA_RELATORIO_CRP = 'BASE_DADOS(NÃOEDITAR)';
 const ABA_RELATORIO_CRO = 'CRO';
 const FUSO_HORARIO = 'America/Fortaleza';
 const META_INSTITUCIONAL = 80;
+const LOGO_PADRAO = 'https://i.ibb.co/tTGkBCXj/oie-transparent.png';
+const RODAPE_PADRAO = 'https://i.ibb.co/VYv0RyF3/Rodape-1.png';
 const CACHE_EXECUCAO_PLANILHAS = {};
 const CACHE_EXECUCAO_BASE_RELATORIO = {};
 
 const ORDEM_MESES = {
-  'JANEIRO': 1,
-  'FEVEREIRO': 2,
-  'MARÇO': 3,
-  'MARCO': 3,
-  'ABRIL': 4,
-  'MAIO': 5,
-  'JUNHO': 6,
-  'JULHO': 7,
-  'AGOSTO': 8,
-  'SETEMBRO': 9,
-  'OUTUBRO': 10,
-  'NOVEMBRO': 11,
-  'DEZEMBRO': 12,
-  'JAN': 1,
-  'JAN.': 1,
-  'FEV': 2,
-  'FEV.': 2,
-  'MAR': 3,
-  'MAR.': 3,
-  'ABR': 4,
-  'ABR.': 4,
-  'MAI': 5,
-  'MAI.': 5,
-  'JUN': 6,
-  'JUN.': 6,
-  'JUL': 7,
-  'JUL.': 7,
-  'AGO': 8,
-  'AGO.': 8,
-  'SET': 9,
-  'SET.': 9,
-  'OUT': 10,
-  'OUT.': 10,
-  'NOV': 11,
-  'NOV.': 11,
-  'DEZ': 12,
-  'DEZ.': 12
+  'JANEIRO': 1, 'FEVEREIRO': 2, 'MARÇO': 3, 'MARCO': 3, 'ABRIL': 4,
+  'MAIO': 5, 'JUNHO': 6, 'JULHO': 7, 'AGOSTO': 8, 'SETEMBRO': 9,
+  'OUTUBRO': 10, 'NOVEMBRO': 11, 'DEZEMBRO': 12,
+  'JAN': 1, 'JAN.': 1, 'FEV': 2, 'FEV.': 2, 'MAR': 3, 'MAR.': 3,
+  'ABR': 4, 'ABR.': 4, 'MAI': 5, 'MAI.': 5, 'JUN': 6, 'JUN.': 6,
+  'JUL': 7, 'JUL.': 7, 'AGO': 8, 'AGO.': 8, 'SET': 9, 'SET.': 9,
+  'OUT': 10, 'OUT.': 10, 'NOV': 11, 'NOV.': 11, 'DEZ': 12, 'DEZ.': 12
 };
 const MESES_CANONICOS = {
-  1: 'Janeiro',
-  2: 'Fevereiro',
-  3: 'Março',
-  4: 'Abril',
-  5: 'Maio',
-  6: 'Junho',
-  7: 'Julho',
-  8: 'Agosto',
-  9: 'Setembro',
-  10: 'Outubro',
-  11: 'Novembro',
-  12: 'Dezembro'
+  1: 'Janeiro', 2: 'Fevereiro', 3: 'Março', 4: 'Abril', 5: 'Maio', 6: 'Junho',
+  7: 'Julho', 8: 'Agosto', 9: 'Setembro', 10: 'Outubro', 11: 'Novembro', 12: 'Dezembro'
 };
 
-/* ===== doGet: serve o app de relatórios ===== */
-function doGet(e) {
-  const params = (e && e.parameter) || {};
-
-  if (params.api === 'relatorios' || params.api === '1') {
-    return responderJson(executarRota('api-relatorios', () => {
-      const cfg = obterConfigRel();
-      return montarPayloadRelatorios(abrirPlanilhaRelatorio(cfg), extrairFiltrosRelatorios(params), cfg);
-    }));
-  }
-
-  if (params.api === 'configrel') {
-    return responderJson(obterConfigRelCosep(params.refresh === '1' || params.refresh === 'true'));
-  }
-
-  try {
-    const template = HtmlService.createTemplateFromFile('index');
-    template.appUrl = ScriptApp.getService().getUrl();
-    return template
-      .evaluate()
-      .setTitle('Relatório Analítico COSEP')
-      .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
-  } catch (erro) {
-    registrarErro('html-route', erro);
-    return HtmlService
-      .createHtmlOutput('<!doctype html><meta charset="utf-8"><title>Erro</title><body style="font-family:Inter,Arial,sans-serif;padding:32px">Não foi possível abrir o relatório.</body>')
-      .setTitle('Erro ao abrir relatório');
-  }
-}
-
-/* ===== Infraestrutura e helpers compartilhados ===== */
-function responderJson(payload) {
-  return ContentService
-    .createTextOutput(JSON.stringify(payload))
-    .setMimeType(ContentService.MimeType.JSON);
-}
-
-function executarRota(nomeRota, callback) {
-  try {
-    return callback();
-  } catch (erro) {
-    registrarErro(nomeRota, erro);
-    return montarPayloadErro('Não foi possível carregar os dados agora.', nomeRota, erro);
-  }
-}
-
-function montarPayloadErro(mensagem, origem, erro) {
-  return {
-    success: false,
-    origem: origem || 'apps-script',
-    mensagem: mensagem || 'Falha inesperada no Apps Script.',
-    detalhe: erro && erro.message ? erro.message : String(erro || ''),
-    geradoEm: Utilities.formatDate(new Date(), FUSO_HORARIO, "dd/MM/yyyy 'às' HH:mm")
-  };
-}
-
-function registrarErro(origem, erro) {
-  const detalhe = erro && erro.stack ? erro.stack : (erro && erro.message ? erro.message : String(erro || 'Erro desconhecido'));
-  console.error(`[${origem}] ${detalhe}`);
-}
-
-function abrirPlanilhaPorIdCache(id, contexto) {
-  const planilhaId = String(id || '').trim();
-  if (!planilhaId) {
-    throw new Error(`ID da planilha não informado${contexto ? ' para ' + contexto : ''}.`);
-  }
-
-  if (CACHE_EXECUCAO_PLANILHAS[planilhaId]) {
-    return CACHE_EXECUCAO_PLANILHAS[planilhaId];
-  }
-
-  try {
-    const ss = SpreadsheetApp.openById(planilhaId);
-    CACHE_EXECUCAO_PLANILHAS[planilhaId] = ss;
-    return ss;
-  } catch (erro) {
-    throw new Error(`Falha ao abrir a planilha${contexto ? ' ' + contexto : ''} (${planilhaId}): ${erro.message || erro}`);
-  }
-}
-
-function abrirPlanilhaLeitura(chavePlanilha) {
-  const id = PLANILHAS[chavePlanilha];
-  if (!id) {
-    throw new Error(`Planilha não parametrizada para a chave "${chavePlanilha}".`);
-  }
-
-  return abrirPlanilhaPorIdCache(id, `"${chavePlanilha}" para leitura`);
-}
-
-function executarComPlanilha(chavePlanilha, callback) {
-  const ss = abrirPlanilhaLeitura(chavePlanilha);
-  return callback(ss);
-}
-
-function extrairListaFiltros(rawValue, normalizerFn) {
-  const brutoLista = Array.isArray(rawValue) ? rawValue : String(rawValue || '').split(/[|,]/);
-
-  const valores = brutoLista
-    .map(item => String(item || '').trim())
-    .filter(Boolean)
-    .map(item => normalizerFn ? normalizerFn(item) : item)
-    .filter(Boolean);
-
-  return [...new Set(valores)];
-}
-
-function normalizarTexto(valor) {
-  return String(valor == null ? '' : valor)
-    .trim()
-    .replace(/\s+/g, ' ')
-    .toUpperCase();
-}
-
-function normalizarCabecalho(valor) {
-  return normalizarTexto(valor)
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .replace(/[^A-Z0-9]+/g, ' ')
-    .trim();
-}
-
-function colunaParaLetra(indiceZeroBased) {
-  let numero = Number(indiceZeroBased) + 1;
-  let letra = '';
-
-  while (numero > 0) {
-    const resto = (numero - 1) % 26;
-    letra = String.fromCharCode(65 + resto) + letra;
-    numero = Math.floor((numero - 1) / 26);
-  }
-
-  return letra;
-}
-
-function normalizarMes(valor) {
-  const texto = normalizarTexto(valor);
-  if (!texto) return '';
-
-  if (ORDEM_MESES[texto]) {
-    return MESES_CANONICOS[ORDEM_MESES[texto]];
-  }
-
-  const numero = Number(texto);
-  if (!Number.isNaN(numero) && numero >= 1 && numero <= 12) {
-    return MESES_CANONICOS[numero];
-  }
-
-  const base = String(valor == null ? '' : valor).trim().toLowerCase();
-  return base ? base.charAt(0).toUpperCase() + base.slice(1) : '';
-}
-
-function normalizarAno(valor) {
-  return String(valor == null ? '' : valor).trim();
-}
-
-function mesParaOrdem(valor) {
-  const texto = normalizarTexto(valor);
-  if (!texto) return 99;
-  if (ORDEM_MESES[texto]) return ORDEM_MESES[texto];
-
-  const numero = Number(texto);
-  if (!Number.isNaN(numero) && numero >= 1 && numero <= 12) return numero;
-  return 99;
-}
-
-function ordenarMeses(a, b) {
-  const ordemA = mesParaOrdem(a);
-  const ordemB = mesParaOrdem(b);
-  if (ordemA !== ordemB) return ordemA - ordemB;
-  return String(a).localeCompare(String(b), 'pt-BR');
-}
-
-function incrementarMapa(mapa, chave) {
-  const valor = String(chave == null ? '' : chave).trim() || 'Não informado';
-  mapa[valor] = (mapa[valor] || 0) + 1;
-}
-
-function ordenarMapaPorValor(mapa) {
-  const ordenado = {};
-  Object.keys(mapa)
-    .sort((a, b) => mapa[b] - mapa[a] || a.localeCompare(b, 'pt-BR'))
-    .forEach(chave => {
-      ordenado[chave] = mapa[chave];
-    });
-  return ordenado;
-}
-
-/* ===== Bloco de relatórios (CRP/CRO) ===== */
+/* ===== Estrutura oficial da base CRP (A até AQ) ===== */
 const RELATORIO_CRP_CAMPOS_FIXOS = [
   { chave: 'ano', letra: 'A', idx: 0, nome: 'Ano' },
   { chave: 'mes', letra: 'B', idx: 1, nome: 'Mês' },
@@ -333,21 +123,182 @@ const RELATORIO_ABAS_POR_COMISSAO = {
   CRO: [ABA_RELATORIO_CRO, 'BASE CRO', 'CRO - BASE', 'RELATÓRIO CRO', 'RELATORIO CRO']
 };
 
+/* ===== doGet ===== */
+function doGet(e) {
+  const params = (e && e.parameter) || {};
+
+  if (params.api === 'dados' || params.api === 'relatorios' || params.api === '1') {
+    return responderJson(executarRota('api-dados', () => montarPayloadDados(params.refresh === '1' || params.refresh === 'true')));
+  }
+
+  if (params.api === 'configrel') {
+    return responderJson(obterConfigRelCosep(params.refresh === '1' || params.refresh === 'true'));
+  }
+
+  try {
+    const template = HtmlService.createTemplateFromFile('index');
+    template.appUrl = ScriptApp.getService().getUrl();
+    return template
+      .evaluate()
+      .setTitle('Relatório Analítico COSEP')
+      .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
+  } catch (erro) {
+    registrarErro('html-route', erro);
+    return HtmlService
+      .createHtmlOutput('<!doctype html><meta charset="utf-8"><title>Erro</title><body style="font-family:system-ui,Arial,sans-serif;padding:32px">Não foi possível abrir o relatório.</body>')
+      .setTitle('Erro ao abrir relatório');
+  }
+}
+
+/* ===== Infraestrutura ===== */
+function responderJson(payload) {
+  return ContentService
+    .createTextOutput(JSON.stringify(payload))
+    .setMimeType(ContentService.MimeType.JSON);
+}
+
+function executarRota(nomeRota, callback) {
+  try {
+    return callback();
+  } catch (erro) {
+    registrarErro(nomeRota, erro);
+    return montarPayloadErro('Não foi possível carregar os dados agora.', nomeRota, erro);
+  }
+}
+
+function montarPayloadErro(mensagem, origem, erro) {
+  return {
+    success: false,
+    origem: origem || 'apps-script',
+    mensagem: mensagem || 'Falha inesperada no Apps Script.',
+    detalhe: erro && erro.message ? erro.message : String(erro || ''),
+    geradoEm: carimboAgora()
+  };
+}
+
+function registrarErro(origem, erro) {
+  const detalhe = erro && erro.stack ? erro.stack : (erro && erro.message ? erro.message : String(erro || 'Erro desconhecido'));
+  console.error(`[${origem}] ${detalhe}`);
+}
+
+function carimboAgora() {
+  return Utilities.formatDate(new Date(), FUSO_HORARIO, "dd/MM/yyyy 'às' HH:mm");
+}
+
+function abrirPlanilhaPorIdCache(id, contexto) {
+  const planilhaId = String(id || '').trim();
+  if (!planilhaId) {
+    throw new Error(`ID da planilha não informado${contexto ? ' para ' + contexto : ''}.`);
+  }
+
+  if (CACHE_EXECUCAO_PLANILHAS[planilhaId]) {
+    return CACHE_EXECUCAO_PLANILHAS[planilhaId];
+  }
+
+  try {
+    const ss = SpreadsheetApp.openById(planilhaId);
+    CACHE_EXECUCAO_PLANILHAS[planilhaId] = ss;
+    return ss;
+  } catch (erro) {
+    throw new Error(`Falha ao abrir a planilha${contexto ? ' ' + contexto : ''} (${planilhaId}): ${erro.message || erro}`);
+  }
+}
+
+/* ===== Normalização ===== */
+function normalizarTexto(valor) {
+  return String(valor == null ? '' : valor)
+    .trim()
+    .replace(/\s+/g, ' ')
+    .toUpperCase();
+}
+
+function normalizarCabecalho(valor) {
+  return normalizarTexto(valor)
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^A-Z0-9]+/g, ' ')
+    .trim();
+}
+
+function colunaParaLetra(indiceZeroBased) {
+  let numero = Number(indiceZeroBased) + 1;
+  let letra = '';
+
+  while (numero > 0) {
+    const resto = (numero - 1) % 26;
+    letra = String.fromCharCode(65 + resto) + letra;
+    numero = Math.floor((numero - 1) / 26);
+  }
+
+  return letra;
+}
+
+function normalizarMes(valor) {
+  const texto = normalizarTexto(valor);
+  if (!texto) return '';
+
+  if (ORDEM_MESES[texto]) {
+    return MESES_CANONICOS[ORDEM_MESES[texto]];
+  }
+
+  const numero = Number(texto);
+  if (!Number.isNaN(numero) && numero >= 1 && numero <= 12) {
+    return MESES_CANONICOS[numero];
+  }
+
+  const base = String(valor == null ? '' : valor).trim().toLowerCase();
+  return base ? base.charAt(0).toUpperCase() + base.slice(1) : '';
+}
+
+function normalizarAno(valor) {
+  return String(valor == null ? '' : valor).trim();
+}
+
 /* ============================================================
-   CONFIGURAÇÃO SELF-SERVICE DO RELATÓRIO (autodependência)
-   A configuração editável agora fica na própria planilha, na aba
-   COSEP_REL_CONFIG. Script Properties permanece apenas como espelho
-   técnico/fallback para Web Apps standalone e migração segura.
+   CONFIGURAÇÃO SELF-SERVICE DO RELATÓRIO
+   A configuração editável vive na aba COSEP_REL_CONFIG da própria
+   planilha. Script Properties é apenas espelho técnico/fallback.
    ============================================================ */
 const CONFIG_REL_PROP_KEY = 'COSEP_REL_CONFIG_V1';
 const CONFIG_REL_BOOTSTRAP_PROP_KEY = 'COSEP_REL_CONFIG_SPREADSHEET_ID';
 const CONFIG_REL_ADMINS_PROP_KEY = 'COSEP_REL_ADMINS';
 const CONFIG_REL_SHEET = 'COSEP_REL_CONFIG';
 const CONFIG_REL_LOG_SHEET = 'COSEP_REL_CONFIG_LOG';
-const CONFIG_REL_SCHEMA_VERSION = '1.0';
-const CONFIG_REL_CACHE_KEY = 'COSEP_REL_CONFIG_CACHE_V1';
+const CONFIG_REL_SCHEMA_VERSION = '2.0';
+const CONFIG_REL_CACHE_KEY = 'COSEP_REL_CONFIG_CACHE_V2';
 const CONFIG_REL_CACHE_TTL_SECONDS = 21600; // 6 horas
 
+const TEXTOS_PADRAO_REL = {
+  intro: 'Este relatório apresenta a análise consolidada da comissão {comissao} para o período {periodo}, considerando {setores}. O objetivo é sintetizar o desempenho dos registros avaliados, evidenciar conformidades e não conformidades e apoiar decisões de melhoria contínua.',
+  metodo: 'A base foi lida diretamente da aba {abaEncontrada} da planilha institucional, usando a estrutura oficial da CRP de A até AQ. Para cálculo de conformidade, entram no denominador apenas itens classificados como Conforme ou Não Conforme; itens Não se Aplica, vazios ou marcados com hífen são apresentados separadamente para transparência da amostra.',
+  analise: 'No recorte selecionado, foram identificadas {totalAvaliacoes} avaliações e {totalAuditavel} itens auditáveis. A conformidade geral foi de {conformidadeGeral}, com {conformes} conformidades e {naoConformes} não conformidades. Os principais pontos de atenção foram: {criticos}. Como fortalezas, destacam-se: {fortalezas}.',
+  plano: 'Recomenda-se priorizar os indicadores com menor conformidade, revisar rotinas de preenchimento junto às equipes assistenciais, reforçar orientação sobre completude documental e acompanhar mensalmente os setores com maior volume de não conformidades. A gestão deve pactuar responsáveis, prazos e evidências de conclusão para cada ação corretiva.',
+  conclusao: 'A análise demonstra o panorama atual da qualidade dos registros da comissão {comissao} e direciona intervenções objetivas para elevar a aderência documental. A continuidade do monitoramento por período, setor e categoria permitirá verificar tendência, sustentabilidade das melhorias e alinhamento à meta institucional de {metaInstitucional}.'
+};
+
+function configPadraoRel() {
+  return {
+    metaInstitucional: META_INSTITUCIONAL,
+    planilhaId: PLANILHAS.relatorios,
+    abaNome: ABA_RELATORIO_CRP,
+    tipoRelatorio: 'executivo',
+    logoUrl: LOGO_PADRAO,
+    rodapeUrl: RODAPE_PADRAO,
+    indicadores: RELATORIO_CRP_INDICADORES.slice(),
+    termosConforme: ['CONFORME'],
+    termosNaoConforme: ['NÃO CONFORME', 'NAO CONFORME'],
+    termosNaoSeAplica: ['NÃO SE APLICA', 'NAO SE APLICA', 'N/A', 'NA'],
+    textosPadrao: {
+      intro: TEXTOS_PADRAO_REL.intro,
+      metodo: TEXTOS_PADRAO_REL.metodo,
+      analise: TEXTOS_PADRAO_REL.analise,
+      plano: TEXTOS_PADRAO_REL.plano,
+      conclusao: TEXTOS_PADRAO_REL.conclusao
+    },
+    atualizadoEm: '',
+    atualizadoPor: ''
+  };
+}
 
 function obterCacheConfigRel() {
   try {
@@ -390,20 +341,6 @@ function executarComLockConfigRel(origem, callback) {
   } finally {
     lock.releaseLock();
   }
-}
-
-function configPadraoRel() {
-  return {
-    metaInstitucional: META_INSTITUCIONAL,
-    planilhaId: PLANILHAS.relatorios,
-    abaNome: ABA_RELATORIO_CRP,
-    indicadores: RELATORIO_CRP_INDICADORES.slice(),
-    termosConforme: ['CONFORME'],
-    termosNaoConforme: ['NÃO CONFORME', 'NAO CONFORME'],
-    termosNaoSeAplica: ['NÃO SE APLICA', 'NAO SE APLICA', 'N/A', 'NA'],
-    atualizadoEm: '',
-    atualizadoPor: ''
-  };
 }
 
 function obterConfigRel(forcarRefresh) {
@@ -536,9 +473,19 @@ function lerConfigRelDaAba(sh, padrao) {
     metaInstitucional: mapa['Meta institucional (%)'],
     planilhaId: mapa['ID da planilha do relatório'],
     abaNome: mapa['Aba da base CRP'],
+    tipoRelatorio: mapa['Tipo do relatório'],
+    logoUrl: mapa['Logo do cabeçalho (URL)'],
+    rodapeUrl: mapa['Imagem do rodapé (URL)'],
     termosConforme: lerListaConfigRel(mapa['Termos conforme']),
     termosNaoConforme: lerListaConfigRel(mapa['Termos não conforme']),
     termosNaoSeAplica: lerListaConfigRel(mapa['Termos não se aplica']),
+    textosPadrao: {
+      intro: mapa['Mensagem padrão - Introdução'],
+      metodo: mapa['Mensagem padrão - Metodologia'],
+      analise: mapa['Mensagem padrão - Análise crítica'],
+      plano: mapa['Mensagem padrão - Plano de ação'],
+      conclusao: mapa['Mensagem padrão - Conclusão']
+    },
     indicadores: lerIndicadoresConfigRel(mapa, padrao),
     atualizadoEm: String(mapa['Atualizado em'] || ''),
     atualizadoPor: String(mapa['Atualizado por'] || '')
@@ -554,6 +501,14 @@ function escreverConfigRelNaAba(sh, cfg, observacao) {
     ['Meta institucional (%)', cfg.metaInstitucional],
     ['ID da planilha do relatório', cfg.planilhaId || PLANILHAS.relatorios],
     ['Aba da base CRP', cfg.abaNome || ABA_RELATORIO_CRP],
+    ['Tipo do relatório', cfg.tipoRelatorio || 'executivo'],
+    ['Logo do cabeçalho (URL)', cfg.logoUrl || LOGO_PADRAO],
+    ['Imagem do rodapé (URL)', cfg.rodapeUrl || RODAPE_PADRAO],
+    ['Mensagem padrão - Introdução', (cfg.textosPadrao && cfg.textosPadrao.intro) || ''],
+    ['Mensagem padrão - Metodologia', (cfg.textosPadrao && cfg.textosPadrao.metodo) || ''],
+    ['Mensagem padrão - Análise crítica', (cfg.textosPadrao && cfg.textosPadrao.analise) || ''],
+    ['Mensagem padrão - Plano de ação', (cfg.textosPadrao && cfg.textosPadrao.plano) || ''],
+    ['Mensagem padrão - Conclusão', (cfg.textosPadrao && cfg.textosPadrao.conclusao) || ''],
     ['Termos conforme', (cfg.termosConforme || []).join('\n')],
     ['Termos não conforme', (cfg.termosNaoConforme || []).join('\n')],
     ['Termos não se aplica', (cfg.termosNaoSeAplica || []).join('\n')],
@@ -570,9 +525,10 @@ function escreverConfigRelNaAba(sh, cfg, observacao) {
   sh.getRange(1, 1, rows.length, 2).setValues(rows);
   aplicarLayoutAbaConfigRel(sh);
   try {
-    sh.getRange(13, 1, 1, 2).setFontWeight('bold').setBackground('#e4f5f2').setFontColor('#0b4f4a');
+    sh.getRange(21, 1, 1, 2).setFontWeight('bold').setBackground('#e4f5f2').setFontColor('#0b4f4a');
     sh.getRange(5, 2).setNote('Nome exato da aba que contém a base CRP.');
-    sh.getRange(6, 2, 3, 1).setNote('Um termo por linha. A comparação ignora maiúsculas/minúsculas e acentos nos termos já normalizados pelo sistema.');
+    sh.getRange(9, 2, 5, 1).setNote('Use tokens como {comissao}, {periodo}, {setores}, {conformidadeGeral}, {criticos}, {fortalezas} e {metaInstitucional}.');
+    sh.getRange(14, 2, 3, 1).setNote('Um termo por linha. A comparação ignora maiúsculas/minúsculas e espaços extras.');
   } catch (erro) {
     registrarErro('formatar-config-rel', erro);
   }
@@ -616,7 +572,6 @@ function removerConfigRelDaAba(cfgRestaurada) {
   }
 }
 
-
 function mesclarConfigRel(padrao, salvo) {
   if (!salvo || typeof salvo !== 'object') return padrao;
   const cfg = JSON.parse(JSON.stringify(padrao));
@@ -624,6 +579,16 @@ function mesclarConfigRel(padrao, salvo) {
   if (!Number.isNaN(meta) && meta >= 0 && meta <= 100) cfg.metaInstitucional = meta;
   if (salvo.planilhaId && String(salvo.planilhaId).trim()) cfg.planilhaId = String(salvo.planilhaId).trim();
   if (salvo.abaNome && String(salvo.abaNome).trim()) cfg.abaNome = String(salvo.abaNome).trim();
+  if (salvo.tipoRelatorio && String(salvo.tipoRelatorio).trim()) cfg.tipoRelatorio = String(salvo.tipoRelatorio).trim();
+  if (salvo.logoUrl != null && String(salvo.logoUrl).trim()) cfg.logoUrl = String(salvo.logoUrl).trim();
+  if (salvo.rodapeUrl != null && String(salvo.rodapeUrl).trim()) cfg.rodapeUrl = String(salvo.rodapeUrl).trim();
+  if (salvo.textosPadrao && typeof salvo.textosPadrao === 'object') {
+    ['intro', 'metodo', 'analise', 'plano', 'conclusao'].forEach(chave => {
+      if (salvo.textosPadrao[chave] != null && String(salvo.textosPadrao[chave]).trim()) {
+        cfg.textosPadrao[chave] = String(salvo.textosPadrao[chave]).trim();
+      }
+    });
+  }
   if (Array.isArray(salvo.indicadores) && salvo.indicadores.length) {
     // Preserva quantidade/ordem dos padrões; aplica nomes salvos por posição.
     cfg.indicadores = padrao.indicadores.map((nomePadrao, i) => {
@@ -648,6 +613,7 @@ function abrirPlanilhaRelatorio(cfg) {
   return abrirPlanilhaPorIdCache(id, 'do relatório');
 }
 
+/* ===== Permissões e log de administração ===== */
 function emailUsuarioAtualRel() {
   try {
     const ativo = Session.getActiveUser() && Session.getActiveUser().getEmail();
@@ -676,7 +642,7 @@ function obterConfigRelCosep(forcarRefresh) {
     config: obterConfigRel(forcarRefresh === true || forcarRefresh === '1'),
     podeEditar: usuarioPodeEditarRel(),
     usuario: emailUsuarioAtualRel(),
-    geradoEm: Utilities.formatDate(new Date(), FUSO_HORARIO, "dd/MM/yyyy 'às' HH:mm")
+    geradoEm: carimboAgora()
   }));
 }
 
@@ -684,7 +650,7 @@ function salvarConfigRelCosep(novaConfig) {
   return executarRota('rpc-configrel-save', () => executarComLockConfigRel('rpc-configrel-save-lock', () => {
     if (!usuarioPodeEditarRel()) return { success: false, mensagem: 'Você não tem permissão para alterar as configurações.' };
     const merged = mesclarConfigRel(configPadraoRel(), novaConfig || {});
-    merged.atualizadoEm = Utilities.formatDate(new Date(), FUSO_HORARIO, "dd/MM/yyyy 'às' HH:mm");
+    merged.atualizadoEm = carimboAgora();
     merged.atualizadoPor = emailUsuarioAtualRel() || 'desconhecido';
     salvarConfigRelNaAba(merged);
     registrarLogRelSemLock(merged.atualizadoPor, 'Configuração do relatório atualizada', merged);
@@ -696,17 +662,13 @@ function restaurarConfigRelCosep() {
   return executarRota('rpc-configrel-reset', () => executarComLockConfigRel('rpc-configrel-reset-lock', () => {
     if (!usuarioPodeEditarRel()) return { success: false, mensagem: 'Você não tem permissão para alterar as configurações.' };
     const cfgPadraoAtualizada = configPadraoRel();
-    cfgPadraoAtualizada.atualizadoEm = Utilities.formatDate(new Date(), FUSO_HORARIO, "dd/MM/yyyy 'às' HH:mm");
+    cfgPadraoAtualizada.atualizadoEm = carimboAgora();
     cfgPadraoAtualizada.atualizadoPor = emailUsuarioAtualRel() || 'desconhecido';
     removerConfigRelDaAba(cfgPadraoAtualizada);
     salvarCacheConfigRel(cfgPadraoAtualizada);
     registrarLogRelSemLock(cfgPadraoAtualizada.atualizadoPor, 'Configuração do relatório restaurada para o padrão', cfgPadraoAtualizada);
     return { success: true, config: cfgPadraoAtualizada, mensagem: 'Configurações restauradas para o padrão.' };
   }));
-}
-
-function registrarLogRel(usuario, acao) {
-  return executarComLockConfigRel('config-rel-log-lock', () => registrarLogRelSemLock(usuario, acao, obterConfigRel()));
 }
 
 function registrarLogRelSemLock(usuario, acao, cfg) {
@@ -724,28 +686,9 @@ function registrarLogRelSemLock(usuario, acao, cfg) {
   } catch (erro) { registrarErro('config-rel-log', erro); }
 }
 
-function extrairFiltrosRelatorios(params) {
-  const bruto = params || {};
-  return {
-    comissao: normalizarComissaoRelatorio(bruto.comissao || bruto.tipo || 'CRP'),
-    anos: extrairListaFiltros(bruto.anos || bruto.ano || '', normalizarAno),
-    meses: extrairListaFiltros(bruto.meses || bruto.mes || '', normalizarMes),
-    unidades: extrairListaFiltros(bruto.unidades || bruto.unidade || '', value => String(value || '').trim()),
-    eixos: extrairListaFiltros(bruto.eixos || bruto.eixo || '', value => String(value || '').trim()),
-    categorias: extrairListaFiltros(bruto.categorias || bruto.categoria || '', value => String(value || '').trim()),
-    satisfacoes: extrairListaFiltros(bruto.satisfacoes || bruto.satisfacao || '', value => String(value || '').trim()),
-    status: extrairListaFiltros(bruto.status || bruto.avaliacaoTerminada || '', value => String(value || '').trim())
-  };
-}
-
-function normalizarComissaoRelatorio(valor) {
-  const texto = normalizarTexto(valor);
-  if (texto === 'CRO') return 'CRO';
-  return 'CRP';
-}
-
+/* ===== Leitura e validação da base ===== */
 function obterAbaRelatorio(ss, comissao, cfg) {
-  const comNorm = normalizarComissaoRelatorio(comissao);
+  const comNorm = comissao === 'CRO' ? 'CRO' : 'CRP';
   let nomes = RELATORIO_ABAS_POR_COMISSAO[comNorm] || RELATORIO_ABAS_POR_COMISSAO.CRP;
   if (comNorm === 'CRP' && cfg && cfg.abaNome) nomes = [cfg.abaNome].concat(nomes);
   for (let i = 0; i < nomes.length; i++) {
@@ -756,7 +699,7 @@ function obterAbaRelatorio(ss, comissao, cfg) {
 }
 
 function obterLinhasRelatorio(ss, comissao, cfg) {
-  const comissaoNormalizada = normalizarComissaoRelatorio(comissao);
+  const comissaoNormalizada = comissao === 'CRO' ? 'CRO' : 'CRP';
   const planilhaId = cfg && cfg.planilhaId ? String(cfg.planilhaId).trim() : (ss && ss.getId ? ss.getId() : PLANILHAS.relatorios);
   const abaCfg = cfg && cfg.abaNome ? String(cfg.abaNome).trim() : '';
   const chaveCache = [planilhaId, comissaoNormalizada, abaCfg].join('::');
@@ -767,7 +710,7 @@ function obterLinhasRelatorio(ss, comissao, cfg) {
 
   const sh = obterAbaRelatorio(ss, comissaoNormalizada, cfg);
   if (!sh) {
-    const vazio = { abaEncontrada: '', headers: [], linhas: [], estrutura: RELATORIO_CRP_ESTRUTURA, alertasEstrutura: ['Aba da CRP não encontrada.'] };
+    const vazio = { abaEncontrada: '', headers: [], linhas: [], alertasEstrutura: ['Aba da CRP não encontrada.'] };
     CACHE_EXECUCAO_BASE_RELATORIO[chaveCache] = vazio;
     return vazio;
   }
@@ -786,16 +729,11 @@ function obterLinhasRelatorio(ss, comissao, cfg) {
     abaEncontrada: sh.getName(),
     headers: headers,
     linhas: values.slice(1).filter(row => row.some(cell => String(cell == null ? '' : cell).trim() !== '')),
-    estrutura: comissaoNormalizada === 'CRP' ? RELATORIO_CRP_ESTRUTURA : [],
     alertasEstrutura: comissaoNormalizada === 'CRP' ? validarEstruturaCRP(headers) : []
   };
 
   CACHE_EXECUCAO_BASE_RELATORIO[chaveCache] = base;
   return base;
-}
-
-function obterCampoCRPPorIndice(idx) {
-  return RELATORIO_CRP_ESTRUTURA.find(campo => campo.idx === idx) || null;
 }
 
 function validarEstruturaCRP(headers) {
@@ -821,306 +759,82 @@ function validarEstruturaCRP(headers) {
   return alertas;
 }
 
-function getRelatoriosFiltros(ss) {
-  const base = obterLinhasRelatorio(ss, 'CRP');
-  return coletarFiltrosRelatorio(base.linhas, base.abaEncontrada);
-}
-
-function coletarFiltrosRelatorio(linhas, abaEncontrada) {
-  const col = RELATORIO_CRP_COLUNAS;
-  const filtros = {
-    comissoes: [{ codigo: 'CRP', nome: 'CRP', disponivel: true }, { codigo: 'CRO', nome: 'CRO', disponivel: false }],
-    abaEncontrada: abaEncontrada || '',
-    anos: {},
-    meses: {},
-    unidades: {},
-    eixos: {},
-    categorias: {},
-    satisfacoes: {},
-    status: {}
-  };
-
-  linhas.forEach(row => {
-    const ano = normalizarAno(row[col.ano]);
-    const mes = normalizarMes(row[col.mes]);
-    const unidade = String(row[col.unidade] || '').trim() || 'Não informado';
-    const eixo = String(row[col.eixo] || '').trim() || 'Não informado';
-    const categoria = String(row[col.categoria] || '').trim() || 'Não informado';
-    const satisfacao = String(row[col.satisfacao] || '').trim() || 'Não informado';
-    const status = String(row[col.avaliacaoTerminada] || '').trim() || 'Não informado';
-
-    if (ano) filtros.anos[ano] = true;
-    if (mes) filtros.meses[mes] = true;
-    if (unidade) filtros.unidades[unidade] = true;
-    if (eixo) filtros.eixos[eixo] = true;
-    if (categoria) filtros.categorias[categoria] = true;
-    if (satisfacao) filtros.satisfacoes[satisfacao] = true;
-    if (status) filtros.status[status] = true;
-  });
-
+/* ===== Dataset compacto enviado ao cliente =====
+   Cada registro é um array posicional:
+   [ano, mes, status, unidade, eixo, categoria, satisfacao, flags, numerador, denominador, resultado]
+   onde "flags" é uma string com 1 caractere por indicador:
+   C = conforme · N = não conforme · A = não se aplica · V = vazio/hífen · O = outro valor */
+function montarTermosClassificacao(cfg) {
   return {
-    comissoes: filtros.comissoes,
-    abaEncontrada: filtros.abaEncontrada,
-    anos: Object.keys(filtros.anos).sort((a, b) => Number(a) - Number(b) || a.localeCompare(b, 'pt-BR')),
-    meses: Object.keys(filtros.meses).sort(ordenarMeses),
-    unidades: Object.keys(filtros.unidades).sort((a, b) => a.localeCompare(b, 'pt-BR')),
-    eixos: Object.keys(filtros.eixos).sort((a, b) => a.localeCompare(b, 'pt-BR')),
-    categorias: Object.keys(filtros.categorias).sort((a, b) => a.localeCompare(b, 'pt-BR')),
-    satisfacoes: Object.keys(filtros.satisfacoes).sort((a, b) => a.localeCompare(b, 'pt-BR')),
-    status: Object.keys(filtros.status).sort((a, b) => a.localeCompare(b, 'pt-BR'))
-  };
-}
-
-function montarPayloadRelatorios(ss, filtros, cfg) {
-  cfg = cfg || obterConfigRel();
-  const filtrosAplicados = extrairFiltrosRelatorios(filtros || {});
-  // Lê a base uma única vez (os filtros vêm sempre da CRP). Evita reler o
-  // getDataRange() duas vezes por requisição.
-  const baseCRP = obterLinhasRelatorio(ss, 'CRP', cfg);
-  const baseProcessamento = filtrosAplicados.comissao === 'CRP'
-    ? baseCRP
-    : obterLinhasRelatorio(ss, filtrosAplicados.comissao, cfg);
-  return {
-    success: true,
-    geradoEm: Utilities.formatDate(new Date(), FUSO_HORARIO, "dd/MM/yyyy 'às' HH:mm"),
-    filtros: coletarFiltrosRelatorio(baseCRP.linhas, baseCRP.abaEncontrada),
-    aplicado: filtrosAplicados,
-    relatorio: processarRelatorioCRP(filtrosAplicados, baseProcessamento, cfg)
-  };
-}
-
-function obterPayloadRelatorios(filtros) {
-  return executarRota('rpc-relatorios', () => {
-    const cfg = obterConfigRel();
-    return montarPayloadRelatorios(abrirPlanilhaRelatorio(cfg), extrairFiltrosRelatorios(filtros || {}), cfg);
-  });
-}
-
-function atendeFiltroRelatorio(valor, setFiltro, normalizerFn) {
-  if (!setFiltro || !setFiltro.size) return true;
-  const valorNormalizado = normalizerFn ? normalizerFn(valor) : String(valor || '').trim();
-  return setFiltro.has(valorNormalizado);
-}
-
-function classificarValorIndicador(valor, termos) {
-  const texto = normalizarTexto(valor);
-  if (!texto || texto === '-') return 'vazio';
-  if (termos) {
-    if (termos.conforme.has(texto)) return 'conforme';
-    if (termos.naoConforme.has(texto)) return 'naoConforme';
-    if (termos.naoSeAplica.has(texto)) return 'naoSeAplica';
-    return 'outro';
-  }
-  if (texto === 'CONFORME') return 'conforme';
-  if (texto === 'NÃO CONFORME' || texto === 'NAO CONFORME') return 'naoConforme';
-  if (texto === 'NÃO SE APLICA' || texto === 'NAO SE APLICA' || texto === 'N/A' || texto === 'NA') return 'naoSeAplica';
-  return 'outro';
-}
-
-function nomeIndicadorRelatorio(header, fallback) {
-  const texto = String(header || '').replace(/\s+/g, ' ').trim();
-  if (!texto) return fallback;
-  return texto.split(/\s{2,}| - /)[0].trim() || texto.substring(0, 90);
-}
-
-function percentualRelatorio(conformes, naoConformes) {
-  const denominador = Number(conformes || 0) + Number(naoConformes || 0);
-  return denominador ? Number(((Number(conformes || 0) / denominador) * 100).toFixed(1)) : null;
-}
-
-function processarRelatorioCRP(filtros, base, cfg) {
-  cfg = cfg || obterConfigRel();
-  if (!base) {
-    const ss = abrirPlanilhaRelatorio(cfg);
-    base = obterLinhasRelatorio(ss, filtros.comissao || 'CRP', cfg);
-  }
-  const col = RELATORIO_CRP_COLUNAS;
-  const termos = {
     conforme: new Set((cfg.termosConforme || []).map(normalizarTexto)),
     naoConforme: new Set((cfg.termosNaoConforme || []).map(normalizarTexto)),
     naoSeAplica: new Set((cfg.termosNaoSeAplica || []).map(normalizarTexto))
   };
-  const classifica = valor => classificarValorIndicador(valor, termos);
-  const nomesIndicadores = cfg.indicadores || [];
-  const anosFiltro = new Set((filtros.anos || []).map(normalizarAno).filter(Boolean));
-  const mesesFiltro = new Set((filtros.meses || []).map(normalizarMes).filter(Boolean));
-  const unidadesFiltro = new Set((filtros.unidades || []).map(item => String(item || '').trim()).filter(Boolean));
-  const eixosFiltro = new Set((filtros.eixos || []).map(item => String(item || '').trim()).filter(Boolean));
-  const categoriasFiltro = new Set((filtros.categorias || []).map(item => String(item || '').trim()).filter(Boolean));
-  const satisfacoesFiltro = new Set((filtros.satisfacoes || []).map(item => String(item || '').trim()).filter(Boolean));
-  const statusFiltro = new Set((filtros.status || []).map(item => String(item || '').trim()).filter(Boolean));
+}
 
-  const linhasFiltradas = base.linhas.filter(row => {
-    if (!atendeFiltroRelatorio(row[col.ano], anosFiltro, normalizarAno)) return false;
-    if (!atendeFiltroRelatorio(row[col.mes], mesesFiltro, normalizarMes)) return false;
-    if (!atendeFiltroRelatorio(String(row[col.unidade] || '').trim() || 'Não informado', unidadesFiltro)) return false;
-    if (!atendeFiltroRelatorio(String(row[col.eixo] || '').trim() || 'Não informado', eixosFiltro)) return false;
-    if (!atendeFiltroRelatorio(String(row[col.categoria] || '').trim() || 'Não informado', categoriasFiltro)) return false;
-    if (!atendeFiltroRelatorio(String(row[col.satisfacao] || '').trim() || 'Não informado', satisfacoesFiltro)) return false;
-    if (!atendeFiltroRelatorio(String(row[col.avaliacaoTerminada] || '').trim() || 'Não informado', statusFiltro)) return false;
-    return true;
-  });
+function codigoClassificacao(valor, termos) {
+  const texto = normalizarTexto(valor);
+  if (!texto || texto === '-') return 'V';
+  if (termos.conforme.has(texto)) return 'C';
+  if (termos.naoConforme.has(texto)) return 'N';
+  if (termos.naoSeAplica.has(texto)) return 'A';
+  return 'O';
+}
 
-  const indicadores = [];
-  for (let idx = col.inicioIndicadores; idx <= col.fimIndicadores; idx++) {
-    const campo = obterCampoCRPPorIndice(idx);
-    const nomeCfg = nomesIndicadores[idx - col.inicioIndicadores];
-    indicadores.push({
-      idx: idx,
-      coluna: campo ? campo.letra : colunaParaLetra(idx),
-      nome: (nomeCfg && String(nomeCfg).trim()) || (campo ? campo.nome : nomeIndicadorRelatorio(base.headers[idx], `Indicador ${idx + 1}`)),
-      cabecalhoPlanilha: nomeIndicadorRelatorio(base.headers[idx], campo ? campo.nome : `Indicador ${idx + 1}`),
-      conformes: 0,
-      naoConformes: 0,
-      naoSeAplica: 0,
-      vazios: 0,
-      outros: 0,
-      avaliados: 0,
-      percentual: null
-    });
-  }
+function numeroOuNull(valor) {
+  if (valor == null || String(valor).trim() === '') return null;
+  const numero = Number(valor);
+  return Number.isNaN(numero) ? null : numero;
+}
 
-  const porUnidade = {};
-  const porEixo = {};
-  const porCategoria = {};
-  const porSatisfacao = {};
-  const porStatus = {};
-  const evolucaoMap = {};
-  const resumoSetores = {};
-  let conformes = 0;
-  let naoConformes = 0;
-  let naoSeAplica = 0;
-  let vazios = 0;
-  let outros = 0;
-  let numeradorPlanilha = 0;
-  let denominadorPlanilha = 0;
-  let somaResultadoPlanilha = 0;
-  let totalResultadoPlanilha = 0;
+function montarPayloadDados(forcarRefresh) {
+  const cfg = obterConfigRel(forcarRefresh === true);
+  const ss = abrirPlanilhaRelatorio(cfg);
+  const base = obterLinhasRelatorio(ss, 'CRP', cfg);
+  const termos = montarTermosClassificacao(cfg);
+  const col = RELATORIO_CRP_COLUNAS;
 
-  linhasFiltradas.forEach(row => {
-    const unidade = String(row[col.unidade] || '').trim() || 'Não informado';
-    const eixo = String(row[col.eixo] || '').trim() || 'Não informado';
-    const categoria = String(row[col.categoria] || '').trim() || 'Não informado';
-    const satisfacao = String(row[col.satisfacao] || '').trim() || 'Não informado';
-    const status = String(row[col.avaliacaoTerminada] || '').trim() || 'Não informado';
-    const mes = normalizarMes(row[col.mes]) || 'Sem mês';
-
-    incrementarMapa(porUnidade, unidade);
-    incrementarMapa(porEixo, eixo);
-    incrementarMapa(porCategoria, categoria);
-    incrementarMapa(porSatisfacao, satisfacao);
-    incrementarMapa(porStatus, status);
-    if (!evolucaoMap[mes]) evolucaoMap[mes] = { conformes: 0, naoConformes: 0 };
-    if (!resumoSetores[unidade]) resumoSetores[unidade] = { setor: unidade, avaliacoes: 0, conformes: 0, naoConformes: 0 };
-    resumoSetores[unidade].avaliacoes++;
-
-    const num = Number(row[col.numerador]);
-    const den = Number(row[col.denominador]);
-    const res = Number(row[col.resultado]);
-    if (!Number.isNaN(num)) numeradorPlanilha += num;
-    if (!Number.isNaN(den)) denominadorPlanilha += den;
-    if (!Number.isNaN(res)) {
-      somaResultadoPlanilha += res > 1 ? res : res * 100;
-      totalResultadoPlanilha++;
+  const registros = base.linhas.map(row => {
+    let flags = '';
+    for (let idx = col.inicioIndicadores; idx <= col.fimIndicadores; idx++) {
+      flags += codigoClassificacao(row[idx], termos);
     }
-
-    indicadores.forEach(indicador => {
-      const classe = classifica(row[indicador.idx]);
-      if (classe === 'conforme') {
-        indicador.conformes++;
-        indicador.avaliados++;
-        conformes++;
-        evolucaoMap[mes].conformes++;
-        resumoSetores[unidade].conformes++;
-      } else if (classe === 'naoConforme') {
-        indicador.naoConformes++;
-        indicador.avaliados++;
-        naoConformes++;
-        evolucaoMap[mes].naoConformes++;
-        resumoSetores[unidade].naoConformes++;
-      } else if (classe === 'naoSeAplica') {
-        indicador.naoSeAplica++;
-        naoSeAplica++;
-      } else if (classe === 'vazio') {
-        indicador.vazios++;
-        vazios++;
-      } else {
-        indicador.outros++;
-        outros++;
-      }
-    });
+    return [
+      normalizarAno(row[col.ano]) || 'Não informado',
+      normalizarMes(row[col.mes]) || 'Não informado',
+      String(row[col.avaliacaoTerminada] == null ? '' : row[col.avaliacaoTerminada]).trim() || 'Não informado',
+      String(row[col.unidade] == null ? '' : row[col.unidade]).trim() || 'Não informado',
+      String(row[col.eixo] == null ? '' : row[col.eixo]).trim() || 'Não informado',
+      String(row[col.categoria] == null ? '' : row[col.categoria]).trim() || 'Não informado',
+      String(row[col.satisfacao] == null ? '' : row[col.satisfacao]).trim() || 'Não informado',
+      flags,
+      numeroOuNull(row[col.numerador]),
+      numeroOuNull(row[col.denominador]),
+      numeroOuNull(row[col.resultado])
+    ];
   });
-
-  indicadores.forEach(item => {
-    item.percentual = percentualRelatorio(item.conformes, item.naoConformes);
-  });
-
-  const totalAuditavel = conformes + naoConformes;
-  const conformidadeGeral = percentualRelatorio(conformes, naoConformes) || 0;
-  const indicadoresOrdenados = indicadores.slice().sort((a, b) => {
-    const pa = a.percentual == null ? 101 : a.percentual;
-    const pb = b.percentual == null ? 101 : b.percentual;
-    return pa - pb || b.naoConformes - a.naoConformes || a.nome.localeCompare(b.nome, 'pt-BR');
-  });
-
-  const evolucaoMensal = Object.keys(evolucaoMap).sort(ordenarMeses).map(mes => ({
-    mes: mes,
-    conformes: evolucaoMap[mes].conformes,
-    naoConformes: evolucaoMap[mes].naoConformes,
-    percentual: percentualRelatorio(evolucaoMap[mes].conformes, evolucaoMap[mes].naoConformes) || 0
-  }));
-
-  const rankingSetores = Object.keys(resumoSetores).map(setor => {
-    const resumo = resumoSetores[setor];
-    return {
-      setor: setor,
-      avaliacoes: resumo.avaliacoes,
-      conformes: resumo.conformes,
-      naoConformes: resumo.naoConformes,
-      percentual: percentualRelatorio(resumo.conformes, resumo.naoConformes)
-    };
-  }).sort((a, b) => (a.percentual == null ? 101 : a.percentual) - (b.percentual == null ? 101 : b.percentual) || a.setor.localeCompare(b.setor, 'pt-BR'));
-
-  const amostra = linhasFiltradas.slice(0, 25).map(row => ({
-    prontuario: String(row[col.prontuario] || '').trim(),
-    unidade: String(row[col.unidade] || '').trim(),
-    eixo: String(row[col.eixo] || '').trim(),
-    categoria: String(row[col.categoria] || '').trim(),
-    satisfacao: String(row[col.satisfacao] || '').trim(),
-    status: String(row[col.avaliacaoTerminada] || '').trim(),
-    resultado: row[col.resultado]
-  }));
 
   return {
-    comissao: normalizarComissaoRelatorio(filtros.comissao),
-    abaEncontrada: base.abaEncontrada,
-    totalRegistrosBase: base.linhas.length,
-    totalAvaliacoes: linhasFiltradas.length,
-    totalAuditavel: totalAuditavel,
-    conformes: conformes,
-    naoConformes: naoConformes,
-    naoSeAplica: naoSeAplica,
-    vazios: vazios,
-    outros: outros,
-    conformidadeGeral: conformidadeGeral,
-    metaInstitucional: cfg.metaInstitucional,
-    diferencaMeta: Number((conformidadeGeral - cfg.metaInstitucional).toFixed(1)),
-    numeradorPlanilha: numeradorPlanilha,
-    denominadorPlanilha: denominadorPlanilha,
-    resultadoPlanilha: denominadorPlanilha ? Number(((numeradorPlanilha / denominadorPlanilha) * 100).toFixed(1)) : (totalResultadoPlanilha ? Number((somaResultadoPlanilha / totalResultadoPlanilha).toFixed(1)) : null),
-    estruturaColunas: base.estrutura || RELATORIO_CRP_ESTRUTURA,
-    alertasEstrutura: base.alertasEstrutura || [],
-    indicadores: indicadores,
-    indicadoresCriticos: indicadoresOrdenados.filter(item => item.avaliados > 0).slice(0, 8),
-    indicadoresExcelencia: indicadores.slice().filter(item => item.avaliados > 0).sort((a, b) => b.percentual - a.percentual || b.avaliados - a.avaliados).slice(0, 5),
-    porUnidade: ordenarMapaPorValor(porUnidade),
-    porEixo: ordenarMapaPorValor(porEixo),
-    porCategoria: ordenarMapaPorValor(porCategoria),
-    porSatisfacao: ordenarMapaPorValor(porSatisfacao),
-    porStatus: ordenarMapaPorValor(porStatus),
-    rankingSetores: rankingSetores,
-    evolucaoMensal: evolucaoMensal,
-    amostra: amostra
+    success: true,
+    geradoEm: carimboAgora(),
+    config: {
+      metaInstitucional: cfg.metaInstitucional,
+      tipoRelatorio: cfg.tipoRelatorio || 'executivo',
+      logoUrl: cfg.logoUrl || LOGO_PADRAO,
+      rodapeUrl: cfg.rodapeUrl || RODAPE_PADRAO,
+      indicadores: cfg.indicadores || RELATORIO_CRP_INDICADORES.slice(),
+      textosPadrao: cfg.textosPadrao
+    },
+    base: {
+      comissao: 'CRP',
+      aba: base.abaEncontrada,
+      totalRegistros: registros.length,
+      alertasEstrutura: base.alertasEstrutura || [],
+      registros: registros
+    }
   };
 }
 
+function obterDadosRelatorio(opcoes) {
+  return executarRota('rpc-dados', () => montarPayloadDados(Boolean(opcoes && opcoes.refresh)));
+}

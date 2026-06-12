@@ -2,7 +2,7 @@
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8">
-  <title>Relatório Analítico CRP</title>
+  <title>Relatório Analítico da CRP</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -513,24 +513,17 @@
     }
   </style>
 </head>
-<body class="min-h-screen bg-slate-50 text-slate-900 antialiased dark:bg-slate-950 dark:text-slate-100">
-  <div id="toast-root" class="toast-root" aria-live="polite" aria-atomic="true"></div>
+<body>
+  <div class="toasts" id="toasts" aria-live="polite" aria-atomic="true"></div>
 
-  <header class="no-print sticky top-0 z-40 border-b border-slate-200/80 bg-white/95 backdrop-blur dark:border-slate-800 dark:bg-slate-900/90">
-    <div class="mx-auto flex min-h-[58px] w-[min(1440px,calc(100%-32px))] items-center justify-between gap-4 py-2">
-      <div class="flex min-w-0 items-center gap-3">
-        <span class="flex h-9 w-9 items-center justify-center rounded-executive bg-cosep-teal text-white"><i class="fa-solid fa-chart-simple" aria-hidden="true"></i></span>
-        <div class="min-w-0">
-          <strong class="block text-sm font-extrabold leading-tight tracking-tight">Relatório Analítico CRP</strong>
-          <span class="block truncate text-xs font-semibold text-slate-500">Dashboard executivo para avaliação institucional</span>
-        </div>
-      </div>
-      <div class="flex items-center gap-2">
-        <nav class="flex rounded-executive border border-slate-200 bg-slate-50 p-1 dark:border-slate-800 dark:bg-slate-950" aria-label="Visualizações">
-          <a href="#" class="nav-tab rounded-md px-3 py-2 text-xs font-extrabold text-slate-600 data-[active=true]:bg-white data-[active=true]:text-slate-950 data-[active=true]:shadow-sm dark:text-slate-300 dark:data-[active=true]:bg-slate-800 dark:data-[active=true]:text-white" data-view-rel="relatorio" data-active="true"><i class="fa-solid fa-chart-line" aria-hidden="true"></i> <span>Relatório</span></a>
-          <a href="#" class="nav-tab rounded-md px-3 py-2 text-xs font-extrabold text-slate-600 data-[active=true]:bg-white data-[active=true]:text-slate-950 data-[active=true]:shadow-sm dark:text-slate-300 dark:data-[active=true]:bg-slate-800 dark:data-[active=true]:text-white" data-view-rel="admin" data-active="false"><i class="fa-solid fa-gear" aria-hidden="true"></i> <span>Admin</span></a>
-        </nav>
-        <button type="button" class="icon-btn theme-toggle" aria-label="Alternar tema" aria-pressed="false" title="Alternar tema"><i class="fa-solid fa-moon" aria-hidden="true"></i></button>
+  <header class="topo no-print">
+    <div class="topo-marca">
+      <span class="topo-selo" aria-hidden="true">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 20V10M10 20V4M16 20v-7M21 20H3"/></svg>
+      </span>
+      <div style="min-width:0">
+        <div class="topo-titulo">Relatório Analítico da CRP</div>
+        <div class="topo-status" id="topo-status">Carregando dados da planilha…</div>
       </div>
     </div>
     <div class="topo-acoes">
@@ -553,13 +546,28 @@
     </div>
   </header>
 
-  <main class="mx-auto grid w-[min(1440px,calc(100%-32px))] gap-4 py-4 md:py-5">
-    <section id="dashboard-view" class="grid gap-4" aria-label="Relatório CRP">
-      <section class="grid gap-3 md:grid-cols-2 xl:grid-cols-4" aria-label="Indicadores principais">
-        <article class="panel p-4"><span class="text-[11px] font-black uppercase tracking-wider text-slate-500">Comissão</span><strong id="hero-comissao" class="mt-2 block text-3xl font-black tracking-tight">CRP</strong><small id="hero-fonte" class="mt-1 block text-xs font-semibold text-slate-500">Fonte não carregada</small></article>
-        <article class="panel p-4"><span class="text-[11px] font-black uppercase tracking-wider text-slate-500">Conformidade</span><strong id="hero-conformidade" class="mt-2 block text-3xl font-black tracking-tight">--</strong><small id="hero-meta" class="mt-1 block text-xs font-semibold text-slate-500">Meta --</small></article>
-        <article class="panel p-4"><span class="text-[11px] font-black uppercase tracking-wider text-slate-500">Avaliações</span><strong id="hero-avaliacoes" class="mt-2 block text-3xl font-black tracking-tight">--</strong><small id="hero-base" class="mt-1 block text-xs font-semibold text-slate-500">Base --</small></article>
-        <article class="panel p-4"><span class="text-[11px] font-black uppercase tracking-wider text-slate-500">Indicadores</span><strong id="hero-indicadores" class="mt-2 block text-3xl font-black tracking-tight">--</strong><small id="hero-alertas" class="mt-1 block text-xs font-semibold text-slate-500">Estrutura OK</small></article>
+  <div class="moldura">
+    <aside class="lateral no-print" aria-label="Recorte e opções">
+      <section class="cartao" aria-label="Resumo do recorte">
+        <div class="cartao-cab"><h2>Resumo do recorte</h2></div>
+        <div class="cartao-corpo">
+          <div class="resumo-principal">
+            <strong id="res-taxa">--</strong>
+            <span class="rotulo-principal">prontuários bons<br>ou excelentes</span>
+          </div>
+          <div class="linha-conf"><span>Conformidade geral <b id="res-conformidade">--</b></span><span class="delta" id="res-delta">meta --</span></div>
+          <div class="barra-meta" id="res-barra" title="Conformidade × meta"><i style="width:0%"></i><b style="left:80%"></b></div>
+          <div class="resumo-grade">
+            <div class="resumo-celula"><span>Avaliações</span><strong id="res-avaliacoes">--</strong></div>
+            <div class="resumo-celula"><span>Excelentes / Bons</span><strong id="res-excelentes-bons" style="color:var(--brand)">--</strong></div>
+            <div class="resumo-celula"><span>Conformes</span><strong id="res-conformes" style="color:var(--verde)">--</strong></div>
+            <div class="resumo-celula"><span>Não conformes</span><strong id="res-naoconformes" style="color:var(--vermelho)">--</strong></div>
+          </div>
+          <div class="aviso-estrutura" id="res-alertas">
+            <span aria-hidden="true">⚠</span>
+            <span id="res-alertas-texto"></span>
+          </div>
+        </div>
       </section>
 
       <section class="cartao" aria-label="Filtros">
@@ -702,83 +710,930 @@
       adminCarregado: false,
       adminPodeEditar: true
     };
-    const tipoLabel = { executivo: 'Relatório executivo', tecnico: 'Relatório técnico', sintese: 'Síntese executiva' };
-    const state = { payload: null, available: {}, selected: {}, charts: [], busy: false, chartLoader: null, pdfLoader: null, templates: loadSavedTemplates(), tipoRelatorio: 'executivo' };
-    const textAreas = { intro: el('texto-intro'), metodo: el('texto-metodo'), analise: el('texto-analise'), plano: el('texto-plano'), conclusao: el('texto-conclusao') };
+    FILTROS.forEach(f => { state.sel[f.id] = new Set(); });
+    CHAVES_TEXTO.forEach(k => { state.textos[k] = { manual: false, valor: '' }; });
 
-    function el(id) { return document.getElementById(id); }
-    function escapeHtml(value) { return String(value == null ? '' : value).replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;').replaceAll('"', '&quot;').replaceAll("'", '&#039;'); }
-    function fmtPct(value) { return value == null || Number.isNaN(Number(value)) ? 'N/A' : `${Number(value).toLocaleString('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%`; }
-    function fmtNum(value) { return Number(value || 0).toLocaleString('pt-BR'); }
-    function loadSavedTemplates() { try { return normalizarTemplates(JSON.parse(localStorage.getItem(TEXT_STORE_KEY) || '{}')); } catch (_) { return { ...templatesPadrao }; } }
-    function saveTemplates() { try { localStorage.setItem(TEXT_STORE_KEY, JSON.stringify({ tipoRelatorio: state.tipoRelatorio, textosPadrao: state.templates })); } catch (_) {} }
-    function normalizarTemplates(raw = {}) { const source = raw.textosPadrao || raw; const merged = { ...templatesPadrao }; templateKeys.forEach(k => { if (source[k] != null && String(source[k]).trim()) merged[k] = String(source[k]).trim(); }); return merged; }
-    function setLoading(message, active = true) { const box = el('loading'); box.classList.toggle('hidden', !active); box.innerHTML = active ? `<span class="spinner" aria-hidden="true"></span><span>${escapeHtml(message)}</span>` : ''; }
-    function setBusy(active, button, label) { state.busy = active; document.querySelectorAll('.btn, .icon-btn, .multi-trigger').forEach(item => { if (active) { item.dataset.wasDisabled = item.disabled ? '1' : '0'; item.disabled = true; } else { item.disabled = item.dataset.wasDisabled === '1'; delete item.dataset.wasDisabled; } }); if (!button) return; if (active) { button.dataset.originalHtml = button.innerHTML; button.innerHTML = `<span class="spinner" aria-hidden="true"></span><span>${escapeHtml(label || 'Processando')}</span>`; } else if (button.dataset.originalHtml) { button.innerHTML = button.dataset.originalHtml; delete button.dataset.originalHtml; } }
-    async function runAction({ button, label, loading }, task) { if (state.busy) { toast('Aguarde a operação atual terminar.', 'warning', 'Processando'); return null; } setBusy(true, button, label); if (loading) setLoading(loading, true); try { return await task(); } finally { setBusy(false, button); } }
-    function toast(message, type = 'info', title = '') { const cfg = { success: ['#15803d', 'fa-circle-check', title || 'Concluído'], error: ['#b42318', 'fa-triangle-exclamation', title || 'Erro'], warning: ['#b45309', 'fa-bell', title || 'Atenção'], info: ['#0e7490', 'fa-circle-info', title || 'Informação'] }[type] || ['#0e7490', 'fa-circle-info', title || 'Informação']; const node = document.createElement('section'); node.className = 'toast'; node.setAttribute('role', type === 'error' ? 'alert' : 'status'); node.style.setProperty('--toast-dot', cfg[0]); node.innerHTML = `<i class="fa-solid ${cfg[1]}" aria-hidden="true"></i><div><strong>${escapeHtml(cfg[2])}</strong><p>${escapeHtml(message)}</p></div><button type="button" aria-label="Fechar"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button>`; const close = () => { node.classList.remove('visible'); window.setTimeout(() => node.remove(), 180); }; node.querySelector('button').addEventListener('click', close); el('toast-root').appendChild(node); requestAnimationFrame(() => node.classList.add('visible')); window.setTimeout(close, type === 'error' ? 7200 : 4300); }
-    function confirmDialog({ title, message, confirmText = 'Confirmar', cancelText = 'Cancelar', danger = false }) { return new Promise(resolve => { const previous = document.activeElement; const overlay = document.createElement('div'); overlay.className = 'confirm-overlay'; overlay.innerHTML = `<section class="confirm-dialog" role="dialog" aria-modal="true"><div class="p-5"><h3 class="m-0 text-lg font-black">${escapeHtml(title)}</h3><p class="mt-2 text-sm font-semibold text-slate-500">${escapeHtml(message)}</p></div><div class="flex justify-end gap-2 px-5 pb-5"><button class="btn" type="button" data-cancel>${escapeHtml(cancelText)}</button><button class="btn ${danger ? 'btn-danger' : 'btn-primary'}" type="button" data-ok>${escapeHtml(confirmText)}</button></div></section>`; const done = value => { overlay.remove(); previous && previous.focus && previous.focus(); resolve(value); }; overlay.querySelector('[data-cancel]').addEventListener('click', () => done(false)); overlay.querySelector('[data-ok]').addEventListener('click', () => done(true)); overlay.addEventListener('keydown', ev => { if (ev.key === 'Escape') done(false); }); document.body.appendChild(overlay); overlay.querySelector('[data-cancel]').focus(); }); }
-    function loadScript(src, globalName) { return new Promise((resolve, reject) => { if (globalName && window[globalName]) return resolve(window[globalName]); const script = document.createElement('script'); script.src = src; script.async = true; script.onload = () => resolve(globalName ? window[globalName] : true); script.onerror = () => reject(new Error(`Falha ao carregar ${src}`)); document.head.appendChild(script); }); }
-    function ensureChartJs() { if (!state.chartLoader) state.chartLoader = loadScript(CHART_SRC, 'Chart'); return state.chartLoader; }
-    function ensureHtml2Pdf() { if (!state.pdfLoader) state.pdfLoader = loadScript(HTML2PDF_SRC, 'html2pdf'); return state.pdfLoader; }
-    function withTimeout(promise, ms, message) { let timer; const timeout = new Promise((_, reject) => { timer = window.setTimeout(() => reject(new Error(message)), ms); }); return Promise.race([promise, timeout]).finally(() => window.clearTimeout(timer)); }
-    function validarPayload(payload) { if (!payload || payload.success === false) throw new Error((payload && (payload.mensagem || payload.detalhe)) || 'Resposta inválida do Apps Script.'); sincronizarTemplatesPayload(payload); return payload; }
-    function sincronizarTemplatesPayload(payload) { const rel = payload?.relatorio || {}; if (rel.tipoRelatorio) state.tipoRelatorio = String(rel.tipoRelatorio).trim() || state.tipoRelatorio; if (rel.textosPadrao) state.templates = normalizarTemplates(rel.textosPadrao); }
-    function fetchViaGoogleScript(params) { return new Promise((resolve, reject) => { if (!(window.google && google.script && google.script.run)) return reject(new Error('google.script.run indisponível.')); google.script.run.withSuccessHandler(resolve).withFailureHandler(reject).obterPayloadRelatorios(params); }); }
-    async function fetchViaHttp(params = {}) { const query = new URLSearchParams({ api: 'relatorios' }); Object.entries(params).forEach(([key, value]) => { if (Array.isArray(value)) { if (value.length) query.set(key, value.join('|')); } else if (value != null && String(value).trim()) query.set(key, String(value)); }); const response = await fetch(`${APP_URL || location.pathname}?${query.toString()}`, { cache: 'no-store' }); if (!response.ok) throw new Error('Falha ao carregar relatório.'); return response.json(); }
-    async function fetchPayload(params = {}) { const usingGoogle = Boolean(window.google && google.script && google.script.run); const payload = usingGoogle ? await withTimeout(fetchViaGoogleScript(params), 45000, 'A planilha demorou demais para responder.') : await withTimeout(fetchViaHttp(params), 45000, 'A planilha demorou demais para responder.'); return validarPayload(payload); }
+    /* ================= Utilitários ================= */
+    function $(id) { return document.getElementById(id); }
+    function esc(valor) {
+      return String(valor == null ? '' : valor)
+        .replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;')
+        .replaceAll('"', '&quot;').replaceAll("'", '&#039;');
+    }
+    function fmtNum(valor) { return Number(valor || 0).toLocaleString('pt-BR'); }
+    function fmtPct(valor) {
+      if (valor == null || Number.isNaN(Number(valor))) return 'N/A';
+      return Number(valor).toLocaleString('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1 }) + '%';
+    }
+    function debounce(fn, ms) { let t; return (...args) => { clearTimeout(t); t = setTimeout(() => fn(...args), ms); }; }
+    function percentual(conformes, naoConformes) {
+      const den = Number(conformes || 0) + Number(naoConformes || 0);
+      return den ? Number(((conformes / den) * 100).toFixed(1)) : null;
+    }
+    function classePct(valor) {
+      const n = Number(valor);
+      if (valor == null || Number.isNaN(n)) return '';
+      return n >= 80 ? 'verde' : n >= 60 ? 'ambar' : 'vermelho';
+    }
+    function seloPct(valor) { return `<span class="selo-pct ${classePct(valor)}">${fmtPct(valor)}</span>`; }
 
-    function buildFilters() { const root = el('filters-root'); root.innerHTML = filterDefs.map(def => `<div class="field"><div class="field-label"><span>${escapeHtml(def.label)}</span><small>multi</small></div><div class="multi" data-filter="${def.id}"><button type="button" class="multi-trigger" aria-haspopup="listbox" aria-expanded="false"><span class="multi-value"><span class="multi-placeholder">Todos</span></span><i class="fa-solid fa-chevron-down" aria-hidden="true"></i></button><div class="multi-pop" role="listbox" aria-label="${escapeHtml(def.label)}"><input type="search" class="multi-search" placeholder="Buscar ${escapeHtml(def.short.toLowerCase())}"><div class="grid grid-cols-2 gap-2"><button type="button" class="btn" data-act="all">Tudo</button><button type="button" class="btn" data-act="none">Limpar</button></div><div class="multi-list"></div></div></div></div>`).join(''); root.querySelectorAll('.multi').forEach(multi => { const id = multi.dataset.filter; const trigger = multi.querySelector('.multi-trigger'); const search = multi.querySelector('.multi-search'); trigger.addEventListener('click', ev => { ev.stopPropagation(); closeMultis(multi); const open = multi.classList.toggle('open'); trigger.setAttribute('aria-expanded', String(open)); if (open) { search.value = ''; renderMultiList(id); setTimeout(() => search.focus(), 10); } }); search.addEventListener('input', () => renderMultiList(id, search.value)); multi.querySelectorAll('[data-act]').forEach(btn => btn.addEventListener('click', () => { state.selected[id] = btn.dataset.act === 'all' ? (state.available[id] || []).slice() : []; renderMulti(id); renderMultiList(id, search.value); renderActiveFilters(); })); }); document.addEventListener('click', () => closeMultis()); document.addEventListener('keydown', ev => { if (ev.key === 'Escape') closeMultis(); }); }
-    function closeMultis(except) { document.querySelectorAll('.multi.open').forEach(multi => { if (multi === except) return; multi.classList.remove('open'); const trigger = multi.querySelector('.multi-trigger'); if (trigger) trigger.setAttribute('aria-expanded', 'false'); }); }
-    function setFilterOptions(filtros = {}) { filterDefs.forEach(def => { state.available[def.id] = filtros[def.endpoint] || []; state.selected[def.id] = (state.selected[def.id] || []).filter(v => state.available[def.id].includes(v)); renderMulti(def.id); }); el('filter-source').textContent = filtros.abaEncontrada ? `Fonte: ${filtros.abaEncontrada}` : 'Fonte não localizada'; renderActiveFilters(); }
-    function renderMulti(id) { const multi = document.querySelector(`.multi[data-filter="${id}"]`); if (!multi) return; const values = state.selected[id] || []; const valueEl = multi.querySelector('.multi-value'); valueEl.innerHTML = values.length ? values.slice(0, 2).map(v => `<span class="chip">${escapeHtml(v)}</span>`).join('') + (values.length > 2 ? `<span class="chip">+${values.length - 2}</span>` : '') : '<span class="multi-placeholder">Todos</span>'; }
-    function renderMultiList(id, query = '') { const multi = document.querySelector(`.multi[data-filter="${id}"]`); if (!multi) return; const list = multi.querySelector('.multi-list'); const selected = new Set(state.selected[id] || []); const q = String(query || '').trim().toLowerCase(); const options = (state.available[id] || []).filter(v => !q || String(v).toLowerCase().includes(q)); list.innerHTML = options.length ? options.map(value => `<label class="multi-option ${selected.has(value) ? 'selected' : ''}"><input type="checkbox" ${selected.has(value) ? 'checked' : ''} value="${escapeHtml(value)}"><span>${escapeHtml(value)}</span></label>`).join('') : '<div class="p-3 text-center text-xs font-semibold text-slate-500">Nenhuma opção</div>'; list.querySelectorAll('input').forEach(input => input.addEventListener('change', () => { const set = new Set(state.selected[id] || []); if (input.checked) set.add(input.value); else set.delete(input.value); state.selected[id] = [...set]; renderMulti(id); renderMultiList(id, q); renderActiveFilters(); })); }
-    function renderActiveFilters() { const chips = []; filterDefs.forEach(def => (state.selected[def.id] || []).forEach(v => chips.push({ label: def.short, value: v }))); el('active-filter-count').textContent = chips.length; el('active-filters').innerHTML = chips.length ? chips.slice(0, 14).map(c => `<span class="chip"><strong>${escapeHtml(c.label)}</strong> ${escapeHtml(c.value)}</span>`).join('') : '<span class="chip"><i class="fa-solid fa-layer-group" aria-hidden="true"></i> Todos os dados</span>'; }
-    function getSelectedFilters() { const filters = { comissao: document.querySelector('input[name="comissao"]:checked')?.value || 'CRP' }; filterDefs.forEach(def => { if ((state.selected[def.id] || []).length) filters[def.endpoint] = state.selected[def.id]; }); return filters; }
-    function clearFilters() { filterDefs.forEach(def => { state.selected[def.id] = []; renderMulti(def.id); }); renderActiveFilters(); gerarRelatorio(false, el('btn-limpar-filtros')); }
+    function toast(mensagem, tipo = 'info', titulo = '') {
+      const padrao = { sucesso: 'Concluído', erro: 'Erro', alerta: 'Atenção', info: 'Informação' };
+      const node = document.createElement('div');
+      node.className = `toast ${tipo}`;
+      node.setAttribute('role', tipo === 'erro' ? 'alert' : 'status');
+      node.innerHTML = `<div><strong>${esc(titulo || padrao[tipo] || 'Informação')}</strong><p>${esc(mensagem)}</p></div><button type="button" aria-label="Fechar">×</button>`;
+      const fechar = () => { node.classList.remove('visivel'); setTimeout(() => node.remove(), 180); };
+      node.querySelector('button').addEventListener('click', fechar);
+      $('toasts').appendChild(node);
+      requestAnimationFrame(() => node.classList.add('visivel'));
+      setTimeout(fechar, tipo === 'erro' ? 7000 : 4200);
+    }
 
-    function periodoTexto(aplicado = {}) { const anos = aplicado.anos?.length ? aplicado.anos.join(', ') : 'todos os anos'; const meses = aplicado.meses?.length ? aplicado.meses.join(', ') : 'todos os meses'; return `${meses} de ${anos}`; }
-    function tokensRelatorioAtual() { const payload = state.payload || {}; const rel = payload.relatorio || {}; const aplicado = payload.aplicado || {}; const setores = aplicado.unidades?.length ? aplicado.unidades.join(', ') : 'todos os setores elegíveis'; const criticos = (rel.indicadoresCriticos || []).slice(0, 4).map(item => `${item.nome} (${fmtPct(item.percentual)})`).join('; ') || 'sem indicadores críticos no recorte selecionado'; const fortalezas = (rel.indicadoresExcelencia || []).slice(0, 3).map(item => `${item.nome} (${fmtPct(item.percentual)})`).join('; ') || 'sem destaques disponíveis'; return { comissao: rel.comissao || 'CRP', periodo: periodoTexto(aplicado), setores, totalAvaliacoes: fmtNum(rel.totalAvaliacoes), totalAuditavel: fmtNum(rel.totalAuditavel), conformidadeGeral: fmtPct(rel.conformidadeGeral), conformes: fmtNum(rel.conformes), naoConformes: fmtNum(rel.naoConformes), criticos, fortalezas, metaInstitucional: fmtPct(rel.metaInstitucional), abaEncontrada: rel.abaEncontrada || 'CRP' }; }
-    function aplicarTokensTexto(template, tokens) { return String(template || '').replace(/\{([a-zA-Z0-9_]+)\}/g, (match, key) => tokens[key] != null ? tokens[key] : match); }
-    function gerarTextosPadrao() { const tokens = tokensRelatorioAtual(); templateKeys.forEach(key => { textAreas[key].value = aplicarTokensTexto(state.templates[key], tokens); }); }
-    function atualizarHero() { const rel = state.payload?.relatorio || {}; el('hero-comissao').textContent = rel.comissao || 'CRP'; el('hero-fonte').textContent = rel.abaEncontrada ? `Fonte ${rel.abaEncontrada}` : 'Fonte não carregada'; el('hero-conformidade').textContent = fmtPct(rel.conformidadeGeral); el('hero-meta').textContent = `Meta ${fmtPct(rel.metaInstitucional)}`; el('hero-avaliacoes').textContent = fmtNum(rel.totalAvaliacoes); el('hero-base').textContent = `${fmtNum(rel.totalRegistrosBase)} registros na base`; el('hero-indicadores').textContent = fmtNum((rel.indicadores || []).length); el('hero-alertas').textContent = (rel.alertasEstrutura || []).length ? `${rel.alertasEstrutura.length} alerta(s)` : 'Estrutura OK'; el('preview-subtitle').textContent = `${rel.comissao || 'CRP'} · ${periodoTexto(state.payload?.aplicado || {})}`; }
-    function tagPct(value) { const n = Number(value); const klass = n >= 80 ? 'green' : n >= 60 ? 'amber' : 'red'; return `<span class="tag ${klass}">${fmtPct(value)}</span>`; }
-    function renderTabelaIndicadores(rel) { const rows = (rel.indicadoresCriticos || []).map(item => `<tr><td>${escapeHtml(item.nome)}</td><td>${fmtNum(item.avaliados)}</td><td>${fmtNum(item.conformes)}</td><td>${fmtNum(item.naoConformes)}</td><td>${tagPct(item.percentual)}</td></tr>`).join(''); return `<div class="table-wrap"><table><thead><tr><th>Indicador crítico</th><th>Avaliados</th><th>Conformes</th><th>Não conformes</th><th>Resultado</th></tr></thead><tbody>${rows || '<tr><td colspan="5">Sem indicadores no recorte selecionado.</td></tr>'}</tbody></table></div>`; }
-    function renderTabelaSetores(rel) { const rows = (rel.rankingSetores || []).slice(0, 10).map(item => `<tr><td>${escapeHtml(item.setor)}</td><td>${fmtNum(item.avaliacoes)}</td><td>${fmtNum(item.conformes)}</td><td>${fmtNum(item.naoConformes)}</td><td>${tagPct(item.percentual)}</td></tr>`).join(''); return `<div class="table-wrap"><table><thead><tr><th>Setor</th><th>Avaliações</th><th>Conformes</th><th>Não conformes</th><th>Resultado</th></tr></thead><tbody>${rows || '<tr><td colspan="5">Sem setores no recorte selecionado.</td></tr>'}</tbody></table></div>`; }
-    function renderTexto(titulo, conteudo) { return `<section class="doc-section"><h3>${escapeHtml(titulo)}</h3><div class="doc-text">${escapeHtml(conteudo)}</div></section>`; }
-    function renderMetricas(rel) { return `<section class="doc-metrics"><article class="doc-metric"><span>Avaliações</span><strong>${fmtNum(rel.totalAvaliacoes)}</strong></article><article class="doc-metric"><span>Conformidade</span><strong>${fmtPct(rel.conformidadeGeral)}</strong></article><article class="doc-metric"><span>Conformes</span><strong>${fmtNum(rel.conformes)}</strong></article><article class="doc-metric"><span>Não conformes</span><strong>${fmtNum(rel.naoConformes)}</strong></article></section>`; }
-    function renderAlertasEstrutura(rel) { const alertas = (rel.alertasEstrutura || []).slice(0, 8); if (!alertas.length) return ''; const itens = alertas.map(item => `<li>${escapeHtml(item)}</li>`).join(''); return `<div class="structure-alert"><strong>Alertas de estrutura</strong><ul>${itens}</ul></div>`; }
-    function renderChartsSlots() { return `<section class="doc-grid"><div class="chart-box"><canvas id="chart-evolucao" aria-label="Evolução mensal"></canvas></div><div class="chart-box"><canvas id="chart-distribuicao" aria-label="Distribuição dos itens"></canvas></div></section>`; }
-    function renderDocHeader(rel, aplicado, subtitulo) { const tipo = tipoLabel[state.tipoRelatorio] || tipoLabel.executivo; return `<header class="doc-top"><div class="doc-brand"><img class="doc-logo" src="${LOGO_INSTITUCIONAL}" alt="Logo institucional"><div><h2>Relatório Analítico CRP</h2><p>${escapeHtml(tipo)} · Comissão ${escapeHtml(rel.comissao || 'CRP')} · ${escapeHtml(periodoTexto(aplicado))}</p></div></div><p class="doc-meta">${escapeHtml(subtitulo)}<br>Gerado em ${new Date().toLocaleDateString('pt-BR')}<br>Fonte: ${escapeHtml(rel.abaEncontrada || 'CRP')}</p></header>`; }
-    function renderDocFooter(page, total) { return `<footer class="doc-footer"><span>CRP · Documento institucional</span><img class="footer-brand" src="${RODAPE_INSTITUCIONAL}" alt="Rodapé institucional"><span>Página ${page} de ${total}</span></footer>`; }
-    function renderDocPage(rel, aplicado, page, total, title, body) { return `<section class="document-page">${renderDocHeader(rel, aplicado, title)}<main class="doc-page-body">${body}</main>${renderDocFooter(page, total)}</section>`; }
-    function renderRelatorio() { const rel = state.payload?.relatorio; if (!rel) return; destroyCharts(); const aplicado = state.payload.aplicado || {}; const recorte = aplicado.unidades?.length ? aplicado.unidades.join(', ') : 'todos os setores elegíveis'; const page1 = `<section class="doc-hero"><div><span class="doc-kicker">Análise institucional</span><h1 class="doc-title">Panorama de conformidade dos registros assistenciais</h1><p class="doc-subtitle">Recorte: ${escapeHtml(recorte)}.</p></div><aside class="doc-score"><strong>${fmtPct(rel.conformidadeGeral)}</strong><span>Conformidade geral</span></aside></section>${renderMetricas(rel)}${renderTexto('1. Introdução', textAreas.intro.value)}${renderTexto('2. Metodologia', textAreas.metodo.value)}${renderChartsSlots()}`; const page2 = `${renderTexto('3. Análise crítica', textAreas.analise.value)}${renderAlertasEstrutura(rel)}<section class="doc-section"><h3>4. Indicadores críticos</h3>${renderTabelaIndicadores(rel)}</section>`; const page3 = `<section class="doc-section"><h3>5. Setores com maior oportunidade</h3>${renderTabelaSetores(rel)}</section>${renderTexto('6. Plano de ação recomendado', textAreas.plano.value)}${renderTexto('7. Conclusão', textAreas.conclusao.value)}`; el('relatorio').innerHTML = [renderDocPage(rel, aplicado, 1, 3, 'Panorama executivo', page1), renderDocPage(rel, aplicado, 2, 3, 'Análise de criticidade', page2), renderDocPage(rel, aplicado, 3, 3, 'Recomendações e encaminhamentos', page3)].join(''); el('relatorio').classList.remove('hidden'); el('report-tools').classList.remove('hidden'); el('report-tools').classList.add('flex'); renderCharts(rel).catch(console.error); }
-    function destroyCharts() { state.charts.forEach(chart => chart.destroy()); state.charts = []; }
-    async function renderCharts(rel) { destroyCharts(); const Chart = await ensureChartJs(); const evolucao = rel.evolucaoMensal || []; const chartEvolucao = el('chart-evolucao'); const chartDistribuicao = el('chart-distribuicao'); if (chartEvolucao) state.charts.push(new Chart(chartEvolucao, { type: 'line', data: { labels: evolucao.map(i => i.mes), datasets: [{ label: 'Conformidade', data: evolucao.map(i => i.percentual), borderColor: '#0f766e', backgroundColor: 'rgba(15,118,110,.08)', tension: .28, fill: true, pointRadius: 2 }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, title: { display: true, text: 'Evolução mensal (%)', color: '#344054', font: { size: 11, weight: '700' } } }, scales: { y: { min: 0, max: 100, ticks: { color: '#667085', font: { size: 10 } }, grid: { color: '#eef0f3' } }, x: { ticks: { color: '#667085', font: { size: 10 } }, grid: { display: false } } } } })); if (chartDistribuicao) state.charts.push(new Chart(chartDistribuicao, { type: 'doughnut', data: { labels: ['Conforme', 'Não conforme', 'Não se aplica'], datasets: [{ data: [rel.conformes || 0, rel.naoConformes || 0, rel.naoSeAplica || 0], backgroundColor: ['#15803d', '#b42318', '#b45309'], borderWidth: 0 }] }, options: { responsive: true, maintainAspectRatio: false, cutout: '66%', plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, color: '#475467', font: { size: 10 } } }, title: { display: true, text: 'Distribuição dos itens', color: '#344054', font: { size: 11, weight: '700' } } } } })); }
-    async function gerarRelatorio(recriarTexto = false, button = null) { return runAction({ button, label: button && button.id === 'btn-aplicar-filtros' ? 'Aplicando' : 'Gerando', loading: 'Lendo planilha e consolidando indicadores...' }, async () => { try { state.payload = await fetchPayload(getSelectedFilters()); setFilterOptions(state.payload.filtros || {}); if (recriarTexto || !textAreas.intro.value.trim()) gerarTextosPadrao(); atualizarHero(); renderRelatorio(); setLoading('', false); toast('Relatório atualizado e pronto para exportação.', 'success', 'Relatório'); } catch (error) { console.error(error); setLoading(error.message || 'Não foi possível gerar o relatório.'); toast(error.message || 'Falha ao gerar relatório.', 'error', 'Relatório'); } }); }
-    function copiarResumo() { const rel = state.payload?.relatorio || {}; const resumo = `Relatório ${rel.comissao || 'CRP'} — conformidade ${fmtPct(rel.conformidadeGeral)}, ${fmtNum(rel.totalAvaliacoes)} avaliações, ${fmtNum(rel.naoConformes)} não conformidades.`; navigator.clipboard?.writeText(resumo).then(() => toast('Resumo copiado para a área de transferência.', 'success', 'Resumo'), () => toast(resumo, 'info', 'Resumo')); }
-    async function aguardarEstabilidadeRelatorio() { if (document.fonts && document.fonts.ready) { try { await document.fonts.ready; } catch (_) {} } await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))); await new Promise(resolve => setTimeout(resolve, 120)); }
-    function cloneRelatorioParaPdf() { const original = el('relatorio'); const clone = original.cloneNode(true); clone.classList.remove('hidden'); const originais = original.querySelectorAll('canvas'); clone.querySelectorAll('canvas').forEach((canvas, idx) => { const origem = originais[idx]; if (!origem) return; const img = document.createElement('img'); try { img.src = origem.toDataURL('image/png'); } catch (_) { return; } img.alt = canvas.getAttribute('aria-label') || ''; img.style.width = '100%'; img.style.height = '176px'; img.style.objectFit = 'contain'; canvas.replaceWith(img); }); clone.querySelectorAll('[id]').forEach(item => item.removeAttribute('id')); return clone; }
-    async function baixarRelatorioPdf() { if (!state.payload?.relatorio) return; const html2pdf = await ensureHtml2Pdf(); const rel = state.payload.relatorio; const nomeArquivo = `relatorio-${String(rel.comissao || 'crp').toLowerCase()}-${new Date().toISOString().slice(0, 10)}.pdf`; await aguardarEstabilidadeRelatorio(); const clone = cloneRelatorioParaPdf(); const palco = document.createElement('div'); palco.className = 'pdf-capture-stage'; palco.setAttribute('aria-hidden', 'true'); palco.appendChild(clone); document.body.appendChild(palco); document.body.classList.add('pdf-export'); try { await aguardarEstabilidadeRelatorio(); await html2pdf().set({ margin: [0, 0, 0, 0], filename: nomeArquivo, image: { type: 'jpeg', quality: 0.92 }, html2canvas: { scale: 1.45, useCORS: true, scrollX: 0, scrollY: 0, windowWidth: Math.max(clone.scrollWidth, palco.clientWidth, 794), windowHeight: Math.max(clone.scrollHeight, palco.clientHeight, 1123), backgroundColor: '#ffffff' }, jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait', compress: true }, pagebreak: { mode: ['css'], avoid: ['.chart-box', '.doc-metric', '.doc-section'] } }).from(clone).save(); toast('PDF gerado em A4 com páginas controladas.', 'success', 'PDF'); } finally { document.body.classList.remove('pdf-export'); palco.remove(); } }
+    function confirmar({ titulo, mensagem, confirmarTexto = 'Confirmar', cancelarTexto = 'Cancelar', perigo = false }) {
+      return new Promise(resolve => {
+        const veu = document.createElement('div');
+        veu.className = 'veu';
+        veu.innerHTML = `<div class="dialogo" role="dialog" aria-modal="true"><h3>${esc(titulo)}</h3><p>${esc(mensagem)}</p><div class="dialogo-acoes"><button class="botao" type="button" data-cancela>${esc(cancelarTexto)}</button><button class="botao ${perigo ? 'perigo' : 'primario'}" type="button" data-ok>${esc(confirmarTexto)}</button></div></div>`;
+        const fim = v => { veu.remove(); resolve(v); };
+        veu.querySelector('[data-cancela]').addEventListener('click', () => fim(false));
+        veu.querySelector('[data-ok]').addEventListener('click', () => fim(true));
+        veu.addEventListener('keydown', ev => { if (ev.key === 'Escape') fim(false); });
+        document.body.appendChild(veu);
+        veu.querySelector('[data-cancela]').focus();
+      });
+    }
 
-    function setupTabs() { document.querySelectorAll('.tab-button').forEach(button => button.addEventListener('click', () => { const tab = button.dataset.tab; document.querySelectorAll('.tab-button').forEach(item => { const active = item === button; item.classList.toggle('bg-white', active); item.classList.toggle('shadow-sm', active); item.setAttribute('aria-selected', String(active)); }); document.querySelectorAll('.tab-panel').forEach(panel => panel.classList.toggle('active', panel.id === `tab-${tab}`)); })); }
-    function setupTheme() { const btn = document.querySelector('.theme-toggle'); const apply = theme => { document.documentElement.setAttribute('data-theme', theme); btn.setAttribute('aria-pressed', String(theme === 'dark')); btn.innerHTML = `<i class="fa-solid ${theme === 'dark' ? 'fa-sun' : 'fa-moon'}" aria-hidden="true"></i>`; try { localStorage.setItem('cosep-theme', theme); } catch (_) {} }; apply(document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'light'); btn.addEventListener('click', () => apply(document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark')); }
-    function mostrarViewRel(view) { const isAdmin = view === 'admin'; el('dashboard-view').classList.toggle('hidden', isAdmin); el('admin-view').classList.toggle('hidden', !isAdmin); document.querySelectorAll('[data-view-rel]').forEach(item => item.dataset.active = String(item.dataset.viewRel === view)); if (isAdmin) carregarConfigRel(false); window.scrollTo({ top: 0, behavior: 'smooth' }); }
-    document.querySelectorAll('[data-view-rel]').forEach(item => item.addEventListener('click', ev => { ev.preventDefault(); mostrarViewRel(item.dataset.viewRel); }));
+    function carregarScript(src, nomeGlobal) {
+      return new Promise((resolve, reject) => {
+        if (nomeGlobal && window[nomeGlobal]) return resolve(window[nomeGlobal]);
+        const s = document.createElement('script');
+        s.src = src;
+        s.async = true;
+        s.onload = () => resolve(nomeGlobal ? window[nomeGlobal] : true);
+        s.onerror = () => reject(new Error('Não foi possível carregar a biblioteca de PDF (sem acesso ao CDN). Use o botão Imprimir e escolha "Salvar como PDF".'));
+        document.head.appendChild(s);
+      });
+    }
 
-    let arelCarregado = false;
-    let arelPodeEditar = true;
-    function arelFetch(method, arg = {}) { return new Promise((resolve, reject) => { if (window.google && google.script && google.script.run) { const r = google.script.run.withSuccessHandler(resolve).withFailureHandler(reject); if (method === 'get') r.obterConfigRelCosep(arg.refresh === true); else if (method === 'save') r.salvarConfigRelCosep(arg); else if (method === 'reset') r.restaurarConfigRelCosep(); return; } if (method === 'get') { const query = arg.refresh ? '?api=configrel&refresh=1' : '?api=configrel'; fetch(`${APP_URL || location.pathname}${query}`, { cache: 'no-store' }).then(r => r.ok ? r.json() : Promise.reject(new Error('Falha ao carregar config.'))).then(resolve).catch(reject); } else { reject(new Error('Salvar exige o app publicado com google.script.run disponível.')); } }); }
-    async function carregarConfigRel(forceRefresh = false, button = null) { if (arelCarregado && !forceRefresh) return; const loading = el('admin-rel-loading'); const form = el('admin-rel-form'); const task = async () => { loading.classList.remove('hidden'); loading.innerHTML = `<span class="spinner" aria-hidden="true"></span><span>${forceRefresh ? 'Recarregando da planilha...' : 'Carregando configurações...'}</span>`; try { const resp = await arelFetch('get', { refresh: forceRefresh }); if (!resp || resp.success === false || !resp.config) throw new Error((resp && resp.mensagem) || 'Configuração indisponível.'); arelCarregado = true; arelPodeEditar = resp.podeEditar !== false; renderConfigRel(resp.config); loading.classList.add('hidden'); form.classList.remove('hidden'); el('admin-rel-bloqueio').classList.toggle('hidden', arelPodeEditar); if (forceRefresh) toast('Configurações recarregadas diretamente da planilha.', 'success', 'Admin'); } catch (error) { arelCarregado = false; loading.innerHTML = '<span>Não foi possível carregar as configurações.</span>'; toast(String(error && error.message || error), 'error', 'Admin'); } }; return button ? runAction({ button, label: 'Recarregando', loading: 'Recarregando configurações...' }, task) : task(); }
-    function renderConfigRel(cfg) { const set = (id, value) => { const item = el(id); if (item) item.value = value == null ? '' : value; }; const saved = loadSavedTemplates(); if (cfg.tipoRelatorio) state.tipoRelatorio = cfg.tipoRelatorio; state.templates = normalizarTemplates(cfg.textosPadrao || saved); set('arel-meta', cfg.metaInstitucional); set('arel-aba', cfg.abaNome || ''); set('arel-planilha', cfg.planilhaId || ''); set('arel-tipo-doc', state.tipoRelatorio); set('arel-texto-intro', state.templates.intro); set('arel-texto-metodo', state.templates.metodo); set('arel-texto-analise', state.templates.analise); set('arel-texto-plano', state.templates.plano); set('arel-texto-conclusao', state.templates.conclusao); set('arel-conforme', (cfg.termosConforme || []).join('\n')); set('arel-naoconforme', (cfg.termosNaoConforme || []).join('\n')); set('arel-naoaplica', (cfg.termosNaoSeAplica || []).join('\n')); el('arel-indicadores').innerHTML = (cfg.indicadores || []).map((nome, i) => `<div class="grid grid-cols-[32px_1fr] items-center gap-2"><span class="flex min-h-9 items-center justify-center rounded-md bg-slate-100 text-xs font-black text-slate-500 dark:bg-slate-800">${i + 1}</span><input type="text" class="input arel-ind" value="${escapeHtml(String(nome || ''))}"></div>`).join(''); el('arel-info').innerHTML = cfg.atualizadoEm ? `Última alteração em <strong>${escapeHtml(cfg.atualizadoEm)}</strong>${cfg.atualizadoPor ? ' por <strong>' + escapeHtml(cfg.atualizadoPor) + '</strong>' : ''}` : 'Ainda sem alterações registradas.'; document.querySelectorAll('#admin-rel-form input, #admin-rel-form textarea, #admin-rel-form select').forEach(item => { item.disabled = !arelPodeEditar; }); el('arel-salvar').disabled = !arelPodeEditar; el('arel-restaurar').disabled = !arelPodeEditar; el('arel-restaurar-textos').disabled = !arelPodeEditar; }
-    function coletarTextosAdmin() { return { intro: el('arel-texto-intro').value, metodo: el('arel-texto-metodo').value, analise: el('arel-texto-analise').value, plano: el('arel-texto-plano').value, conclusao: el('arel-texto-conclusao').value }; }
-    function coletarConfigRel() { const val = id => (el(id) || {}).value || ''; const linhas = id => val(id).split('\n').map(item => item.trim()).filter(Boolean); return { metaInstitucional: Number(val('arel-meta')), abaNome: val('arel-aba').trim(), planilhaId: val('arel-planilha').trim(), tipoRelatorio: val('arel-tipo-doc').trim() || 'executivo', textosPadrao: coletarTextosAdmin(), termosConforme: linhas('arel-conforme'), termosNaoConforme: linhas('arel-naoconforme'), termosNaoSeAplica: linhas('arel-naoaplica'), indicadores: Array.from(document.querySelectorAll('#arel-indicadores .arel-ind')).map(input => input.value) }; }
-    function aplicarMensagensAdminAoRelatorio() { state.tipoRelatorio = el('arel-tipo-doc').value || 'executivo'; state.templates = normalizarTemplates(coletarTextosAdmin()); saveTemplates(); if (!state.payload?.relatorio) { toast('Carregue o relatório antes de aplicar as mensagens na prévia.', 'warning', 'Mensagens'); return; } gerarTextosPadrao(); atualizarHero(); renderRelatorio(); toast('Mensagens padrão aplicadas na prévia atual.', 'success', 'Mensagens'); }
-    function restaurarMensagensAdmin() { state.templates = { ...templatesPadrao }; templateKeys.forEach(key => { el(`arel-texto-${key}`).value = state.templates[key]; }); toast('Mensagens automáticas restauradas. Salve para persistir.', 'info', 'Mensagens'); }
-    function setupAdmin() { const form = el('admin-rel-form'); form.addEventListener('submit', async ev => { ev.preventDefault(); if (!arelPodeEditar) return; const btn = el('arel-salvar'); state.tipoRelatorio = el('arel-tipo-doc').value || 'executivo'; state.templates = normalizarTemplates(coletarTextosAdmin()); saveTemplates(); await runAction({ button: btn, label: 'Salvando', loading: 'Salvando configurações...' }, async () => { try { const resp = await arelFetch('save', coletarConfigRel()); if (resp && resp.success) { if (resp.config) renderConfigRel(resp.config); toast('Configurações e mensagens padrão salvas.', 'success', 'Admin'); } else { toast((resp && resp.mensagem) || 'Mensagens salvas localmente; configuração remota indisponível.', 'warning', 'Admin'); } } catch (error) { toast('Mensagens salvas localmente. A configuração remota exige google.script.run.', 'warning', 'Admin'); } finally { setLoading('', false); } }); }); el('arel-aplicar-textos').addEventListener('click', aplicarMensagensAdminAoRelatorio); el('arel-restaurar-textos').addEventListener('click', () => { if (arelPodeEditar) restaurarMensagensAdmin(); }); el('arel-recarregar').addEventListener('click', ev => carregarConfigRel(true, ev.currentTarget)); el('arel-restaurar').addEventListener('click', async ev => { if (!arelPodeEditar) return; const ok = await confirmDialog({ title: 'Restaurar configuração padrão?', message: 'Meta, termos e nomes dos indicadores serão substituídos pelos valores padrão.', confirmText: 'Restaurar padrão', cancelText: 'Manter configuração', danger: true }); if (!ok) return; await runAction({ button: ev.currentTarget, label: 'Restaurando', loading: 'Restaurando configuração padrão...' }, async () => { try { const resp = await arelFetch('reset'); if (resp && resp.success) { if (resp.config) renderConfigRel(resp.config); toast(resp.mensagem || 'Configurações restauradas.', 'success', 'Admin'); } else toast((resp && resp.mensagem) || 'Não foi possível restaurar.', 'error', 'Admin'); } catch (error) { toast(String(error && error.message || error), 'error', 'Admin'); } finally { setLoading('', false); } }); }); }
+    function comTimeout(promessa, ms, mensagem) {
+      let timer;
+      const limite = new Promise((_, reject) => { timer = setTimeout(() => reject(new Error(mensagem)), ms); });
+      return Promise.race([promessa, limite]).finally(() => clearTimeout(timer));
+    }
 
-    async function init() { setupTheme(); setupTabs(); setupAdmin(); buildFilters(); templateKeys.forEach(key => textAreas[key].addEventListener('input', renderRelatorio)); el('btn-gerar').addEventListener('click', ev => gerarRelatorio(false, ev.currentTarget)); el('btn-aplicar-filtros').addEventListener('click', ev => gerarRelatorio(false, ev.currentTarget)); el('btn-limpar-filtros').addEventListener('click', clearFilters); el('btn-texto').addEventListener('click', () => { gerarTextosPadrao(); renderRelatorio(); toast('Texto padrão restaurado com base nos indicadores atuais.', 'success', 'Texto'); }); el('btn-topo').addEventListener('click', () => window.scrollTo({ top: 0, behavior: 'smooth' })); el('btn-copiar').addEventListener('click', copiarResumo); el('btn-imprimir').addEventListener('click', ev => runAction({ button: ev.currentTarget, label: 'Exportando', loading: 'Preparando PDF...' }, () => baixarRelatorioPdf().catch(error => { console.error(error); toast(error.message || 'Não foi possível gerar o PDF.', 'error', 'PDF'); })).finally(() => setLoading('', false))); setLoading('Carregando filtros e preparando relatório...', true); setBusy(true, null, 'Carregando'); try { state.payload = await fetchPayload({ comissao: 'CRP' }); setFilterOptions(state.payload.filtros || {}); gerarTextosPadrao(); atualizarHero(); renderRelatorio(); setLoading('', false); toast('Relatório carregado com layout Tailwind.', 'success', 'Sistema pronto'); } catch (error) { console.error(error); setLoading(error.message || 'Não foi possível carregar os filtros.'); toast(error.message || 'Não foi possível carregar os filtros.', 'error', 'Inicialização'); } finally { setBusy(false); } }
-    init();
+    /* ================= Comunicação com o Apps Script ================= */
+    function rpcDados(refresh) {
+      if (window.google && google.script && google.script.run) {
+        return new Promise((resolve, reject) => {
+          google.script.run.withSuccessHandler(resolve).withFailureHandler(reject).obterDadosRelatorio({ refresh: Boolean(refresh) });
+        });
+      }
+      const query = refresh ? '?api=dados&refresh=1' : '?api=dados';
+      return fetch(`${APP_URL || location.pathname}${query}`, { cache: 'no-store' })
+        .then(r => r.ok ? r.json() : Promise.reject(new Error('Falha ao carregar os dados do relatório.')));
+    }
+
+    async function carregarDados(refresh) {
+      const payload = await comTimeout(rpcDados(refresh), 60000, 'A planilha demorou demais para responder. Tente novamente.');
+      if (!payload || payload.success === false) {
+        throw new Error((payload && (payload.mensagem || payload.detalhe)) || 'Resposta inválida do Apps Script.');
+      }
+      return payload;
+    }
+
+    /* ================= Filtro e agregação (100% no navegador) ================= */
+    function registrosFiltrados(ignorarId) {
+      const regs = state.dados ? state.dados.base.registros : [];
+      return regs.filter(r => FILTROS.every(f => {
+        if (f.id === ignorarId) return true;
+        const sel = state.sel[f.id];
+        return !sel.size || sel.has(r[f.idx]);
+      }));
+    }
+
+    function agregar(regs) {
+      const cfg = state.dados.config;
+      const indicadores = cfg.indicadores.map((nome, i) => ({
+        i, nome,
+        conformes: 0, naoConformes: 0, naoSeAplica: 0, vazios: 0, outros: 0,
+        avaliados: 0, percentual: null
+      }));
+      let conformes = 0, naoConformes = 0, naoSeAplica = 0, vazios = 0, outros = 0;
+      let numerador = 0, denominador = 0, somaRes = 0, totalRes = 0;
+      // Classificação por prontuário a partir do RESULTADO (coluna AQ),
+      // conforme NOR.INS.011: Excelente ≥90 · Bom ≥70 · Razoável ≥60 · Insuficiente <60.
+      const classif = { excelente: 0, bom: 0, razoavel: 0, insuficiente: 0, semClassificacao: 0 };
+      const evolucaoMap = {};
+      const setoresMap = {};
+      const porSatisfacao = {};
+
+      regs.forEach(r => {
+        const mes = r[R.mes];
+        const unidade = r[R.unidade];
+        if (!evolucaoMap[mes]) evolucaoMap[mes] = { mes, conformes: 0, naoConformes: 0 };
+        if (!setoresMap[unidade]) setoresMap[unidade] = { setor: unidade, avaliacoes: 0, conformes: 0, naoConformes: 0 };
+        setoresMap[unidade].avaliacoes++;
+        porSatisfacao[r[R.satisfacao]] = (porSatisfacao[r[R.satisfacao]] || 0) + 1;
+        if (r[R.num] != null) numerador += r[R.num];
+        if (r[R.den] != null) denominador += r[R.den];
+        if (r[R.res] != null) { somaRes += r[R.res] > 1 ? r[R.res] : r[R.res] * 100; totalRes++; }
+
+        const res = r[R.res];
+        if (res == null || res === 0) classif.semClassificacao++;
+        else {
+          const v = res > 1 ? res / 100 : res;
+          if (v >= 0.9) classif.excelente++;
+          else if (v >= 0.7) classif.bom++;
+          else if (v >= 0.6) classif.razoavel++;
+          else classif.insuficiente++;
+        }
+
+        const flags = r[R.flags] || '';
+        for (let i = 0; i < indicadores.length; i++) {
+          const c = flags.charAt(i);
+          const ind = indicadores[i];
+          if (c === 'C') { ind.conformes++; ind.avaliados++; conformes++; evolucaoMap[mes].conformes++; setoresMap[unidade].conformes++; }
+          else if (c === 'N') { ind.naoConformes++; ind.avaliados++; naoConformes++; evolucaoMap[mes].naoConformes++; setoresMap[unidade].naoConformes++; }
+          else if (c === 'A') { ind.naoSeAplica++; naoSeAplica++; }
+          else if (c === 'V' || c === '') { ind.vazios++; vazios++; }
+          else { ind.outros++; outros++; }
+        }
+      });
+
+      indicadores.forEach(ind => { ind.percentual = percentual(ind.conformes, ind.naoConformes); });
+
+      const conformidadeGeral = percentual(conformes, naoConformes) || 0;
+      const avaliadosOrdenados = indicadores.filter(i => i.avaliados > 0);
+      const criticos = avaliadosOrdenados.slice().sort((a, b) =>
+        (a.percentual == null ? 101 : a.percentual) - (b.percentual == null ? 101 : b.percentual) ||
+        b.naoConformes - a.naoConformes || a.nome.localeCompare(b.nome, 'pt-BR')).slice(0, 10);
+      const destaques = avaliadosOrdenados.slice().sort((a, b) =>
+        (b.percentual || 0) - (a.percentual || 0) || b.avaliados - a.avaliados).slice(0, 5);
+
+      // Só meses reais entram na série temporal; registros sem mês válido
+      // ("Não informado" etc.) continuam nos totais e no filtro de mês.
+      const evolucao = Object.values(evolucaoMap)
+        .filter(e => MES_ORDEM[e.mes])
+        .sort((a, b) => MES_ORDEM[a.mes] - MES_ORDEM[b.mes])
+        .map(e => ({ ...e, percentual: percentual(e.conformes, e.naoConformes) || 0 }));
+
+      const setores = Object.values(setoresMap)
+        .map(s => ({ ...s, percentual: percentual(s.conformes, s.naoConformes) }))
+        .sort((a, b) => (a.percentual == null ? 101 : a.percentual) - (b.percentual == null ? 101 : b.percentual) || a.setor.localeCompare(b.setor, 'pt-BR'));
+
+      const prontuariosClassificados = classif.excelente + classif.bom + classif.razoavel + classif.insuficiente;
+      const taxaBonsExcelentes = prontuariosClassificados
+        ? Number((((classif.excelente + classif.bom) / prontuariosClassificados) * 100).toFixed(1))
+        : null;
+
+      return {
+        totalAvaliacoes: regs.length,
+        totalAuditavel: conformes + naoConformes,
+        conformes, naoConformes, naoSeAplica, vazios, outros,
+        conformidadeGeral,
+        metaInstitucional: cfg.metaInstitucional,
+        diferencaMeta: Number((conformidadeGeral - cfg.metaInstitucional).toFixed(1)),
+        resultadoPlanilha: denominador ? Number(((numerador / denominador) * 100).toFixed(1)) : (totalRes ? Number((somaRes / totalRes).toFixed(1)) : null),
+        classif, prontuariosClassificados, taxaBonsExcelentes,
+        indicadores, criticos, destaques, evolucao, setores, porSatisfacao
+      };
+    }
+
+    /* ================= Textos narrativos (tokens + edição inline) ================= */
+    function periodoTexto() {
+      const anos = [...state.sel.anos];
+      const meses = [...state.sel.meses].sort((a, b) => (MES_ORDEM[a] || 99) - (MES_ORDEM[b] || 99));
+      const txtAnos = anos.length ? anos.sort().join(', ') : 'todos os anos';
+      const txtMeses = meses.length ? meses.join(', ') : 'todos os meses';
+      return `${txtMeses} de ${txtAnos}`;
+    }
+
+    function tokensAtuais(rel) {
+      const setoresSel = [...state.sel.unidades];
+      const setores = setoresSel.length ? setoresSel.sort((a, b) => a.localeCompare(b, 'pt-BR')).join(', ') : 'todos os setores elegíveis';
+      const criticos = rel.criticos.slice(0, 4).map(i => `${i.nome} (${fmtPct(i.percentual)})`).join('; ') || 'sem indicadores críticos no recorte selecionado';
+      const fortalezas = rel.destaques.slice(0, 3).map(i => `${i.nome} (${fmtPct(i.percentual)})`).join('; ') || 'sem destaques disponíveis';
+      return {
+        comissao: state.dados.base.comissao || 'CRP',
+        periodo: periodoTexto(),
+        setores,
+        totalAvaliacoes: fmtNum(rel.totalAvaliacoes),
+        totalAuditavel: fmtNum(rel.totalAuditavel),
+        conformidadeGeral: fmtPct(rel.conformidadeGeral),
+        conformes: fmtNum(rel.conformes),
+        naoConformes: fmtNum(rel.naoConformes),
+        criticos,
+        fortalezas,
+        metaInstitucional: fmtPct(rel.metaInstitucional),
+        abaEncontrada: state.dados.base.aba || 'CRP',
+        taxaBonsExcelentes: fmtPct(rel.taxaBonsExcelentes),
+        excelentes: fmtNum(rel.classif.excelente),
+        bons: fmtNum(rel.classif.bom),
+        razoaveis: fmtNum(rel.classif.razoavel),
+        insuficientes: fmtNum(rel.classif.insuficiente),
+        prontuariosClassificados: fmtNum(rel.prontuariosClassificados)
+      };
+    }
+
+    function aplicarTokens(template, tokens) {
+      return String(template || '').replace(/\{([a-zA-Z0-9_]+)\}/g, (m, chave) => tokens[chave] != null ? tokens[chave] : m);
+    }
+
+    function textoAtual(chave, tokens) {
+      const t = state.textos[chave];
+      if (t.manual) return t.valor;
+      return aplicarTokens(state.dados.config.textosPadrao[chave], tokens);
+    }
+
+    /* ================= Gráficos SVG (vetoriais, sem bibliotecas) ================= */
+    function caminhoSuave(pts) {
+      // Curva cúbica passando por todos os pontos (Catmull-Rom → Bézier).
+      if (pts.length < 2) return '';
+      let d = `M ${pts[0][0]} ${pts[0][1]}`;
+      for (let i = 0; i < pts.length - 1; i++) {
+        const p0 = pts[i - 1] || pts[i];
+        const p1 = pts[i];
+        const p2 = pts[i + 1];
+        const p3 = pts[i + 2] || p2;
+        const c1x = p1[0] + (p2[0] - p0[0]) / 6;
+        const c1y = p1[1] + (p2[1] - p0[1]) / 6;
+        const c2x = p2[0] - (p3[0] - p1[0]) / 6;
+        const c2y = p2[1] - (p3[1] - p1[1]) / 6;
+        d += ` C ${c1x.toFixed(1)} ${c1y.toFixed(1)}, ${c2x.toFixed(1)} ${c2y.toFixed(1)}, ${p2[0]} ${p2[1]}`;
+      }
+      return d;
+    }
+
+    function svgEvolucao(evolucao, meta) {
+      const W = 480, H = 230, mx = 44, mt = 26, mb = 38, mr = 16;
+      const aw = W - mx - mr, ah = H - mt - mb;
+      if (!evolucao.length) return `<div style="display:grid;place-items:center;height:${H}px;color:var(--suave);font-size:11px">Sem meses com dados no recorte selecionado.</div>`;
+      const x = i => evolucao.length === 1 ? mx + aw / 2 : mx + (aw * i) / (evolucao.length - 1);
+      const y = v => mt + ah - (ah * Math.max(0, Math.min(100, v))) / 100;
+      const fmtRot = v => String(v).replace('.', ',');
+      const pts = evolucao.map((e, i) => [Math.round(x(i)), Math.round(y(e.percentual))]);
+
+      const grade = [0, 25, 50, 75, 100].map(v =>
+        `<line x1="${mx}" y1="${y(v)}" x2="${W - mr}" y2="${y(v)}" stroke="${v === 0 ? '#d8e2e0' : '#edf2f1'}" stroke-width="1"/>` +
+        `<text x="${mx - 6}" y="${y(v) + 4}" text-anchor="end" font-size="12" fill="#9db0b3">${v}</text>`).join('');
+
+      const linha = evolucao.length === 1 ? '' : `<path d="${caminhoSuave(pts)}" fill="none" stroke="#0f766e" stroke-width="2.6" stroke-linejoin="round" stroke-linecap="round"/>`;
+      const area = evolucao.length === 1 ? '' :
+        `<path d="${caminhoSuave(pts)} L ${pts[pts.length - 1][0]} ${mt + ah} L ${pts[0][0]} ${mt + ah} Z" fill="url(#grad-evolucao)" stroke="none"/>`;
+
+      const mostraValores = evolucao.length <= 13;
+      const marcadores = evolucao.map((e, i) =>
+        `<circle cx="${pts[i][0]}" cy="${pts[i][1]}" r="4" fill="#0f766e" stroke="#ffffff" stroke-width="2"/>` +
+        (mostraValores ? `<text x="${pts[i][0]}" y="${pts[i][1] - 11}" text-anchor="middle" font-size="13" font-weight="800" fill="#0b5a54">${fmtRot(e.percentual)}</text>` : '')).join('');
+
+      const rotulos = evolucao.map((e, i) =>
+        `<text x="${pts[i][0]}" y="${H - 10}" text-anchor="middle" font-size="13" font-weight="600" fill="#5d6f73">${esc(e.mes.slice(0, 3))}</text>`).join('');
+
+      const yMeta = y(meta);
+      const linhaMeta = `<line x1="${mx}" y1="${yMeta}" x2="${W - mr}" y2="${yMeta}" stroke="#b45709" stroke-width="1.4" stroke-dasharray="5 4" opacity=".8"/>` +
+        `<rect x="${W - mr - 66}" y="${yMeta - 17}" width="66" height="15" rx="7" fill="#fdf3e3"/>` +
+        `<text x="${W - mr - 33}" y="${yMeta - 6}" text-anchor="middle" font-size="11" font-weight="800" fill="#b45709">META ${fmtRot(meta)}%</text>`;
+
+      return `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Evolução mensal da conformidade">
+        <defs><linearGradient id="grad-evolucao" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="#0f766e" stop-opacity=".22"/>
+          <stop offset="100%" stop-color="#0f766e" stop-opacity="0"/>
+        </linearGradient></defs>
+        ${grade}${area}${linha}${linhaMeta}${marcadores}${rotulos}</svg>`;
+    }
+
+    function svgDonut(rel) {
+      // Apenas itens auditáveis: "não se aplica" e vazios ficam fora do
+      // denominador por norma (NOR.INS.011) e não entram na distribuição.
+      const fatias = [
+        { rotulo: 'Conforme', valor: rel.conformes, cor: '#15803d' },
+        { rotulo: 'Não conforme', valor: rel.naoConformes, cor: '#b42318' }
+      ].filter(f => f.valor > 0);
+      const total = fatias.reduce((s, f) => s + f.valor, 0);
+      if (!total) return `<div style="display:grid;place-items:center;height:170px;color:var(--suave);font-size:11px">Sem itens no recorte selecionado.</div>`;
+      const C = 2 * Math.PI * 54;
+      let acumulado = 0;
+      const arcos = fatias.map(f => {
+        const frac = f.valor / total;
+        const arco = `<circle cx="85" cy="85" r="54" fill="none" stroke="${f.cor}" stroke-width="26" stroke-dasharray="${(frac * C).toFixed(2)} ${C.toFixed(2)}" stroke-dashoffset="${(-acumulado * C).toFixed(2)}" transform="rotate(-90 85 85)"/>`;
+        acumulado += frac;
+        return arco;
+      }).join('');
+      const legenda = fatias.map(f =>
+        `<span><i style="background:${f.cor}"></i>${esc(f.rotulo)} · ${fmtNum(f.valor)} (${fmtPct((f.valor / total) * 100)})</span>`).join('');
+      return `<svg viewBox="0 0 170 170" style="max-width:170px;margin:0 auto" role="img" aria-label="Distribuição dos itens avaliados">${arcos}` +
+        `<text x="85" y="82" text-anchor="middle" font-size="19" font-weight="800" fill="#1a2b2e">${fmtPct(rel.conformidadeGeral)}</text>` +
+        `<text x="85" y="97" text-anchor="middle" font-size="8" font-weight="700" fill="#5d6f73">CONFORMIDADE</text></svg>` +
+        `<div class="legenda">${legenda}</div>`;
+    }
+
+    /* ================= Montagem do documento ================= */
+    function cabecalhoDoc(tokens) {
+      const cfg = state.dados.config;
+      const tipo = TIPO_ROTULO[cfg.tipoRelatorio] || TIPO_ROTULO.executivo;
+      return `<header class="doc-cab">
+        <div class="doc-cab-marca">
+          ${cfg.logoUrl ? `<img class="doc-logo" src="${esc(cfg.logoUrl)}" alt="" onerror="this.remove()">` : ''}
+          <div style="min-width:0">
+            <h2>Relatório Analítico da ${esc(tokens.comissao)}</h2>
+            <p class="doc-cab-sub">Comissão de Revisão de Prontuários · ${esc(tipo)} · ${esc(tokens.periodo)}</p>
+          </div>
+        </div>
+        <div class="doc-cab-meta">Gerado em ${new Date().toLocaleDateString('pt-BR')}<br>Fonte: Base de dados da ${esc(tokens.comissao)}</div>
+      </header>`;
+    }
+
+    function rodapeDoc(pagina, total) {
+      const cfg = state.dados.config;
+      const comissao = state.dados.base.comissao || 'CRP';
+      return `<footer class="doc-rodape">
+        <span>${esc(comissao)} · Documento institucional</span>
+        ${cfg.rodapeUrl ? `<img src="${esc(cfg.rodapeUrl)}" alt="" onerror="this.remove()">` : ''}
+        <span>Página ${pagina} de ${total}</span>
+      </footer>`;
+    }
+
+    function secaoTexto(numero, chave) {
+      const editado = state.textos[chave].manual;
+      return `<section class="doc-secao">
+        <div class="doc-secao-cab">
+          <h3>${numero}. ${esc(TITULOS_TEXTO[chave])}</h3>
+          <button class="botao-restaurar no-print ${editado ? 'editado' : ''}" type="button" data-restaurar="${chave}" title="Restaurar texto automático desta seção">${editado ? '✎ editado · restaurar' : '↺ automático'}</button>
+        </div>
+        <div class="doc-texto" contenteditable="true" spellcheck="true" data-texto="${chave}" aria-label="Texto editável: ${esc(TITULOS_TEXTO[chave])}"></div>
+      </section>`;
+    }
+
+    function tabelaCriticos(rel) {
+      const linhas = rel.criticos.map(i =>
+        `<tr><td>${esc(i.nome)}</td><td class="num">${fmtNum(i.avaliados)}</td><td class="num">${fmtNum(i.conformes)}</td><td class="num">${fmtNum(i.naoConformes)}</td><td class="num">${seloPct(i.percentual)}</td></tr>`).join('');
+      return `<div class="doc-tabela"><table>
+        <thead><tr><th>Indicador crítico</th><th class="num">Avaliados</th><th class="num">Conformes</th><th class="num">Não conf.</th><th class="num">Resultado</th></tr></thead>
+        <tbody>${linhas || '<tr><td colspan="5">Sem indicadores avaliados no recorte selecionado.</td></tr>'}</tbody></table></div>`;
+    }
+
+    function tabelaSetores(rel) {
+      const linhas = rel.setores.slice(0, 12).map(s =>
+        `<tr><td>${esc(s.setor)}</td><td class="num">${fmtNum(s.avaliacoes)}</td><td class="num">${fmtNum(s.conformes)}</td><td class="num">${fmtNum(s.naoConformes)}</td><td class="num">${seloPct(s.percentual)}</td></tr>`).join('');
+      return `<div class="doc-tabela"><table>
+        <thead><tr><th>Setor</th><th class="num">Avaliações</th><th class="num">Conformes</th><th class="num">Não conf.</th><th class="num">Resultado</th></tr></thead>
+        <tbody>${linhas || '<tr><td colspan="5">Sem setores no recorte selecionado.</td></tr>'}</tbody></table></div>`;
+    }
+
+    function tabelaAnexo(rel) {
+      const linhas = rel.indicadores.map(i => {
+        const pct = i.percentual;
+        const cor = pct == null ? '#c3ced0' : pct >= 80 ? '#15803d' : pct >= 60 ? '#b45709' : '#b42318';
+        return `<tr><td>${esc(i.nome)}</td><td class="num">${fmtNum(i.avaliados)}</td><td class="num">${fmtNum(i.conformes)}</td><td class="num">${fmtNum(i.naoConformes)}</td><td class="num">${fmtNum(i.naoSeAplica)}</td>
+          <td><div class="mini-barra"><i style="width:${pct == null ? 0 : pct}%;background:${cor}"></i></div></td><td class="num">${seloPct(pct)}</td></tr>`;
+      }).join('');
+      return `<div class="doc-tabela"><table>
+        <thead><tr><th>Indicador</th><th class="num">Avaliados</th><th class="num">Conf.</th><th class="num">Não conf.</th><th class="num">N/A</th><th>Desempenho</th><th class="num">Resultado</th></tr></thead>
+        <tbody>${linhas}</tbody></table></div>`;
+    }
+
+    const CLASSIF_FAIXAS = [
+      { chave: 'excelente', rotulo: 'Excelente', faixa: '≥ 90', cor: '#0f766e' },
+      { chave: 'bom', rotulo: 'Bom', faixa: '70–89', cor: '#15803d' },
+      { chave: 'razoavel', rotulo: 'Razoável', faixa: '60–69', cor: '#b45709' },
+      { chave: 'insuficiente', rotulo: 'Insuficiente', faixa: '< 60', cor: '#b42318' }
+    ];
+
+    function barraClassificacao(rel) {
+      const total = rel.prontuariosClassificados;
+      const segmentos = total ? CLASSIF_FAIXAS.map(f => {
+        const pct = (rel.classif[f.chave] / total) * 100;
+        const label = pct >= 11 ? fmtPct(pct) : '';
+        return `<i style="flex:${pct.toFixed(4)};background:${f.cor}" title="${f.rotulo}: ${fmtPct(pct)}">${esc(label)}</i>`;
+      }).join('') : '';
+      const taxaLabel = rel.taxaBonsExcelentes != null
+        ? `<span class="classif-taxa-badge"><b>${fmtPct(rel.taxaBonsExcelentes)}</b> Bons + Excelentes</span>` : '';
+      const cards = CLASSIF_FAIXAS.map(f => {
+        const n = rel.classif[f.chave];
+        const pct = total ? fmtPct((n / total) * 100) : '—';
+        return `<div class="classif-celula" style="border-top-color:${f.cor}">
+          <span class="classif-rotulo" style="color:${f.cor}">${esc(f.rotulo)} (${esc(f.faixa)})</span>
+          <strong class="classif-num">${fmtNum(n)}</strong>
+          <span class="classif-pct">${pct}</span>
+        </div>`;
+      }).join('');
+      const nota = rel.classif.semClassificacao
+        ? `<p style="margin:5px 0 0;font-size:10px;color:var(--suave)">${fmtNum(rel.classif.semClassificacao)} prontuários sem resultado calculado</p>` : '';
+      return `<section class="doc-secao">
+        <div class="doc-secao-cab"><h3>Classificação dos prontuários avaliados</h3>${taxaLabel}</div>
+        ${total ? `<div class="barra-classif">${segmentos}</div>` : '<div class="doc-recorte" style="margin:0">Sem prontuários com resultado calculado no recorte selecionado.</div>'}
+        <div class="classif-grade">${cards}</div>
+        ${nota}
+      </section>`;
+    }
+
+    function alertasEstruturaDoc() {
+      const alertas = (state.dados.base.alertasEstrutura || []).slice(0, 8);
+      if (!alertas.length) return '';
+      return `<div class="doc-alerta"><strong>Alertas de estrutura da base</strong><ul>${alertas.map(a => `<li>${esc(a)}</li>`).join('')}</ul></div>`;
+    }
+
+    function renderDocumento(rel) {
+      const tokens = tokensAtuais(rel);
+      const totalPaginas = state.incluirAnexo ? 4 : 3;
+      const deltaOk = rel.diferencaMeta >= 0;
+      const recorte = tokens.setores;
+
+      const pagina1 = `
+        <section class="doc-capa">
+          <div>
+            <span class="doc-kicker">Análise institucional · ${esc(tokens.periodo)}</span>
+            <h1 class="doc-titulo">Panorama de qualidade dos registros assistenciais</h1>
+            <p class="doc-recorte">Recorte: ${esc(recorte)}.</p>
+          </div>
+          <aside class="doc-placar">
+            <strong>${fmtPct(rel.taxaBonsExcelentes)}</strong>
+            <span>Prontuários bons ou excelentes</span>
+            <small class="${deltaOk ? 'ok' : 'ruim'}">Conformidade ${fmtPct(rel.conformidadeGeral)} · ${deltaOk ? '+' : ''}${String(rel.diferencaMeta).replace('.', ',')} p.p. vs meta ${fmtPct(rel.metaInstitucional)}</small>
+          </aside>
+        </section>
+        <section class="doc-metricas">
+          <article class="doc-metrica"><span>Avaliações</span><strong>${fmtNum(rel.totalAvaliacoes)}</strong></article>
+          <article class="doc-metrica"><span>Bons/Excelentes</span><strong style="color:var(--brand)">${fmtPct(rel.taxaBonsExcelentes)}</strong></article>
+          <article class="doc-metrica"><span>Itens auditáveis</span><strong>${fmtNum(rel.totalAuditavel)}</strong></article>
+          <article class="doc-metrica"><span>Conformes</span><strong style="color:var(--verde)">${fmtNum(rel.conformes)}</strong></article>
+          <article class="doc-metrica"><span>Não conformes</span><strong style="color:var(--vermelho)">${fmtNum(rel.naoConformes)}</strong></article>
+        </section>
+        ${barraClassificacao(rel)}
+        ${secaoTexto(1, 'intro')}
+        ${secaoTexto(2, 'metodo')}
+        <section class="doc-graficos">
+          <div class="grafico-caixa"><h4>Evolução mensal da conformidade</h4>${svgEvolucao(rel.evolucao, rel.metaInstitucional)}</div>
+          <div class="grafico-caixa"><h4>Itens auditáveis: conformes × não conformes</h4>${svgDonut(rel)}</div>
+        </section>`;
+
+      const pagina2 = `
+        ${secaoTexto(3, 'analise')}
+        ${alertasEstruturaDoc()}
+        <section class="doc-secao">
+          <div class="doc-secao-cab"><h3>4. Indicadores críticos</h3></div>
+          ${tabelaCriticos(rel)}
+        </section>
+        <section class="doc-secao">
+          <div class="doc-secao-cab"><h3>Fortalezas do recorte</h3></div>
+          <div class="doc-destaques">${rel.destaques.map(d => `<span class="destaque">${esc(d.nome)} · ${fmtPct(d.percentual)}</span>`).join('') || '<span class="destaque">Sem destaques disponíveis</span>'}</div>
+        </section>`;
+
+      const pagina3 = `
+        <section class="doc-secao">
+          <div class="doc-secao-cab"><h3>5. Setores com maior oportunidade de melhoria</h3></div>
+          ${tabelaSetores(rel)}
+        </section>
+        ${secaoTexto(6, 'plano')}
+        ${secaoTexto(7, 'conclusao')}
+        <div class="doc-assinaturas">
+          <div class="assinatura"><div class="linha-ass">Responsável pela análise</div>Comissão de Revisão de Prontuários</div>
+          <div class="assinatura"><div class="linha-ass">Coordenação CRP</div>Ciência e validação institucional</div>
+        </div>`;
+
+      const pagina4 = `
+        <section class="doc-secao">
+          <div class="doc-secao-cab"><h3>Anexo A. Desempenho completo dos indicadores</h3></div>
+          ${tabelaAnexo(rel)}
+        </section>`;
+
+      const paginas = [
+        montarPagina(tokens, 1, totalPaginas, pagina1),
+        montarPagina(tokens, 2, totalPaginas, pagina2),
+        montarPagina(tokens, 3, totalPaginas, pagina3)
+      ];
+      if (state.incluirAnexo) paginas.push(montarPagina(tokens, 4, totalPaginas, pagina4));
+      $('documento').innerHTML = paginas.join('');
+
+      // O texto entra via textContent (não innerHTML): preserva quebras de
+      // linha do contenteditable e elimina qualquer risco de injeção.
+      document.querySelectorAll('[data-texto]').forEach(div => {
+        const chave = div.dataset.texto;
+        div.textContent = textoAtual(chave, tokens);
+        div.addEventListener('input', () => {
+          const valor = typeof div.innerText === 'string' ? div.innerText : div.textContent;
+          state.textos[chave] = { manual: true, valor };
+          marcarEdicao(chave, true);
+        });
+      });
+      document.querySelectorAll('[data-restaurar]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const chave = btn.dataset.restaurar;
+          state.textos[chave] = { manual: false, valor: '' };
+          const div = document.querySelector(`[data-texto="${chave}"]`);
+          if (div) div.textContent = textoAtual(chave, tokensAtuais(agregar(registrosFiltrados())));
+          marcarEdicao(chave, false);
+          toast(`Texto de "${TITULOS_TEXTO[chave]}" voltou ao automático.`, 'info', 'Texto');
+        });
+      });
+    }
+
+    function montarPagina(tokens, num, total, corpo) {
+      return `<section class="pagina">${cabecalhoDoc(tokens)}<div style="display:grid;gap:11px">${corpo}</div>${rodapeDoc(num, total)}</section>`;
+    }
+
+    function marcarEdicao(chave, editado) {
+      const btn = document.querySelector(`[data-restaurar="${chave}"]`);
+      if (!btn) return;
+      btn.classList.toggle('editado', editado);
+      btn.textContent = editado ? '✎ editado · restaurar' : '↺ automático';
+    }
+
+    /* ================= Painel lateral: resumo e filtros ================= */
+    function renderResumo(rel) {
+      $('res-taxa').textContent = fmtPct(rel.taxaBonsExcelentes);
+      $('res-conformidade').textContent = fmtPct(rel.conformidadeGeral);
+      const delta = $('res-delta');
+      const ok = rel.diferencaMeta >= 0;
+      delta.className = `delta ${ok ? 'ok' : 'ruim'}`;
+      delta.textContent = `${ok ? '+' : ''}${String(rel.diferencaMeta).replace('.', ',')} p.p. vs meta`;
+      const barra = $('res-barra');
+      barra.querySelector('i').style.width = `${Math.max(0, Math.min(100, rel.conformidadeGeral))}%`;
+      barra.querySelector('b').style.left = `${Math.max(0, Math.min(100, rel.metaInstitucional))}%`;
+      $('res-avaliacoes').textContent = fmtNum(rel.totalAvaliacoes);
+      $('res-excelentes-bons').textContent = `${fmtNum(rel.classif.excelente)} / ${fmtNum(rel.classif.bom)}`;
+      $('res-conformes').textContent = fmtNum(rel.conformes);
+      $('res-naoconformes').textContent = fmtNum(rel.naoConformes);
+      const alertas = state.dados.base.alertasEstrutura || [];
+      $('res-alertas').classList.toggle('ativo', alertas.length > 0);
+      if (alertas.length) $('res-alertas-texto').textContent = `${alertas.length} alerta(s) de estrutura na base — detalhes no documento.`;
+    }
+
+    function construirFiltros() {
+      $('filtros').innerHTML = FILTROS.map(f => `
+        <div class="filtro" data-filtro="${f.id}">
+          <button type="button" class="filtro-gatilho" aria-haspopup="listbox" aria-expanded="false">
+            <span class="filtro-rotulo">${esc(f.rotulo)}</span>
+            <span class="filtro-valor vazio">Todos</span>
+            <svg class="filtro-seta" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+          </button>
+          <div class="filtro-pop">
+            <input type="search" class="filtro-busca" placeholder="Buscar ${esc(f.curto.toLowerCase())}…" aria-label="Buscar ${esc(f.rotulo)}">
+            <div class="filtro-acoes"><button type="button" class="botao" data-acao="tudo">Tudo</button><button type="button" class="botao" data-acao="nada">Limpar</button></div>
+            <div class="filtro-lista" role="listbox" aria-label="${esc(f.rotulo)}"></div>
+          </div>
+        </div>`).join('');
+
+      document.querySelectorAll('.filtro').forEach(filtro => {
+        const id = filtro.dataset.filtro;
+        const gatilho = filtro.querySelector('.filtro-gatilho');
+        const busca = filtro.querySelector('.filtro-busca');
+        gatilho.addEventListener('click', ev => {
+          ev.stopPropagation();
+          const estavaAberto = filtro.classList.contains('aberto');
+          fecharFiltros();
+          if (!estavaAberto) {
+            filtro.classList.add('aberto');
+            gatilho.setAttribute('aria-expanded', 'true');
+            busca.value = '';
+            renderListaFiltro(id);
+            setTimeout(() => busca.focus(), 10);
+          }
+        });
+        filtro.querySelector('.filtro-pop').addEventListener('click', ev => ev.stopPropagation());
+        busca.addEventListener('input', () => renderListaFiltro(id, busca.value));
+        filtro.querySelectorAll('[data-acao]').forEach(btn => btn.addEventListener('click', () => {
+          if (btn.dataset.acao === 'tudo') {
+            const def = FILTROS.find(f => f.id === id);
+            state.sel[id] = new Set(registrosFiltrados(id).map(r => r[def.idx]));
+          } else {
+            state.sel[id] = new Set();
+          }
+          aoMudarFiltro();
+          renderListaFiltro(id, busca.value);
+        }));
+      });
+      document.addEventListener('click', fecharFiltros);
+      document.addEventListener('keydown', ev => { if (ev.key === 'Escape') fecharFiltros(); });
+    }
+
+    function fecharFiltros() {
+      document.querySelectorAll('.filtro.aberto').forEach(f => {
+        f.classList.remove('aberto');
+        f.querySelector('.filtro-gatilho').setAttribute('aria-expanded', 'false');
+      });
+    }
+
+    function opcoesFiltro(def) {
+      // Contagem facetada: as opções refletem o recorte definido pelos OUTROS filtros.
+      const base = registrosFiltrados(def.id);
+      const contagem = {};
+      base.forEach(r => { contagem[r[def.idx]] = (contagem[r[def.idx]] || 0) + 1; });
+      const ordenar = def.ordenar || ((a, b) => a.localeCompare(b, 'pt-BR'));
+      return Object.keys(contagem).sort(ordenar).map(valor => ({ valor, qtd: contagem[valor] }));
+    }
+
+    function renderListaFiltro(id, consulta = '') {
+      const filtro = document.querySelector(`.filtro[data-filtro="${id}"]`);
+      if (!filtro) return;
+      const def = FILTROS.find(f => f.id === id);
+      const lista = filtro.querySelector('.filtro-lista');
+      const q = String(consulta || '').trim().toLowerCase();
+      const opcoes = opcoesFiltro(def).filter(o => !q || o.valor.toLowerCase().includes(q));
+      lista.innerHTML = opcoes.length ? opcoes.map(o => `
+        <label class="filtro-opcao">
+          <input type="checkbox" value="${esc(o.valor)}" ${state.sel[id].has(o.valor) ? 'checked' : ''}>
+          <span class="texto">${esc(o.valor)}</span>
+          <span class="qtd">${fmtNum(o.qtd)}</span>
+        </label>`).join('') : '<div style="padding:10px;text-align:center;font-size:12px;color:var(--suave)">Nenhuma opção</div>';
+      lista.querySelectorAll('input').forEach(input => input.addEventListener('change', () => {
+        if (input.checked) state.sel[id].add(input.value);
+        else state.sel[id].delete(input.value);
+        aoMudarFiltro();
+        renderListaFiltro(id, q);
+      }));
+    }
+
+    function renderGatilhos() {
+      FILTROS.forEach(def => {
+        const filtro = document.querySelector(`.filtro[data-filtro="${def.id}"]`);
+        if (!filtro) return;
+        const valorEl = filtro.querySelector('.filtro-valor');
+        const sel = [...state.sel[def.id]];
+        if (!sel.length) { valorEl.textContent = 'Todos'; valorEl.classList.add('vazio'); }
+        else { valorEl.textContent = sel.length <= 2 ? sel.join(', ') : `${sel.length} selecionados`; valorEl.classList.remove('vazio'); }
+      });
+    }
+
+    function renderChips() {
+      const chips = [];
+      FILTROS.forEach(def => [...state.sel[def.id]].forEach(v => chips.push({ def, valor: v })));
+      $('chips').innerHTML = chips.length
+        ? chips.slice(0, 16).map(c => `<span class="chip"><b>${esc(c.def.curto)}</b> ${esc(c.valor)} <button type="button" data-filtro="${c.def.id}" data-valor="${esc(c.valor)}" aria-label="Remover filtro">×</button></span>`).join('') +
+          (chips.length > 16 ? `<span class="chip">+${chips.length - 16}</span>` : '')
+        : '<span class="chip">Todos os dados da base</span>';
+      $('chips').querySelectorAll('button').forEach(btn => btn.addEventListener('click', () => {
+        state.sel[btn.dataset.filtro].delete(btn.dataset.valor);
+        aoMudarFiltro();
+      }));
+    }
+
+    /* ================= Orquestração ================= */
+    function renderTudo() {
+      if (!state.dados) return;
+      const rel = agregar(registrosFiltrados());
+      renderResumo(rel);
+      renderGatilhos();
+      renderChips();
+      renderDocumento(rel);
+      const alertas = (state.dados.base.alertasEstrutura || []).length;
+      $('topo-status').textContent = `Fonte: ${state.dados.base.aba || 'não localizada'} · ${fmtNum(state.dados.base.totalRegistros)} registros · ${state.dados.geradoEm}${alertas ? ` · ⚠ ${alertas} alerta(s)` : ''}`;
+    }
+
+    const aoMudarFiltro = debounce(() => renderTudo(), 60);
+
+    function definirEstado(texto, erro = false) {
+      const caixa = $('estado');
+      if (!texto) { caixa.classList.add('oculto'); return; }
+      caixa.classList.remove('oculto');
+      caixa.classList.toggle('erro', erro);
+      caixa.innerHTML = erro
+        ? `<span aria-hidden="true">⚠</span><span>${esc(texto)}</span><button class="botao" type="button" id="btn-tentar">Tentar novamente</button>`
+        : `<span class="spinner" aria-hidden="true"></span><span>${esc(texto)}</span>`;
+      const tentar = $('btn-tentar');
+      if (tentar) tentar.addEventListener('click', () => iniciar(true));
+    }
+
+    async function iniciar(refresh = false) {
+      definirEstado(refresh ? 'Relendo a base na planilha…' : 'Lendo a base na planilha…');
+      $('btn-atualizar').disabled = true;
+      try {
+        state.dados = await carregarDados(refresh);
+        // Limpa seleções que deixaram de existir após uma atualização da base.
+        FILTROS.forEach(def => {
+          const validos = new Set(state.dados.base.registros.map(r => r[def.idx]));
+          state.sel[def.id] = new Set([...state.sel[def.id]].filter(v => validos.has(v)));
+        });
+        renderTudo();
+        definirEstado('');
+        if (refresh) toast('Base relida na planilha com sucesso.', 'sucesso', 'Dados');
+      } catch (erro) {
+        console.error(erro);
+        definirEstado(erro.message || 'Não foi possível carregar os dados.', true);
+      } finally {
+        $('btn-atualizar').disabled = false;
+      }
+    }
+
+    /* ================= Exportação ================= */
+    async function baixarPdf(botao) {
+      if (!state.dados) return;
+      botao.disabled = true;
+      const conteudoOriginal = botao.innerHTML;
+      botao.innerHTML = '<span class="spinner" aria-hidden="true"></span><span>Gerando…</span>';
+      try {
+        if (!state.pdfLoader) state.pdfLoader = carregarScript(HTML2PDF_SRC, 'html2pdf');
+        const html2pdf = await state.pdfLoader;
+        if (document.fonts && document.fonts.ready) { try { await document.fonts.ready; } catch (_) {} }
+        const origem = $('documento');
+        const clone = origem.cloneNode(true);
+        clone.querySelectorAll('.no-print, .botao-restaurar').forEach(n => n.remove());
+        clone.querySelectorAll('[contenteditable]').forEach(n => n.removeAttribute('contenteditable'));
+        // Preserva ids internos de SVG (gradientes referenciados por url(#...)).
+        clone.querySelectorAll('[id]').forEach(n => { if (!n.closest('svg')) n.removeAttribute('id'); });
+        const palco = document.createElement('div');
+        palco.style.cssText = 'position:fixed;inset:0;z-index:2147483647;overflow:auto;background:#fff;pointer-events:none';
+        clone.style.cssText = 'width:210mm;margin:0 auto;background:#fff';
+        clone.querySelectorAll('.pagina').forEach(p => { p.style.margin = '0 auto'; p.style.border = '0'; p.style.borderRadius = '0'; p.style.boxShadow = 'none'; });
+        palco.appendChild(clone);
+        document.body.appendChild(palco);
+        const nome = `relatorio-crp-${new Date().toISOString().slice(0, 10)}.pdf`;
+        try {
+          await html2pdf().set({
+            margin: 0,
+            filename: nome,
+            image: { type: 'jpeg', quality: 0.94 },
+            html2canvas: { scale: 2, useCORS: true, scrollX: 0, scrollY: 0, backgroundColor: '#ffffff', windowWidth: Math.max(clone.scrollWidth, 794) },
+            jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait', compress: true },
+            pagebreak: { mode: ['css'], avoid: ['.doc-tabela', '.grafico-caixa', '.doc-metrica', '.doc-alerta', '.doc-assinaturas'] }
+          }).from(clone).save();
+          toast('PDF gerado em A4.', 'sucesso', 'PDF');
+        } finally {
+          palco.remove();
+        }
+      } catch (erro) {
+        console.error(erro);
+        toast(erro.message || 'Não foi possível gerar o PDF.', 'erro', 'PDF');
+      } finally {
+        botao.disabled = false;
+        botao.innerHTML = conteudoOriginal;
+      }
+    }
+
+    /* ================= Administração ================= */
+    function rpcConfig(metodo, arg) {
+      return new Promise((resolve, reject) => {
+        if (window.google && google.script && google.script.run) {
+          const r = google.script.run.withSuccessHandler(resolve).withFailureHandler(reject);
+          if (metodo === 'get') r.obterConfigRelCRP(arg === true);
+          else if (metodo === 'save') r.salvarConfigRelCRP(arg);
+          else if (metodo === 'reset') r.restaurarConfigRelCRP();
+          return;
+        }
+        if (metodo === 'get') {
+          const query = arg ? '?api=configrel&refresh=1' : '?api=configrel';
+          fetch(`${APP_URL || location.pathname}${query}`, { cache: 'no-store' })
+            .then(r => r.ok ? r.json() : Promise.reject(new Error('Falha ao carregar a configuração.')))
+            .then(resolve).catch(reject);
+        } else {
+          reject(new Error('Salvar exige o app publicado no Apps Script (google.script.run).'));
+        }
+      });
+    }
+
+    function abrirAdmin() {
+      $('admin-veu').classList.remove('oculto');
+      $('admin-painel').classList.add('aberto');
+      if (!state.adminCarregado) carregarAdmin(false);
+    }
+
+    function fecharAdmin() {
+      $('admin-veu').classList.add('oculto');
+      $('admin-painel').classList.remove('aberto');
+    }
+
+    async function carregarAdmin(refresh) {
+      const estado = $('admin-estado');
+      estado.classList.remove('oculto');
+      estado.innerHTML = `<span class="spinner" aria-hidden="true"></span><span>${refresh ? 'Recarregando da planilha…' : 'Carregando configurações…'}</span>`;
+      $('admin-form').classList.add('oculto');
+      try {
+        const resp = await comTimeout(rpcConfig('get', refresh), 45000, 'A configuração demorou demais para responder.');
+        if (!resp || resp.success === false || !resp.config) throw new Error((resp && resp.mensagem) || 'Configuração indisponível.');
+        state.adminCarregado = true;
+        state.adminPodeEditar = resp.podeEditar !== false;
+        preencherAdmin(resp.config);
+        estado.classList.add('oculto');
+        $('admin-form').classList.remove('oculto');
+        $('admin-bloqueio').classList.toggle('oculto', state.adminPodeEditar);
+        if (refresh) toast('Configurações recarregadas da planilha.', 'sucesso', 'Admin');
+      } catch (erro) {
+        state.adminCarregado = false;
+        estado.innerHTML = `<span aria-hidden="true">⚠</span><span>${esc(erro.message || 'Não foi possível carregar as configurações.')}</span>`;
+      }
+    }
+
+    function preencherAdmin(cfg) {
+      const set = (id, valor) => { const n = $(id); if (n) n.value = valor == null ? '' : valor; };
+      set('adm-meta', cfg.metaInstitucional);
+      set('adm-aba', cfg.abaNome || '');
+      set('adm-planilha', cfg.planilhaId || '');
+      set('adm-tipo', cfg.tipoRelatorio || 'executivo');
+      set('adm-logo', cfg.logoUrl || '');
+      set('adm-rodape', cfg.rodapeUrl || '');
+      CHAVES_TEXTO.forEach(k => set(`adm-texto-${k}`, (cfg.textosPadrao && cfg.textosPadrao[k]) || ''));
+      set('adm-conforme', (cfg.termosConforme || []).join('\n'));
+      set('adm-naoconforme', (cfg.termosNaoConforme || []).join('\n'));
+      set('adm-naoaplica', (cfg.termosNaoSeAplica || []).join('\n'));
+      $('adm-indicadores').innerHTML = (cfg.indicadores || []).map((nome, i) =>
+        `<div class="item-indicador"><span>${i + 1}</span><input type="text" class="entrada adm-ind" value="${esc(String(nome || ''))}"></div>`).join('');
+      $('admin-info').innerHTML = cfg.atualizadoEm
+        ? `Última alteração em <strong>${esc(cfg.atualizadoEm)}</strong>${cfg.atualizadoPor ? ' por <strong>' + esc(cfg.atualizadoPor) + '</strong>' : ''}`
+        : 'Ainda sem alterações registradas.';
+      document.querySelectorAll('#admin-form input, #admin-form textarea, #admin-form select').forEach(n => { n.disabled = !state.adminPodeEditar; });
+      $('adm-salvar').disabled = !state.adminPodeEditar;
+      $('adm-restaurar').disabled = !state.adminPodeEditar;
+    }
+
+    function coletarAdmin() {
+      const val = id => ($(id) || {}).value || '';
+      const linhas = id => val(id).split('\n').map(s => s.trim()).filter(Boolean);
+      const textos = {};
+      CHAVES_TEXTO.forEach(k => { textos[k] = val(`adm-texto-${k}`); });
+      return {
+        metaInstitucional: Number(val('adm-meta')),
+        abaNome: val('adm-aba').trim(),
+        planilhaId: val('adm-planilha').trim(),
+        tipoRelatorio: val('adm-tipo').trim() || 'executivo',
+        logoUrl: val('adm-logo').trim(),
+        rodapeUrl: val('adm-rodape').trim(),
+        textosPadrao: textos,
+        termosConforme: linhas('adm-conforme'),
+        termosNaoConforme: linhas('adm-naoconforme'),
+        termosNaoSeAplica: linhas('adm-naoaplica'),
+        indicadores: Array.from(document.querySelectorAll('#adm-indicadores .adm-ind')).map(i => i.value)
+      };
+    }
+
+    async function salvarAdmin() {
+      if (!state.adminPodeEditar) return;
+      const btn = $('adm-salvar');
+      btn.disabled = true;
+      try {
+        const resp = await comTimeout(rpcConfig('save', coletarAdmin()), 60000, 'A gravação demorou demais.');
+        if (resp && resp.success) {
+          if (resp.config) preencherAdmin(resp.config);
+          toast('Configurações salvas. Recarregando a base com os novos parâmetros…', 'sucesso', 'Admin');
+          await iniciar(true); // termos/indicadores afetam a classificação → relê o dataset
+        } else {
+          toast((resp && resp.mensagem) || 'Não foi possível salvar.', 'erro', 'Admin');
+        }
+      } catch (erro) {
+        toast(erro.message || 'Não foi possível salvar.', 'erro', 'Admin');
+      } finally {
+        btn.disabled = false;
+      }
+    }
+
+    async function restaurarAdmin() {
+      if (!state.adminPodeEditar) return;
+      const ok = await confirmar({
+        titulo: 'Restaurar configuração padrão?',
+        mensagem: 'Meta, termos, mensagens e nomes dos indicadores voltarão aos valores padrão.',
+        confirmarTexto: 'Restaurar padrão',
+        cancelarTexto: 'Manter como está',
+        perigo: true
+      });
+      if (!ok) return;
+      const btn = $('adm-restaurar');
+      btn.disabled = true;
+      try {
+        const resp = await comTimeout(rpcConfig('reset'), 60000, 'A restauração demorou demais.');
+        if (resp && resp.success) {
+          if (resp.config) preencherAdmin(resp.config);
+          toast(resp.mensagem || 'Configurações restauradas.', 'sucesso', 'Admin');
+          await iniciar(true);
+        } else {
+          toast((resp && resp.mensagem) || 'Não foi possível restaurar.', 'erro', 'Admin');
+        }
+      } catch (erro) {
+        toast(erro.message || 'Não foi possível restaurar.', 'erro', 'Admin');
+      } finally {
+        btn.disabled = false;
+      }
+    }
+
+    /* ================= Inicialização ================= */
+    function ligarEventos() {
+      $('btn-atualizar').addEventListener('click', () => iniciar(true));
+      $('btn-imprimir').addEventListener('click', () => window.print());
+      $('btn-pdf').addEventListener('click', ev => baixarPdf(ev.currentTarget));
+      $('btn-limpar').addEventListener('click', () => {
+        FILTROS.forEach(f => { state.sel[f.id] = new Set(); });
+        renderTudo();
+      });
+      $('btn-textos-padrao').addEventListener('click', () => {
+        CHAVES_TEXTO.forEach(k => { state.textos[k] = { manual: false, valor: '' }; });
+        renderTudo();
+        toast('Textos regenerados com os números do recorte atual.', 'sucesso', 'Texto');
+      });
+      $('opt-anexo').addEventListener('change', ev => {
+        state.incluirAnexo = ev.target.checked;
+        renderTudo();
+      });
+      $('btn-admin').addEventListener('click', abrirAdmin);
+      $('admin-fechar').addEventListener('click', fecharAdmin);
+      $('admin-veu').addEventListener('click', fecharAdmin);
+      $('adm-recarregar').addEventListener('click', () => carregarAdmin(true));
+      $('adm-salvar').addEventListener('click', salvarAdmin);
+      $('adm-restaurar').addEventListener('click', restaurarAdmin);
+      $('admin-form').addEventListener('submit', ev => { ev.preventDefault(); salvarAdmin(); });
+    }
+
+    construirFiltros();
+    ligarEventos();
+    iniciar(false);
   </script>
 </body>
 </html>

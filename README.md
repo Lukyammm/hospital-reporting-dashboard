@@ -49,8 +49,12 @@ A comissão `CRO` permanece como recurso futuro, desativada na interface.
 
 ## Documento gerado
 
-- Página 1 — capa com placar de conformidade × meta, métricas, introdução,
-  metodologia e gráficos (evolução mensal e distribuição dos itens).
+- Página 1 — capa com o indicador principal (taxa de prontuários avaliados
+  como **Bons ou Excelentes**, calculada do RESULTADO da coluna AQ conforme a
+  NOR.INS.011: Excelente ≥ 90 · Bom 70–89 · Razoável 60–69 · Insuficiente < 60),
+  barra de classificação dos prontuários, métricas, introdução, metodologia e
+  gráficos (evolução mensal da conformidade e itens auditáveis conforme ×
+  não conforme).
 - Página 2 — análise crítica, alertas de estrutura da base, indicadores
   críticos e fortalezas do recorte.
 - Página 3 — setores com maior oportunidade, plano de ação, conclusão e

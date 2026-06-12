@@ -2,7 +2,7 @@
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8">
-  <title>Relatório Analítico COSEP</title>
+  <title>Relatório Analítico da CRP</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <style>
     /* ==================================================================
@@ -120,8 +120,11 @@
     .cartao-corpo { padding: 12px 14px 14px; display: grid; gap: 10px; }
 
     /* ===== Resumo lateral ===== */
-    .resumo-principal { display: flex; align-items: baseline; gap: 10px; }
-    .resumo-principal strong { font-size: 34px; font-weight: 800; letter-spacing: -.03em; line-height: 1; }
+    .resumo-principal { display: flex; align-items: center; gap: 10px; }
+    .resumo-principal strong { font-size: 34px; font-weight: 800; letter-spacing: -.03em; line-height: 1; color: var(--brand-escuro); }
+    .rotulo-principal { font-size: 11px; font-weight: 700; color: var(--suave); line-height: 1.25; text-transform: uppercase; letter-spacing: .03em; }
+    .linha-conf { display: flex; align-items: center; justify-content: space-between; gap: 8px; font-size: 12px; font-weight: 600; color: var(--suave); }
+    .linha-conf b { color: var(--tinta); }
     .delta { font-size: 12px; font-weight: 700; padding: 3px 8px; border-radius: 999px; }
     .delta.ok { background: #e8f6ed; color: var(--verde); }
     .delta.ruim { background: #fdeceb; color: var(--vermelho); }
@@ -294,10 +297,12 @@
     .doc-placar small.ok { color: var(--verde); }
     .doc-placar small.ruim { color: var(--vermelho); }
 
-    .doc-metricas { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
-    .doc-metrica { border: 1px solid var(--linha); border-radius: 9px; padding: 9px 11px; background: #fcfdfd; break-inside: avoid; }
-    .doc-metrica span { display: block; color: var(--suave); font-size: 9px; font-weight: 800; letter-spacing: .07em; text-transform: uppercase; }
-    .doc-metrica strong { display: block; margin-top: 4px; font-size: 19px; line-height: 1; letter-spacing: -.02em; font-weight: 800; }
+    .doc-metricas { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; }
+    .doc-metrica { border: 1px solid var(--linha); border-radius: 9px; padding: 9px 10px; background: #fcfdfd; break-inside: avoid; }
+    .doc-metrica span { display: block; color: var(--suave); font-size: 8.6px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; }
+    .doc-metrica strong { display: block; margin-top: 4px; font-size: 17px; line-height: 1; letter-spacing: -.02em; font-weight: 800; }
+    .barra-classif { display: flex; height: 13px; border-radius: 999px; overflow: hidden; background: #e9eeed; }
+    .barra-classif > i { display: block; height: 100%; }
 
     .doc-secao { break-inside: avoid; }
     .doc-secao-cab { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 5px; }
@@ -395,7 +400,7 @@
       font-size: 8.8px;
       font-weight: 700;
     }
-    .doc-rodape img { height: 22px; max-width: 92mm; object-fit: contain; }
+    .doc-rodape img { height: 38px; max-width: 120mm; object-fit: contain; }
 
     /* ===== Toasts e diálogo ===== */
     .toasts { position: fixed; right: 16px; top: 66px; z-index: 100; width: min(380px, calc(100vw - 32px)); display: grid; gap: 8px; pointer-events: none; }
@@ -507,7 +512,7 @@
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 20V10M10 20V4M16 20v-7M21 20H3"/></svg>
       </span>
       <div style="min-width:0">
-        <div class="topo-titulo">Relatório Analítico COSEP</div>
+        <div class="topo-titulo">Relatório Analítico da CRP</div>
         <div class="topo-status" id="topo-status">Carregando dados da planilha…</div>
       </div>
     </div>
@@ -537,13 +542,14 @@
         <div class="cartao-cab"><h2>Resumo do recorte</h2></div>
         <div class="cartao-corpo">
           <div class="resumo-principal">
-            <strong id="res-conformidade">--</strong>
-            <span class="delta" id="res-delta">meta --</span>
+            <strong id="res-taxa">--</strong>
+            <span class="rotulo-principal">prontuários bons<br>ou excelentes</span>
           </div>
+          <div class="linha-conf"><span>Conformidade geral <b id="res-conformidade">--</b></span><span class="delta" id="res-delta">meta --</span></div>
           <div class="barra-meta" id="res-barra" title="Conformidade × meta"><i style="width:0%"></i><b style="left:80%"></b></div>
           <div class="resumo-grade">
             <div class="resumo-celula"><span>Avaliações</span><strong id="res-avaliacoes">--</strong></div>
-            <div class="resumo-celula"><span>Itens auditáveis</span><strong id="res-auditaveis">--</strong></div>
+            <div class="resumo-celula"><span>Excelentes / Bons</span><strong id="res-excelentes-bons" style="color:var(--brand)">--</strong></div>
             <div class="resumo-celula"><span>Conformes</span><strong id="res-conformes" style="color:var(--verde)">--</strong></div>
             <div class="resumo-celula"><span>Não conformes</span><strong id="res-naoconformes" style="color:var(--vermelho)">--</strong></div>
           </div>
@@ -617,7 +623,7 @@
         <section class="cartao">
           <div class="cartao-cab"><h2>Mensagens padrão</h2></div>
           <div class="cartao-corpo">
-            <div class="nota-comissao">Tokens disponíveis: {comissao}, {periodo}, {setores}, {totalAvaliacoes}, {totalAuditavel}, {conformidadeGeral}, {conformes}, {naoConformes}, {criticos}, {fortalezas}, {metaInstitucional}, {abaEncontrada}.</div>
+            <div class="nota-comissao">Tokens disponíveis: {comissao}, {periodo}, {setores}, {totalAvaliacoes}, {totalAuditavel}, {conformidadeGeral}, {conformes}, {naoConformes}, {criticos}, {fortalezas}, {metaInstitucional}, {abaEncontrada}, {taxaBonsExcelentes}, {excelentes}, {bons}, {razoaveis}, {insuficientes}, {prontuariosClassificados}.</div>
             <div class="campo"><label for="adm-texto-intro">Introdução</label><textarea class="areatexto" id="adm-texto-intro" rows="3"></textarea></div>
             <div class="campo"><label for="adm-texto-metodo">Metodologia</label><textarea class="areatexto" id="adm-texto-metodo" rows="3"></textarea></div>
             <div class="campo"><label for="adm-texto-analise">Análise crítica</label><textarea class="areatexto" id="adm-texto-analise" rows="4"></textarea></div>
@@ -805,6 +811,9 @@
       }));
       let conformes = 0, naoConformes = 0, naoSeAplica = 0, vazios = 0, outros = 0;
       let numerador = 0, denominador = 0, somaRes = 0, totalRes = 0;
+      // Classificação por prontuário a partir do RESULTADO (coluna AQ),
+      // conforme NOR.INS.011: Excelente ≥90 · Bom ≥70 · Razoável ≥60 · Insuficiente <60.
+      const classif = { excelente: 0, bom: 0, razoavel: 0, insuficiente: 0, semClassificacao: 0 };
       const evolucaoMap = {};
       const setoresMap = {};
       const porSatisfacao = {};
@@ -819,6 +828,16 @@
         if (r[R.num] != null) numerador += r[R.num];
         if (r[R.den] != null) denominador += r[R.den];
         if (r[R.res] != null) { somaRes += r[R.res] > 1 ? r[R.res] : r[R.res] * 100; totalRes++; }
+
+        const res = r[R.res];
+        if (res == null || res === 0) classif.semClassificacao++;
+        else {
+          const v = res > 1 ? res / 100 : res;
+          if (v >= 0.9) classif.excelente++;
+          else if (v >= 0.7) classif.bom++;
+          else if (v >= 0.6) classif.razoavel++;
+          else classif.insuficiente++;
+        }
 
         const flags = r[R.flags] || '';
         for (let i = 0; i < indicadores.length; i++) {
@@ -850,6 +869,11 @@
         .map(s => ({ ...s, percentual: percentual(s.conformes, s.naoConformes) }))
         .sort((a, b) => (a.percentual == null ? 101 : a.percentual) - (b.percentual == null ? 101 : b.percentual) || a.setor.localeCompare(b.setor, 'pt-BR'));
 
+      const prontuariosClassificados = classif.excelente + classif.bom + classif.razoavel + classif.insuficiente;
+      const taxaBonsExcelentes = prontuariosClassificados
+        ? Number((((classif.excelente + classif.bom) / prontuariosClassificados) * 100).toFixed(1))
+        : null;
+
       return {
         totalAvaliacoes: regs.length,
         totalAuditavel: conformes + naoConformes,
@@ -858,6 +882,7 @@
         metaInstitucional: cfg.metaInstitucional,
         diferencaMeta: Number((conformidadeGeral - cfg.metaInstitucional).toFixed(1)),
         resultadoPlanilha: denominador ? Number(((numerador / denominador) * 100).toFixed(1)) : (totalRes ? Number((somaRes / totalRes).toFixed(1)) : null),
+        classif, prontuariosClassificados, taxaBonsExcelentes,
         indicadores, criticos, destaques, evolucao, setores, porSatisfacao
       };
     }
@@ -888,7 +913,13 @@
         criticos,
         fortalezas,
         metaInstitucional: fmtPct(rel.metaInstitucional),
-        abaEncontrada: state.dados.base.aba || 'CRP'
+        abaEncontrada: state.dados.base.aba || 'CRP',
+        taxaBonsExcelentes: fmtPct(rel.taxaBonsExcelentes),
+        excelentes: fmtNum(rel.classif.excelente),
+        bons: fmtNum(rel.classif.bom),
+        razoaveis: fmtNum(rel.classif.razoavel),
+        insuficientes: fmtNum(rel.classif.insuficiente),
+        prontuariosClassificados: fmtNum(rel.prontuariosClassificados)
       };
     }
 
@@ -925,11 +956,11 @@
     }
 
     function svgDonut(rel) {
+      // Apenas itens auditáveis: "não se aplica" e vazios ficam fora do
+      // denominador por norma (NOR.INS.011) e não entram na distribuição.
       const fatias = [
         { rotulo: 'Conforme', valor: rel.conformes, cor: '#15803d' },
-        { rotulo: 'Não conforme', valor: rel.naoConformes, cor: '#b42318' },
-        { rotulo: 'Não se aplica', valor: rel.naoSeAplica, cor: '#b45709' },
-        { rotulo: 'Sem preenchimento', valor: rel.vazios + rel.outros, cor: '#c3ced0' }
+        { rotulo: 'Não conforme', valor: rel.naoConformes, cor: '#b42318' }
       ].filter(f => f.valor > 0);
       const total = fatias.reduce((s, f) => s + f.valor, 0);
       if (!total) return `<div style="display:grid;place-items:center;height:170px;color:var(--suave);font-size:11px">Sem itens no recorte selecionado.</div>`;
@@ -957,18 +988,19 @@
         <div class="doc-cab-marca">
           ${cfg.logoUrl ? `<img class="doc-logo" src="${esc(cfg.logoUrl)}" alt="" onerror="this.remove()">` : ''}
           <div style="min-width:0">
-            <h2>Relatório Analítico COSEP</h2>
-            <p class="doc-cab-sub">${esc(tipo)} · Comissão ${esc(tokens.comissao)} · ${esc(tokens.periodo)}</p>
+            <h2>Relatório Analítico da ${esc(tokens.comissao)}</h2>
+            <p class="doc-cab-sub">Comissão de Revisão de Prontuários · ${esc(tipo)} · ${esc(tokens.periodo)}</p>
           </div>
         </div>
-        <div class="doc-cab-meta">Gerado em ${new Date().toLocaleDateString('pt-BR')}<br>Fonte: ${esc(tokens.abaEncontrada)}</div>
+        <div class="doc-cab-meta">Gerado em ${new Date().toLocaleDateString('pt-BR')}<br>Fonte: Base de dados da ${esc(tokens.comissao)}</div>
       </header>`;
     }
 
     function rodapeDoc(pagina, total) {
       const cfg = state.dados.config;
+      const comissao = state.dados.base.comissao || 'CRP';
       return `<footer class="doc-rodape">
-        <span>COSEP · Documento institucional</span>
+        <span>${esc(comissao)} · Documento institucional</span>
         ${cfg.rodapeUrl ? `<img src="${esc(cfg.rodapeUrl)}" alt="" onerror="this.remove()">` : ''}
         <span>Página ${pagina} de ${total}</span>
       </footer>`;
@@ -1013,6 +1045,29 @@
         <tbody>${linhas}</tbody></table></div>`;
     }
 
+    const CLASSIF_FAIXAS = [
+      { chave: 'excelente', rotulo: 'Excelente', faixa: '≥ 90', cor: '#0f766e' },
+      { chave: 'bom', rotulo: 'Bom', faixa: '70–89', cor: '#15803d' },
+      { chave: 'razoavel', rotulo: 'Razoável', faixa: '60–69', cor: '#b45709' },
+      { chave: 'insuficiente', rotulo: 'Insuficiente', faixa: '< 60', cor: '#b42318' }
+    ];
+
+    function barraClassificacao(rel) {
+      const total = rel.prontuariosClassificados;
+      const segmentos = total ? CLASSIF_FAIXAS
+        .filter(f => rel.classif[f.chave] > 0)
+        .map(f => `<i style="width:${((rel.classif[f.chave] / total) * 100).toFixed(2)}%;background:${f.cor}" title="${f.rotulo}"></i>`).join('') : '';
+      const legenda = CLASSIF_FAIXAS.map(f =>
+        `<span><i style="background:${f.cor}"></i>${f.rotulo} (${f.faixa}) · ${fmtNum(rel.classif[f.chave])}${total ? ` (${fmtPct((rel.classif[f.chave] / total) * 100)})` : ''}</span>`).join('');
+      const nota = rel.classif.semClassificacao
+        ? `<span style="color:var(--suave)">${fmtNum(rel.classif.semClassificacao)} sem resultado calculado</span>` : '';
+      return `<section class="doc-secao">
+        <div class="doc-secao-cab"><h3>Classificação dos prontuários avaliados</h3></div>
+        ${total ? `<div class="barra-classif">${segmentos}</div>` : '<div class="doc-recorte" style="margin:0">Sem prontuários com resultado calculado no recorte selecionado.</div>'}
+        <div class="legenda">${legenda}${nota}</div>
+      </section>`;
+    }
+
     function alertasEstruturaDoc() {
       const alertas = (state.dados.base.alertasEstrutura || []).slice(0, 8);
       if (!alertas.length) return '';
@@ -1029,26 +1084,28 @@
         <section class="doc-capa">
           <div>
             <span class="doc-kicker">Análise institucional · ${esc(tokens.periodo)}</span>
-            <h1 class="doc-titulo">Panorama de conformidade dos registros assistenciais</h1>
+            <h1 class="doc-titulo">Panorama de qualidade dos registros assistenciais</h1>
             <p class="doc-recorte">Recorte: ${esc(recorte)}.</p>
           </div>
           <aside class="doc-placar">
-            <strong>${fmtPct(rel.conformidadeGeral)}</strong>
-            <span>Conformidade geral</span>
-            <small class="${deltaOk ? 'ok' : 'ruim'}">${deltaOk ? '+' : ''}${String(rel.diferencaMeta).replace('.', ',')} p.p. vs meta ${fmtPct(rel.metaInstitucional)}</small>
+            <strong>${fmtPct(rel.taxaBonsExcelentes)}</strong>
+            <span>Prontuários bons ou excelentes</span>
+            <small class="${deltaOk ? 'ok' : 'ruim'}">Conformidade ${fmtPct(rel.conformidadeGeral)} · ${deltaOk ? '+' : ''}${String(rel.diferencaMeta).replace('.', ',')} p.p. vs meta ${fmtPct(rel.metaInstitucional)}</small>
           </aside>
         </section>
         <section class="doc-metricas">
           <article class="doc-metrica"><span>Avaliações</span><strong>${fmtNum(rel.totalAvaliacoes)}</strong></article>
+          <article class="doc-metrica"><span>Bons/Excelentes</span><strong style="color:var(--brand)">${fmtPct(rel.taxaBonsExcelentes)}</strong></article>
           <article class="doc-metrica"><span>Itens auditáveis</span><strong>${fmtNum(rel.totalAuditavel)}</strong></article>
           <article class="doc-metrica"><span>Conformes</span><strong style="color:var(--verde)">${fmtNum(rel.conformes)}</strong></article>
           <article class="doc-metrica"><span>Não conformes</span><strong style="color:var(--vermelho)">${fmtNum(rel.naoConformes)}</strong></article>
         </section>
+        ${barraClassificacao(rel)}
         ${secaoTexto(1, 'intro')}
         ${secaoTexto(2, 'metodo')}
         <section class="doc-graficos">
           <div class="grafico-caixa"><h4>Evolução mensal da conformidade</h4>${svgEvolucao(rel.evolucao, rel.metaInstitucional)}</div>
-          <div class="grafico-caixa"><h4>Distribuição dos itens</h4>${svgDonut(rel)}</div>
+          <div class="grafico-caixa"><h4>Itens auditáveis: conformes × não conformes</h4>${svgDonut(rel)}</div>
         </section>`;
 
       const pagina2 = `
@@ -1125,6 +1182,7 @@
 
     /* ================= Painel lateral: resumo e filtros ================= */
     function renderResumo(rel) {
+      $('res-taxa').textContent = fmtPct(rel.taxaBonsExcelentes);
       $('res-conformidade').textContent = fmtPct(rel.conformidadeGeral);
       const delta = $('res-delta');
       const ok = rel.diferencaMeta >= 0;
@@ -1134,7 +1192,7 @@
       barra.querySelector('i').style.width = `${Math.max(0, Math.min(100, rel.conformidadeGeral))}%`;
       barra.querySelector('b').style.left = `${Math.max(0, Math.min(100, rel.metaInstitucional))}%`;
       $('res-avaliacoes').textContent = fmtNum(rel.totalAvaliacoes);
-      $('res-auditaveis').textContent = fmtNum(rel.totalAuditavel);
+      $('res-excelentes-bons').textContent = `${fmtNum(rel.classif.excelente)} / ${fmtNum(rel.classif.bom)}`;
       $('res-conformes').textContent = fmtNum(rel.conformes);
       $('res-naoconformes').textContent = fmtNum(rel.naoConformes);
       const alertas = state.dados.base.alertasEstrutura || [];

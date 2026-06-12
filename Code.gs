@@ -140,7 +140,7 @@ function doGet(e) {
     template.appUrl = ScriptApp.getService().getUrl();
     return template
       .evaluate()
-      .setTitle('Relatório Analítico COSEP')
+      .setTitle('Relatório Analítico da CRP')
       .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
   } catch (erro) {
     registrarErro('html-route', erro);
@@ -271,7 +271,7 @@ const CONFIG_REL_CACHE_TTL_SECONDS = 21600; // 6 horas
 const TEXTOS_PADRAO_REL = {
   intro: 'Este relatório apresenta a análise consolidada da comissão {comissao} para o período {periodo}, considerando {setores}. O objetivo é sintetizar o desempenho dos registros avaliados, evidenciar conformidades e não conformidades e apoiar decisões de melhoria contínua.',
   metodo: 'A base foi lida diretamente da aba {abaEncontrada} da planilha institucional, usando a estrutura oficial da CRP de A até AQ. Para cálculo de conformidade, entram no denominador apenas itens classificados como Conforme ou Não Conforme; itens Não se Aplica, vazios ou marcados com hífen são apresentados separadamente para transparência da amostra.',
-  analise: 'No recorte selecionado, foram identificadas {totalAvaliacoes} avaliações e {totalAuditavel} itens auditáveis. A conformidade geral foi de {conformidadeGeral}, com {conformes} conformidades e {naoConformes} não conformidades. Os principais pontos de atenção foram: {criticos}. Como fortalezas, destacam-se: {fortalezas}.',
+  analise: 'No recorte selecionado, foram identificadas {totalAvaliacoes} avaliações e {totalAuditavel} itens auditáveis. A taxa de prontuários avaliados como Bons ou Excelentes foi de {taxaBonsExcelentes} ({excelentes} excelentes e {bons} bons em {prontuariosClassificados} prontuários classificados). A conformidade geral dos itens foi de {conformidadeGeral}, com {conformes} conformidades e {naoConformes} não conformidades. Os principais pontos de atenção foram: {criticos}. Como fortalezas, destacam-se: {fortalezas}.',
   plano: 'Recomenda-se priorizar os indicadores com menor conformidade, revisar rotinas de preenchimento junto às equipes assistenciais, reforçar orientação sobre completude documental e acompanhar mensalmente os setores com maior volume de não conformidades. A gestão deve pactuar responsáveis, prazos e evidências de conclusão para cada ação corretiva.',
   conclusao: 'A análise demonstra o panorama atual da qualidade dos registros da comissão {comissao} e direciona intervenções objetivas para elevar a aderência documental. A continuidade do monitoramento por período, setor e categoria permitirá verificar tendência, sustentabilidade das melhorias e alinhamento à meta institucional de {metaInstitucional}.'
 };
@@ -527,7 +527,7 @@ function escreverConfigRelNaAba(sh, cfg, observacao) {
   try {
     sh.getRange(21, 1, 1, 2).setFontWeight('bold').setBackground('#e4f5f2').setFontColor('#0b4f4a');
     sh.getRange(5, 2).setNote('Nome exato da aba que contém a base CRP.');
-    sh.getRange(9, 2, 5, 1).setNote('Use tokens como {comissao}, {periodo}, {setores}, {conformidadeGeral}, {criticos}, {fortalezas} e {metaInstitucional}.');
+    sh.getRange(9, 2, 5, 1).setNote('Use tokens como {comissao}, {periodo}, {setores}, {conformidadeGeral}, {taxaBonsExcelentes}, {excelentes}, {bons}, {criticos}, {fortalezas} e {metaInstitucional}.');
     sh.getRange(14, 2, 3, 1).setNote('Um termo por linha. A comparação ignora maiúsculas/minúsculas e espaços extras.');
   } catch (erro) {
     registrarErro('formatar-config-rel', erro);

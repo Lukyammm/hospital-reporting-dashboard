@@ -1283,11 +1283,9 @@
         const yConf = base - hConf, yNao = yConf - hNao;
         const rConf = hConf > 0 ? `<rect x="${x.toFixed(1)}" y="${yConf.toFixed(1)}" width="${bw.toFixed(1)}" height="${hConf.toFixed(1)}" fill="#15803d"><title>${esc(d.rotulo)} · conformes ${fmtNum(d.conf)}</title></rect>` : '';
         const rNao = hNao > 0 ? `<rect x="${x.toFixed(1)}" y="${yNao.toFixed(1)}" width="${bw.toFixed(1)}" height="${hNao.toFixed(1)}" fill="#b42318"><title>${esc(d.rotulo)} · não conformes ${fmtNum(d.nao)}</title></rect>` : '';
-        const numConf = hConf >= 16 ? `<text x="${cx(i).toFixed(1)}" y="${(yConf + hConf / 2 + 4).toFixed(1)}" text-anchor="middle" font-size="13" font-weight="800" fill="#ffffff">${fmtNum(d.conf)}</text>` : '';
-        const numNao = hNao >= 16 ? `<text x="${cx(i).toFixed(1)}" y="${(yNao + hNao / 2 + 4).toFixed(1)}" text-anchor="middle" font-size="13" font-weight="800" fill="#ffffff">${fmtNum(d.nao)}</text>` : '';
         const lblPct = d.total ? `<text x="${cx(i).toFixed(1)}" y="${(yNao - 6).toFixed(1)}" text-anchor="middle" font-size="15" font-weight="800" fill="#0b5a54">${fmtPct(d.pct)}</text>` : '';
         const lblPer = (i % passo === 0) ? `<text x="${ax(i).toFixed(1)}" y="${H - 12}" text-anchor="${ancora(i)}" font-size="14" font-weight="600" fill="#5d6f73">${esc(d.rotulo)}</text>` : '';
-        return rConf + rNao + numConf + numNao + lblPct + lblPer;
+        return rConf + rNao + lblPct + lblPer;
       }).join('');
       const baseLine = `<line x1="${mx}" y1="${base}" x2="${W - mr}" y2="${base}" stroke="#d8e2e0" stroke-width="1"/>`;
       return `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Conformes e não conformes por período">${baseLine}${barras}</svg>` +

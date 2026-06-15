@@ -371,6 +371,10 @@
     .selo-pct.vermelho { background: #fdeceb; color: var(--vermelho); }
     .mini-barra { position: relative; width: 100%; max-width: 110px; height: 7px; border-radius: 999px; background: #e9eeed; overflow: hidden; }
     .mini-barra > i { position: absolute; inset: 0 auto 0 0; border-radius: 999px; }
+    .mini-classif { display: flex; gap: 1px; height: 12px; min-width: 70px; max-width: 130px; border-radius: 4px; overflow: hidden; background: #e9eeed; }
+    .mini-classif > i { display: block; height: 100%; min-width: 1px; }
+    .doc-tabela tr.linha-total td { font-weight: 800; color: var(--tinta); background: #f3f7f6; border-top: 1.5px solid var(--linha); }
+    .doc-secao-nota { font-size: 10px; font-weight: 600; color: var(--suave); white-space: nowrap; }
 
     .doc-alerta {
       border: 1px solid #f2d399;
@@ -1177,6 +1181,61 @@
       </section>`;
     }
 
+    // Rótulo curto de período no formato "Jan/24".
+    function rotuloPeriodo(ano, mes) {
+      return `${String(mes).slice(0, 3)}/${String(ano).slice(-2)}`;
+    }
+
+    // Agrupa os registros do recorte por ano+mês e agrega cada período
+    // separadamente, para a visão "Desempenho por período".
+    function agregarPorPeriodo(regs) {
+      const grupos = {};
+      regs.forEach(r => {
+        const ano = r[R.ano], mes = r[R.mes];
+        if (!MES_ORDEM[mes]) return; // só meses reais viram período próprio
+        const chave = `${ano} ${mes}`;
+        (grupos[chave] = grupos[chave] || { ano, mes, regs: [] }).regs.push(r);
+      });
+      return Object.values(grupos)
+        .sort((a, b) => (Number(a.ano) - Number(b.ano)) || (MES_ORDEM[a.mes] - MES_ORDEM[b.mes]))
+        .map(g => ({ ano: g.ano, mes: g.mes, rel: agregar(g.regs) }));
+    }
+
+    // Mini-barra empilhada com a proporção Excelente/Bom/Razoável/Insuficiente.
+    function miniBarraClassif(classif) {
+      const tot = classif.excelente + classif.bom + classif.razoavel + classif.insuficiente;
+      if (!tot) return '<span style="color:var(--suave)">—</span>';
+      const seg = CLASSIF_FAIXAS.map(f => {
+        const pct = (classif[f.chave] / tot) * 100;
+        return pct > 0 ? `<i style="flex:${pct.toFixed(4)};background:${f.cor}" title="${f.rotulo}: ${fmtPct(pct)}"></i>` : '';
+      }).join('');
+      return `<div class="mini-classif" title="Excelente · Bom · Razoável · Insuficiente">${seg}</div>`;
+    }
+
+    // Tabela período a período; só aparece quando há 2+ períodos no recorte,
+    // já que com um período os cards consolidados acima já bastam.
+    function tabelaPorPeriodo(relConsolidado) {
+      const periodos = agregarPorPeriodo(registrosFiltrados());
+      if (periodos.length < 2) return '';
+      const linha = (rotulo, rel, classe = '') => `<tr class="${classe}">
+          <td>${esc(rotulo)}</td>
+          <td class="num">${fmtNum(rel.totalAvaliacoes)}</td>
+          <td>${miniBarraClassif(rel.classif)}</td>
+          <td class="num">${rel.taxaBonsExcelentes == null ? '<span class="selo-pct">N/A</span>' : seloPct(rel.taxaBonsExcelentes)}</td>
+          <td class="num">${fmtNum(rel.conformes)}</td>
+          <td class="num">${fmtNum(rel.naoConformes)}</td>
+          <td class="num">${seloPct(rel.conformidadeGeral)}</td>
+        </tr>`;
+      const linhas = periodos.map(p => linha(rotuloPeriodo(p.ano, p.mes), p.rel)).join('');
+      const total = linha('Consolidado', relConsolidado, 'linha-total');
+      return `<section class="doc-secao">
+        <div class="doc-secao-cab"><h3>Desempenho por período</h3><span class="doc-secao-nota">${periodos.length} períodos no recorte</span></div>
+        <div class="doc-tabela"><table>
+          <thead><tr><th>Período</th><th class="num">Aval.</th><th>Classificação</th><th class="num">Bons+Exc.</th><th class="num">Conf.</th><th class="num">Não conf.</th><th class="num">Conformidade</th></tr></thead>
+          <tbody>${linhas}${total}</tbody></table></div>
+      </section>`;
+    }
+
     function alertasEstruturaDoc() {
       const alertas = (state.dados.base.alertasEstrutura || []).slice(0, 8);
       if (!alertas.length) return '';
@@ -1210,6 +1269,7 @@
           <article class="doc-metrica"><span>Não conformes</span><strong style="color:var(--vermelho)">${fmtNum(rel.naoConformes)}</strong></article>
         </section>
         ${barraClassificacao(rel)}
+        ${tabelaPorPeriodo(rel)}
         ${secaoTexto(1, 'intro')}
         ${secaoTexto(2, 'metodo')}
         <section class="doc-graficos">

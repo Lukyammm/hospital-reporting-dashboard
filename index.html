@@ -290,8 +290,7 @@
     .doc-cab-meta { flex: none; text-align: right; color: var(--suave); font-size: 10px; line-height: 1.5; }
 
     .doc-capa { display: grid; grid-template-columns: minmax(0, 1fr) 152px; gap: 18px; align-items: start; padding: 6px 0 2px; }
-    .doc-kicker { color: var(--brand); font-size: 10px; font-weight: 800; letter-spacing: .14em; text-transform: uppercase; }
-    .doc-titulo { margin: 5px 0 0; font-size: 25px; line-height: 1.18; letter-spacing: -.025em; font-weight: 800; }
+    .doc-titulo { margin: 0; font-size: 25px; line-height: 1.18; letter-spacing: -.025em; font-weight: 800; }
     .doc-recorte { margin: 8px 0 0; color: var(--suave); font-size: 11.5px; line-height: 1.5; }
     .doc-placar { border: 1px solid var(--linha); border-radius: 10px; padding: 12px; text-align: right; background: #fafcfb; }
     .doc-placar strong { display: block; color: var(--brand); font-size: 30px; line-height: 1; letter-spacing: -.03em; font-weight: 800; }
@@ -345,13 +344,13 @@
     .botao-restaurar:hover { background: var(--brand-claro); color: var(--brand-escuro); }
     .botao-restaurar.editado { color: var(--ambar); }
 
-    .doc-graficos { display: grid; grid-template-columns: 1.12fr .88fr; gap: 10px; break-inside: avoid; }
+    .doc-graficos { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; break-inside: avoid; }
     .grafico-caixa { border: 1px solid var(--linha); border-radius: 9px; padding: 10px; background: #fcfdfd; break-inside: avoid; }
     .grafico-caixa h4 { margin: 0 0 6px; font-size: 11px; font-weight: 800; color: var(--suave); text-transform: uppercase; letter-spacing: .06em; }
-    .grafico-caixa svg { display: block; width: 100%; height: auto; min-height: 130px; }
-    .legenda { display: flex; flex-wrap: wrap; gap: 4px 12px; margin-top: 7px; }
-    .legenda span { display: inline-flex; align-items: center; gap: 5px; font-size: 9.6px; font-weight: 700; color: var(--suave); }
-    .legenda i { width: 9px; height: 9px; border-radius: 3px; flex: none; }
+    .grafico-caixa svg { display: block; width: 100%; height: auto; min-height: 150px; }
+    .legenda { display: flex; flex-wrap: wrap; gap: 4px 14px; margin-top: 8px; }
+    .legenda span { display: inline-flex; align-items: center; gap: 6px; font-size: 11px; font-weight: 700; color: var(--suave); }
+    .legenda i { width: 11px; height: 11px; border-radius: 3px; flex: none; }
 
     .doc-tabela { border: 1px solid var(--linha); border-radius: 9px; overflow: hidden; break-inside: avoid; }
     table { width: 100%; border-collapse: collapse; font-size: 10.3px; }
@@ -996,17 +995,20 @@
     }
 
     function svgEvolucao(evolucao, meta) {
-      const W = 480, H = 230, mx = 44, mt = 26, mb = 38, mr = 16;
+      const W = 480, H = 230, mx = 44, mt = 26, mb = 42, mr = 26;
       const aw = W - mx - mr, ah = H - mt - mb;
       if (!evolucao.length) return `<div style="display:grid;place-items:center;height:${H}px;color:var(--suave);font-size:11px">Sem meses com dados no recorte selecionado.</div>`;
-      const x = i => evolucao.length === 1 ? mx + aw / 2 : mx + (aw * i) / (evolucao.length - 1);
+      const ultimo = evolucao.length - 1;
+      const x = i => evolucao.length === 1 ? mx + aw / 2 : mx + (aw * i) / ultimo;
       const y = v => mt + ah - (ah * Math.max(0, Math.min(100, v))) / 100;
       const fmtRot = v => String(v).replace('.', ',');
       const pts = evolucao.map((e, i) => [Math.round(x(i)), Math.round(y(e.percentual))]);
+      // Alinhamento das pontas: evita que o primeiro/último rótulo saia do viewBox.
+      const ancora = i => i === 0 ? 'start' : i === ultimo ? 'end' : 'middle';
 
       const grade = [0, 25, 50, 75, 100].map(v =>
         `<line x1="${mx}" y1="${y(v)}" x2="${W - mr}" y2="${y(v)}" stroke="${v === 0 ? '#d8e2e0' : '#edf2f1'}" stroke-width="1"/>` +
-        `<text x="${mx - 6}" y="${y(v) + 4}" text-anchor="end" font-size="12" fill="#9db0b3">${v}</text>`).join('');
+        `<text x="${mx - 6}" y="${y(v) + 4}" text-anchor="end" font-size="13" fill="#9db0b3">${v}</text>`).join('');
 
       const linha = evolucao.length === 1 ? '' : `<path d="${caminhoSuave(pts)}" fill="none" stroke="#0f766e" stroke-width="2.6" stroke-linejoin="round" stroke-linecap="round"/>`;
       const area = evolucao.length === 1 ? '' :
@@ -1014,8 +1016,8 @@
 
       const mostraValores = evolucao.length <= 13;
       const marcadores = evolucao.map((e, i) =>
-        `<circle cx="${pts[i][0]}" cy="${pts[i][1]}" r="4" fill="#0f766e" stroke="#ffffff" stroke-width="2"/>` +
-        (mostraValores ? `<text x="${pts[i][0]}" y="${pts[i][1] - 11}" text-anchor="middle" font-size="13" font-weight="800" fill="#0b5a54">${fmtRot(e.percentual)}</text>` : '')).join('');
+        `<circle cx="${pts[i][0]}" cy="${pts[i][1]}" r="4.5" fill="#0f766e" stroke="#ffffff" stroke-width="2"/>` +
+        (mostraValores ? `<text x="${pts[i][0]}" y="${pts[i][1] - 12}" text-anchor="${ancora(i)}" font-size="15" font-weight="800" fill="#0b5a54">${fmtRot(e.percentual)}%</text>` : '')).join('');
 
       // Afina os rótulos para no máximo ~12 no eixo, sempre mantendo a virada
       // de ano visível, de modo que muitos meses não poluam a base do gráfico.
@@ -1024,13 +1026,14 @@
         const viradaAno = i === 0 || evolucao[i - 1].ano !== e.ano;
         if (!(viradaAno || i % passo === 0)) return '';
         const aa = String(e.ano).slice(-2);
-        return `<text x="${pts[i][0]}" y="${H - 10}" text-anchor="middle" font-size="12.5" font-weight="600" fill="#5d6f73">${esc(e.mes.slice(0, 3))}/${esc(aa)}</text>`;
+        const px = i === 0 ? mx : i === ultimo ? W - mr : pts[i][0];
+        return `<text x="${px}" y="${H - 12}" text-anchor="${ancora(i)}" font-size="14" font-weight="600" fill="#5d6f73">${esc(e.mes.slice(0, 3))}/${esc(aa)}</text>`;
       }).join('');
 
       const yMeta = y(meta);
       const linhaMeta = `<line x1="${mx}" y1="${yMeta}" x2="${W - mr}" y2="${yMeta}" stroke="#b45709" stroke-width="1.4" stroke-dasharray="5 4" opacity=".8"/>` +
-        `<rect x="${W - mr - 66}" y="${yMeta - 17}" width="66" height="15" rx="7" fill="#fdf3e3"/>` +
-        `<text x="${W - mr - 33}" y="${yMeta - 6}" text-anchor="middle" font-size="11" font-weight="800" fill="#b45709">META ${fmtRot(meta)}%</text>`;
+        `<rect x="${mx}" y="${yMeta - 18}" width="74" height="16" rx="8" fill="#fdf3e3"/>` +
+        `<text x="${mx + 37}" y="${yMeta - 6}" text-anchor="middle" font-size="12" font-weight="800" fill="#b45709">META ${fmtRot(meta)}%</text>`;
 
       return `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Evolução mensal da conformidade">
         <defs><linearGradient id="grad-evolucao" x1="0" y1="0" x2="0" y2="1">
@@ -1265,21 +1268,26 @@
       }));
       const W = 480, H = 230, mx = 14, mt = 20, mb = 36, mr = 14;
       const aw = W - mx - mr, ah = H - mt - mb;
-      const n = dados.length, base = mt + ah;
+      const n = dados.length, base = mt + ah, ultimo = n - 1;
       const maxTotal = Math.max(1, ...dados.map(d => d.total));
       const passo = Math.max(1, Math.ceil(n / 12));
-      const bw = Math.min(46, (aw / n) * 0.6);
+      const bw = Math.min(48, (aw / n) * 0.62);
       const cx = i => mx + (aw * (i + 0.5)) / n;
+      const ancora = i => i === 0 ? 'start' : i === ultimo ? 'end' : 'middle';
+      const ax = i => i === 0 ? cx(i) - bw / 2 : i === ultimo ? cx(i) + bw / 2 : cx(i);
       const barras = dados.map((d, i) => {
         const x = cx(i) - bw / 2;
         const hTot = (d.total / maxTotal) * ah;
         const hConf = d.total ? (d.conf / d.total) * hTot : 0;
-        const yConf = base - hConf, yNao = yConf - (hTot - hConf);
+        const hNao = hTot - hConf;
+        const yConf = base - hConf, yNao = yConf - hNao;
         const rConf = hConf > 0 ? `<rect x="${x.toFixed(1)}" y="${yConf.toFixed(1)}" width="${bw.toFixed(1)}" height="${hConf.toFixed(1)}" fill="#15803d"><title>${esc(d.rotulo)} · conformes ${fmtNum(d.conf)}</title></rect>` : '';
-        const rNao = (hTot - hConf) > 0 ? `<rect x="${x.toFixed(1)}" y="${yNao.toFixed(1)}" width="${bw.toFixed(1)}" height="${(hTot - hConf).toFixed(1)}" fill="#b42318"><title>${esc(d.rotulo)} · não conformes ${fmtNum(d.nao)}</title></rect>` : '';
-        const lblPct = d.total ? `<text x="${cx(i).toFixed(1)}" y="${(yNao - 5).toFixed(1)}" text-anchor="middle" font-size="11" font-weight="800" fill="#0b5a54">${fmtPct(d.pct)}</text>` : '';
-        const lblPer = (i % passo === 0) ? `<text x="${cx(i).toFixed(1)}" y="${H - 12}" text-anchor="middle" font-size="12" font-weight="600" fill="#5d6f73">${esc(d.rotulo)}</text>` : '';
-        return rConf + rNao + lblPct + lblPer;
+        const rNao = hNao > 0 ? `<rect x="${x.toFixed(1)}" y="${yNao.toFixed(1)}" width="${bw.toFixed(1)}" height="${hNao.toFixed(1)}" fill="#b42318"><title>${esc(d.rotulo)} · não conformes ${fmtNum(d.nao)}</title></rect>` : '';
+        const numConf = hConf >= 16 ? `<text x="${cx(i).toFixed(1)}" y="${(yConf + hConf / 2 + 4).toFixed(1)}" text-anchor="middle" font-size="13" font-weight="800" fill="#ffffff">${fmtNum(d.conf)}</text>` : '';
+        const numNao = hNao >= 16 ? `<text x="${cx(i).toFixed(1)}" y="${(yNao + hNao / 2 + 4).toFixed(1)}" text-anchor="middle" font-size="13" font-weight="800" fill="#ffffff">${fmtNum(d.nao)}</text>` : '';
+        const lblPct = d.total ? `<text x="${cx(i).toFixed(1)}" y="${(yNao - 6).toFixed(1)}" text-anchor="middle" font-size="15" font-weight="800" fill="#0b5a54">${fmtPct(d.pct)}</text>` : '';
+        const lblPer = (i % passo === 0) ? `<text x="${ax(i).toFixed(1)}" y="${H - 12}" text-anchor="${ancora(i)}" font-size="14" font-weight="600" fill="#5d6f73">${esc(d.rotulo)}</text>` : '';
+        return rConf + rNao + numConf + numNao + lblPct + lblPer;
       }).join('');
       const baseLine = `<line x1="${mx}" y1="${base}" x2="${W - mr}" y2="${base}" stroke="#d8e2e0" stroke-width="1"/>`;
       return `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Conformes e não conformes por período">${baseLine}${barras}</svg>` +
@@ -1340,7 +1348,6 @@
       const pagina1 = `
         <section class="doc-capa">
           <div>
-            <span class="doc-kicker">Análise institucional · ${esc(tokens.periodo)}</span>
             <h1 class="doc-titulo">Panorama de qualidade dos registros assistenciais</h1>
             <p class="doc-recorte">Recorte: ${esc(recorte)}.</p>
           </div>

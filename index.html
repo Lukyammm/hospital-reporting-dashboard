@@ -304,14 +304,14 @@
     .doc-metrica { border: 1px solid var(--linha); border-radius: 9px; padding: 9px 10px; background: #fcfdfd; break-inside: avoid; }
     .doc-metrica span { display: block; color: var(--suave); font-size: 8.6px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; }
     .doc-metrica strong { display: block; margin-top: 4px; font-size: 17px; line-height: 1; letter-spacing: -.02em; font-weight: 800; }
-    .classif-taxa-badge { font-size: 11px; font-weight: 600; color: var(--brand-escuro); background: var(--brand-claro); border-radius: 7px; padding: 3px 9px; white-space: nowrap; flex: none; }
-    .classif-taxa-badge b { font-size: 13px; font-weight: 800; letter-spacing: -.01em; }
-    .classif-grade { display: grid; grid-template-columns: repeat(4,1fr); gap: 6px; margin-top: 2px; }
-    .classif-celula { border-radius: 8px; padding: 9px 11px; border-left: 3px solid transparent; background: #f9fbfb; display: flex; flex-direction: column; gap: 3px; }
-    .classif-celula-top { display: flex; align-items: baseline; justify-content: space-between; gap: 6px; }
-    .classif-num { font-size: 21px; line-height: 1; font-weight: 800; letter-spacing: -.025em; color: var(--tinta); }
-    .classif-pct { font-size: 11px; font-weight: 700; }
-    .classif-rotulo { display: block; font-size: 8.8px; font-weight: 800; text-transform: uppercase; letter-spacing: .05em; line-height: 1.3; }
+    .cel-tend { font-weight: 800; font-variant-numeric: tabular-nums; white-space: nowrap; }
+    .cel-tend.sobe { color: var(--verde); }
+    .cel-tend.desce { color: var(--vermelho); }
+    .cel-tend.neutro { color: var(--suave); }
+    .cel-sub { color: var(--suave); font-weight: 600; font-size: 9px; }
+    .doc-subtitulo { margin: 10px 0 5px; font-size: 10.5px; font-weight: 800; color: var(--tinta); }
+    .lista-parciais { margin: 0; padding-left: 16px; font-size: 10px; color: var(--suave); display: grid; gap: 2px; }
+    .lista-parciais strong { color: var(--tinta); font-weight: 700; }
 
     .doc-secao { break-inside: avoid; }
     .doc-secao-cab { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 5px; }
@@ -1102,20 +1102,45 @@
       </section>`;
     }
 
-    function tabelaCriticos(rel) {
-      const linhas = rel.criticos.map(i =>
-        `<tr><td>${esc(i.nome)}</td><td class="num">${fmtNum(i.avaliados)}</td><td class="num">${fmtNum(i.conformes)}</td><td class="num">${fmtNum(i.naoConformes)}</td><td class="num">${seloPct(i.percentual)}</td></tr>`).join('');
-      return `<div class="doc-tabela"><table>
-        <thead><tr><th>Indicador crítico</th><th class="num">Avaliados</th><th class="num">Conformes</th><th class="num">Não conf.</th><th class="num">Resultado</th></tr></thead>
-        <tbody>${linhas || '<tr><td colspan="5">Sem indicadores avaliados no recorte selecionado.</td></tr>'}</tbody></table></div>`;
+    // Delta em p.p. do primeiro ao último período; trata pontas sem avaliação
+    // como indefinidas (—), nunca como zero.
+    function celulaTendencia(primeiro, ultimo) {
+      if (primeiro == null || ultimo == null) return '<td class="num cel-tend neutro">—</td>';
+      const d = Number((ultimo - primeiro).toFixed(1));
+      const tip = `${fmtPct(primeiro)} → ${fmtPct(ultimo)}`;
+      const cls = d > 0 ? 'sobe' : d < 0 ? 'desce' : 'neutro';
+      const seta = d > 0 ? '▲' : d < 0 ? '▼' : '→';
+      const txt = `${Math.abs(d).toLocaleString('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1 })} p.p.`;
+      return `<td class="num cel-tend ${cls}" title="${tip}">${seta} ${txt}</td>`;
+    }
+    function tendenciaIndicador(periodos, idx) {
+      const ini = periodos[0].rel.indicadores[idx];
+      const fim = periodos[periodos.length - 1].rel.indicadores[idx];
+      return [ini && ini.avaliados ? ini.percentual : null, fim && fim.avaliados ? fim.percentual : null];
+    }
+    function tendenciaSetor(periodos, nome) {
+      const buscar = p => { const s = (p.rel.setores || []).find(x => x.setor === nome); return s ? s.percentual : null; };
+      return [buscar(periodos[0]), buscar(periodos[periodos.length - 1])];
     }
 
-    function tabelaSetores(rel) {
-      const linhas = rel.setores.slice(0, 12).map(s =>
-        `<tr><td>${esc(s.setor)}</td><td class="num">${fmtNum(s.avaliacoes)}</td><td class="num">${fmtNum(s.conformes)}</td><td class="num">${fmtNum(s.naoConformes)}</td><td class="num">${seloPct(s.percentual)}</td></tr>`).join('');
+    function tabelaCriticos(rel, periodos) {
+      const temTend = periodos.length >= 2;
+      const linhas = rel.criticos.map(i =>
+        `<tr><td>${esc(i.nome)}</td><td class="num">${fmtNum(i.avaliados)}</td><td class="num">${fmtNum(i.conformes)}</td><td class="num">${fmtNum(i.naoConformes)}</td><td class="num">${seloPct(i.percentual)}</td>${temTend ? celulaTendencia(...tendenciaIndicador(periodos, i.i)) : ''}</tr>`).join('');
+      const colspan = temTend ? 6 : 5;
       return `<div class="doc-tabela"><table>
-        <thead><tr><th>Setor</th><th class="num">Avaliações</th><th class="num">Conformes</th><th class="num">Não conf.</th><th class="num">Resultado</th></tr></thead>
-        <tbody>${linhas || '<tr><td colspan="5">Sem setores no recorte selecionado.</td></tr>'}</tbody></table></div>`;
+        <thead><tr><th>Indicador crítico</th><th class="num">Avaliados</th><th class="num">Conformes</th><th class="num">Não conf.</th><th class="num">Resultado</th>${temTend ? '<th class="num">Tendência</th>' : ''}</tr></thead>
+        <tbody>${linhas || `<tr><td colspan="${colspan}">Sem indicadores avaliados no recorte selecionado.</td></tr>`}</tbody></table></div>`;
+    }
+
+    function tabelaSetores(rel, periodos) {
+      const temTend = periodos.length >= 2;
+      const linhas = rel.setores.slice(0, 12).map(s =>
+        `<tr><td>${esc(s.setor)}</td><td class="num">${fmtNum(s.avaliacoes)}</td><td class="num">${fmtNum(s.conformes)}</td><td class="num">${fmtNum(s.naoConformes)}</td><td class="num">${seloPct(s.percentual)}</td>${temTend ? celulaTendencia(...tendenciaSetor(periodos, s.setor)) : ''}</tr>`).join('');
+      const colspan = temTend ? 6 : 5;
+      return `<div class="doc-tabela"><table>
+        <thead><tr><th>Setor</th><th class="num">Avaliações</th><th class="num">Conformes</th><th class="num">Não conf.</th><th class="num">Resultado</th>${temTend ? '<th class="num">Tendência</th>' : ''}</tr></thead>
+        <tbody>${linhas || `<tr><td colspan="${colspan}">Sem setores no recorte selecionado.</td></tr>`}</tbody></table></div>`;
     }
 
     function tabelaAnexo(rel) {
@@ -1137,33 +1162,42 @@
       { chave: 'insuficiente', rotulo: 'Insuficiente', faixa: '< 60', cor: '#b42318' }
     ];
 
-    function barraClassificacao(rel) {
-      const total = rel.prontuariosClassificados;
-      if (!total) {
+    // Classificação dos prontuários por período: uma linha por mês/ano com as
+    // contagens de cada faixa, % bons+excelentes e a barra de distribuição.
+    // Não traz linha "Consolidado" — o foco é a leitura período a período.
+    function classificacaoPorPeriodo(periodos, relConsolidado) {
+      if (!relConsolidado.prontuariosClassificados) {
         return `<section class="doc-secao">
-          <div class="doc-secao-cab"><h3>Classificação dos prontuários avaliados</h3></div>
+          <div class="doc-secao-cab"><h3>Classificação dos prontuários por período</h3></div>
           <div class="doc-recorte" style="margin:0">Sem prontuários com resultado calculado no recorte selecionado.</div>
         </section>`;
       }
-      const badge = rel.taxaBonsExcelentes != null
-        ? `<span class="classif-taxa-badge"><b>${fmtPct(rel.taxaBonsExcelentes)}</b> bons + excelentes</span>` : '';
-      const cards = CLASSIF_FAIXAS.map(f => {
-        const n = rel.classif[f.chave];
-        const pct = fmtPct((n / total) * 100);
-        return `<div class="classif-celula" style="border-left-color:${f.cor}">
-          <div class="classif-celula-top">
-            <strong class="classif-num">${fmtNum(n)}</strong>
-            <span class="classif-pct" style="color:${f.cor}">${pct}</span>
-          </div>
-          <span class="classif-rotulo" style="color:${f.cor}">${esc(f.rotulo)} · ${esc(f.faixa)}</span>
-        </div>`;
-      }).join('');
-      const nota = rel.classif.semClassificacao
-        ? `<p style="margin:5px 0 0;font-size:10px;color:var(--suave)">${fmtNum(rel.classif.semClassificacao)} prontuários sem resultado calculado</p>` : '';
+      const fonte = periodos.length
+        ? periodos.map(p => ({ rotulo: rotuloPeriodo(p.ano, p.mes), rel: p.rel }))
+        : [{ rotulo: 'Recorte', rel: relConsolidado }];
+      const linha = ({ rotulo, rel }) => {
+        const c = rel.classif, tot = rel.prontuariosClassificados;
+        const cel = chave => tot
+          ? `${fmtNum(c[chave])} <span class="cel-sub">${fmtPct((c[chave] / tot) * 100)}</span>` : '—';
+        return `<tr>
+          <td>${esc(rotulo)}</td>
+          <td class="num">${cel('excelente')}</td>
+          <td class="num">${cel('bom')}</td>
+          <td class="num">${cel('razoavel')}</td>
+          <td class="num">${cel('insuficiente')}</td>
+          <td class="num">${rel.taxaBonsExcelentes == null ? '<span class="selo-pct">N/A</span>' : seloPct(rel.taxaBonsExcelentes)}</td>
+          <td>${miniBarraClassif(c)}</td>
+        </tr>`;
+      };
+      const nota = periodos.length > 1 ? `<span class="doc-secao-nota">${periodos.length} períodos no recorte</span>` : '';
+      const semClass = relConsolidado.classif.semClassificacao
+        ? `<p style="margin:5px 0 0;font-size:10px;color:var(--suave)">${fmtNum(relConsolidado.classif.semClassificacao)} prontuários sem resultado calculado no recorte</p>` : '';
       return `<section class="doc-secao">
-        <div class="doc-secao-cab"><h3>Classificação dos prontuários avaliados</h3>${badge}</div>
-        <div class="classif-grade">${cards}</div>
-        ${nota}
+        <div class="doc-secao-cab"><h3>Classificação dos prontuários por período</h3>${nota}</div>
+        <div class="doc-tabela"><table>
+          <thead><tr><th>Período</th><th class="num">Excelente</th><th class="num">Bom</th><th class="num">Razoável</th><th class="num">Insuficiente</th><th class="num">Bons+Exc.</th><th>Distribuição</th></tr></thead>
+          <tbody>${fonte.map(linha).join('')}</tbody></table></div>
+        ${semClass}
       </section>`;
     }
 
@@ -1198,16 +1232,14 @@
       return `<div class="mini-classif" title="Excelente · Bom · Razoável · Insuficiente">${seg}</div>`;
     }
 
-    // Tabela período a período; só aparece quando há 2+ períodos no recorte,
-    // já que com um período os cards consolidados acima já bastam.
-    function tabelaPorPeriodo(relConsolidado) {
-      const periodos = agregarPorPeriodo(registrosFiltrados());
+    // Conformidade período a período (foco em itens auditáveis). A classificação
+    // dos prontuários é coberta por classificacaoPorPeriodo. Só aparece com 2+
+    // períodos; com um único período, o cabeçalho executivo já resume.
+    function tabelaPorPeriodo(periodos, relConsolidado) {
       if (periodos.length < 2) return '';
       const linha = (rotulo, rel, classe = '') => `<tr class="${classe}">
           <td>${esc(rotulo)}</td>
           <td class="num">${fmtNum(rel.totalAvaliacoes)}</td>
-          <td>${miniBarraClassif(rel.classif)}</td>
-          <td class="num">${rel.taxaBonsExcelentes == null ? '<span class="selo-pct">N/A</span>' : seloPct(rel.taxaBonsExcelentes)}</td>
           <td class="num">${fmtNum(rel.conformes)}</td>
           <td class="num">${fmtNum(rel.naoConformes)}</td>
           <td class="num">${seloPct(rel.conformidadeGeral)}</td>
@@ -1215,11 +1247,43 @@
       const linhas = periodos.map(p => linha(rotuloPeriodo(p.ano, p.mes), p.rel)).join('');
       const total = linha('Consolidado', relConsolidado, 'linha-total');
       return `<section class="doc-secao">
-        <div class="doc-secao-cab"><h3>Desempenho por período</h3><span class="doc-secao-nota">${periodos.length} períodos no recorte</span></div>
+        <div class="doc-secao-cab"><h3>Conformidade por período</h3><span class="doc-secao-nota">${periodos.length} períodos no recorte</span></div>
         <div class="doc-tabela"><table>
-          <thead><tr><th>Período</th><th class="num">Aval.</th><th>Classificação</th><th class="num">Bons+Exc.</th><th class="num">Conf.</th><th class="num">Não conf.</th><th class="num">Conformidade</th></tr></thead>
+          <thead><tr><th>Período</th><th class="num">Aval.</th><th class="num">Conformes</th><th class="num">Não conf.</th><th class="num">Conformidade</th></tr></thead>
           <tbody>${linhas}${total}</tbody></table></div>
       </section>`;
+    }
+
+    // Barras empilhadas conformes × não conformes por período (substitui o donut
+    // consolidado quando há 2+ períodos). O percentual de conformidade aparece
+    // sobre cada barra; rótulos de período são afinados quando há muitos.
+    function svgConformidadePorPeriodo(periodos) {
+      const dados = periodos.map(p => ({
+        rotulo: rotuloPeriodo(p.ano, p.mes),
+        conf: p.rel.conformes, nao: p.rel.naoConformes,
+        total: p.rel.conformes + p.rel.naoConformes, pct: p.rel.conformidadeGeral
+      }));
+      const W = 480, H = 230, mx = 14, mt = 20, mb = 36, mr = 14;
+      const aw = W - mx - mr, ah = H - mt - mb;
+      const n = dados.length, base = mt + ah;
+      const maxTotal = Math.max(1, ...dados.map(d => d.total));
+      const passo = Math.max(1, Math.ceil(n / 12));
+      const bw = Math.min(46, (aw / n) * 0.6);
+      const cx = i => mx + (aw * (i + 0.5)) / n;
+      const barras = dados.map((d, i) => {
+        const x = cx(i) - bw / 2;
+        const hTot = (d.total / maxTotal) * ah;
+        const hConf = d.total ? (d.conf / d.total) * hTot : 0;
+        const yConf = base - hConf, yNao = yConf - (hTot - hConf);
+        const rConf = hConf > 0 ? `<rect x="${x.toFixed(1)}" y="${yConf.toFixed(1)}" width="${bw.toFixed(1)}" height="${hConf.toFixed(1)}" fill="#15803d"><title>${esc(d.rotulo)} · conformes ${fmtNum(d.conf)}</title></rect>` : '';
+        const rNao = (hTot - hConf) > 0 ? `<rect x="${x.toFixed(1)}" y="${yNao.toFixed(1)}" width="${bw.toFixed(1)}" height="${(hTot - hConf).toFixed(1)}" fill="#b42318"><title>${esc(d.rotulo)} · não conformes ${fmtNum(d.nao)}</title></rect>` : '';
+        const lblPct = d.total ? `<text x="${cx(i).toFixed(1)}" y="${(yNao - 5).toFixed(1)}" text-anchor="middle" font-size="11" font-weight="800" fill="#0b5a54">${fmtPct(d.pct)}</text>` : '';
+        const lblPer = (i % passo === 0) ? `<text x="${cx(i).toFixed(1)}" y="${H - 12}" text-anchor="middle" font-size="12" font-weight="600" fill="#5d6f73">${esc(d.rotulo)}</text>` : '';
+        return rConf + rNao + lblPct + lblPer;
+      }).join('');
+      const baseLine = `<line x1="${mx}" y1="${base}" x2="${W - mr}" y2="${base}" stroke="#d8e2e0" stroke-width="1"/>`;
+      return `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Conformes e não conformes por período">${baseLine}${barras}</svg>` +
+        `<div class="legenda"><span><i style="background:#15803d"></i>Conformes</span><span><i style="background:#b42318"></i>Não conformes</span></div>`;
     }
 
     function alertasEstruturaDoc() {
@@ -1230,7 +1294,9 @@
 
     // Indicadores sem nenhum item avaliado no recorte (avaliados === 0):
     // ficam fora dos cálculos de conformidade e merecem registro à parte.
-    function secaoAusentes(rel) {
+    // Com 2+ períodos, distingue os ausentes em TODO o recorte dos que faltaram
+    // apenas em alguns períodos (listando em quais).
+    function secaoAusentes(rel, periodos) {
       const ausentes = rel.indicadores
         .filter(i => i.avaliados === 0)
         .sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'));
@@ -1239,9 +1305,27 @@
         : '<p class="doc-recorte" style="margin:0">Todos os indicadores tiveram ao menos um item avaliado no recorte.</p>';
       const nota = ausentes.length
         ? `<span class="doc-secao-nota">${fmtNum(ausentes.length)} de ${fmtNum(rel.indicadores.length)} indicadores</span>` : '';
+
+      let parcial = '';
+      if (periodos.length >= 2) {
+        const lista = rel.indicadores
+          .filter(i => i.avaliados > 0)
+          .map(i => ({
+            nome: i.nome,
+            faltam: periodos.filter(p => p.rel.indicadores[i.i].avaliados === 0).map(p => rotuloPeriodo(p.ano, p.mes))
+          }))
+          .filter(x => x.faltam.length)
+          .sort((a, b) => b.faltam.length - a.faltam.length || a.nome.localeCompare(b.nome, 'pt-BR'));
+        if (lista.length) {
+          parcial = `<h4 class="doc-subtitulo">Avaliados no recorte, mas ausentes em alguns períodos</h4>
+            <ul class="lista-parciais">${lista.slice(0, 15).map(x =>
+              `<li><strong>${esc(x.nome)}</strong> — ausente em ${x.faltam.map(esc).join(', ')}</li>`).join('')}</ul>`;
+        }
+      }
       return `<section class="doc-secao">
         <div class="doc-secao-cab"><h3>Tópicos ausentes de avaliação</h3>${nota}</div>
         ${conteudo}
+        ${parcial}
       </section>`;
     }
 
@@ -1250,6 +1334,8 @@
       const totalPaginas = state.incluirAnexo ? 4 : 3;
       const deltaOk = rel.diferencaMeta >= 0;
       const recorte = tokens.setores;
+      // Quebra por período calculada uma única vez e propagada às seções.
+      const periodos = agregarPorPeriodo(registrosFiltrados());
 
       const pagina1 = `
         <section class="doc-capa">
@@ -1271,13 +1357,15 @@
           <article class="doc-metrica"><span>Conformes</span><strong style="color:var(--verde)">${fmtNum(rel.conformes)}</strong></article>
           <article class="doc-metrica"><span>Não conformes</span><strong style="color:var(--vermelho)">${fmtNum(rel.naoConformes)}</strong></article>
         </section>
-        ${barraClassificacao(rel)}
-        ${tabelaPorPeriodo(rel)}
+        ${classificacaoPorPeriodo(periodos, rel)}
+        ${tabelaPorPeriodo(periodos, rel)}
         ${secaoTexto(1, 'intro')}
         ${secaoTexto(2, 'metodo')}
         <section class="doc-graficos">
           <div class="grafico-caixa"><h4>Evolução mensal da conformidade</h4>${svgEvolucao(rel.evolucao, rel.metaInstitucional)}</div>
-          <div class="grafico-caixa"><h4>Itens auditáveis: conformes × não conformes</h4>${svgDonut(rel)}</div>
+          ${periodos.length >= 2
+            ? `<div class="grafico-caixa"><h4>Conformes × não conformes por período</h4>${svgConformidadePorPeriodo(periodos)}</div>`
+            : `<div class="grafico-caixa"><h4>Itens auditáveis: conformes × não conformes</h4>${svgDonut(rel)}</div>`}
         </section>`;
 
       const pagina2 = `
@@ -1285,18 +1373,18 @@
         ${alertasEstruturaDoc()}
         <section class="doc-secao">
           <div class="doc-secao-cab"><h3>4. Indicadores críticos</h3></div>
-          ${tabelaCriticos(rel)}
+          ${tabelaCriticos(rel, periodos)}
         </section>
         <section class="doc-secao">
           <div class="doc-secao-cab"><h3>Fortalezas do recorte</h3></div>
           <div class="doc-destaques">${rel.destaques.map(d => `<span class="destaque">${esc(d.nome)} · ${fmtPct(d.percentual)}</span>`).join('') || '<span class="destaque">Sem destaques disponíveis</span>'}</div>
         </section>
-        ${secaoAusentes(rel)}`;
+        ${secaoAusentes(rel, periodos)}`;
 
       const pagina3 = `
         <section class="doc-secao">
           <div class="doc-secao-cab"><h3>5. Setores com maior oportunidade de melhoria</h3></div>
-          ${tabelaSetores(rel)}
+          ${tabelaSetores(rel, periodos)}
         </section>
         ${secaoTexto(6, 'plano')}
         ${secaoTexto(7, 'conclusao')}

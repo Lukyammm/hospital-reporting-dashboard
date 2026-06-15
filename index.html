@@ -396,6 +396,7 @@
       font-size: 10px;
       font-weight: 700;
     }
+    .destaque.ausente { border-color: #d8dee0; background: #f4f6f6; color: var(--suave); font-weight: 600; }
 
     .doc-assinaturas { display: flex; justify-content: center; margin-top: 52px; break-inside: avoid; }
     .assinatura { text-align: center; font-size: 10px; color: var(--suave); min-width: 300px; max-width: 360px; }
@@ -1227,6 +1228,23 @@
       return `<div class="doc-alerta"><strong>Alertas de estrutura da base</strong><ul>${alertas.map(a => `<li>${esc(a)}</li>`).join('')}</ul></div>`;
     }
 
+    // Indicadores sem nenhum item avaliado no recorte (avaliados === 0):
+    // ficam fora dos cálculos de conformidade e merecem registro à parte.
+    function secaoAusentes(rel) {
+      const ausentes = rel.indicadores
+        .filter(i => i.avaliados === 0)
+        .sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'));
+      const conteudo = ausentes.length
+        ? `<div class="doc-destaques">${ausentes.map(i => `<span class="destaque ausente">${esc(i.nome)}</span>`).join('')}</div>`
+        : '<p class="doc-recorte" style="margin:0">Todos os indicadores tiveram ao menos um item avaliado no recorte.</p>';
+      const nota = ausentes.length
+        ? `<span class="doc-secao-nota">${fmtNum(ausentes.length)} de ${fmtNum(rel.indicadores.length)} indicadores</span>` : '';
+      return `<section class="doc-secao">
+        <div class="doc-secao-cab"><h3>Tópicos ausentes de avaliação</h3>${nota}</div>
+        ${conteudo}
+      </section>`;
+    }
+
     function renderDocumento(rel) {
       const tokens = tokensAtuais(rel);
       const totalPaginas = state.incluirAnexo ? 4 : 3;
@@ -1272,7 +1290,8 @@
         <section class="doc-secao">
           <div class="doc-secao-cab"><h3>Fortalezas do recorte</h3></div>
           <div class="doc-destaques">${rel.destaques.map(d => `<span class="destaque">${esc(d.nome)} · ${fmtPct(d.percentual)}</span>`).join('') || '<span class="destaque">Sem destaques disponíveis</span>'}</div>
-        </section>`;
+        </section>
+        ${secaoAusentes(rel)}`;
 
       const pagina3 = `
         <section class="doc-secao">

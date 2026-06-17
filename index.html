@@ -307,7 +307,7 @@
     .cel-tend.sobe { color: var(--verde); }
     .cel-tend.desce { color: var(--vermelho); }
     .cel-tend.neutro { color: var(--suave); }
-    .cel-sub { display: block; color: var(--suave); font-weight: 600; font-size: 9px; line-height: 1.25; margin-top: 1px; }
+    .cel-sub { display: inline; color: var(--suave); font-weight: 500; font-size: 11px; margin-left: 4px; }
     .doc-subtitulo { margin: 10px 0 5px; font-size: 10.5px; font-weight: 800; color: var(--tinta); }
     .lista-parciais { margin: 0; padding-left: 16px; font-size: 10px; color: var(--suave); display: grid; gap: 2px; }
     .lista-parciais strong { color: var(--tinta); font-weight: 700; }
@@ -1181,7 +1181,7 @@
       const linha = ({ rotulo, rel }) => {
         const c = rel.classif, tot = rel.prontuariosClassificados;
         const cel = chave => tot
-          ? `${fmtNum(c[chave])}<span class="cel-sub">(${fmtPct((c[chave] / tot) * 100)})</span>` : '—';
+          ? `${fmtNum(c[chave])}<span class="cel-sub">${fmtPct((c[chave] / tot) * 100)}</span>` : '—';
         return `<tr>
           <td>${esc(rotulo)}</td>
           <td class="num">${cel('excelente')}</td>

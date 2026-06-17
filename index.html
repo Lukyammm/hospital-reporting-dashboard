@@ -1100,7 +1100,7 @@
       const cfg = state.dados.config;
       const comissao = state.dados.base.comissao || 'CRP';
       return `<footer class="doc-rodape">
-        <span>${esc(comissao)} · Documento institucional</span>
+        <span>${esc(comissao)} · Comissão de Revisão de Prontuários</span>
         ${cfg.rodapeUrl ? `<img src="${esc(cfg.rodapeUrl)}" alt="" onerror="this.remove()">` : ''}
         <span>Página ${pagina} de ${total}</span>
       </footer>`;

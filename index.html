@@ -303,10 +303,12 @@
     .doc-metrica { border: 1px solid var(--linha); border-radius: 9px; padding: 9px 10px; background: #fcfdfd; break-inside: avoid; }
     .doc-metrica span { display: block; color: var(--suave); font-size: 8.6px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; }
     .doc-metrica strong { display: block; margin-top: 4px; font-size: 17px; line-height: 1; letter-spacing: -.02em; font-weight: 800; }
-    .doc-legendas { display: grid; grid-template-columns: 1fr 1fr; gap: 7px; margin: 12px 0 0; }
-    .doc-legenda { border: 1px solid var(--linha); border-left: 3px solid var(--brand); border-radius: 8px; padding: 7px 10px; background: #fbfdfc; break-inside: avoid; }
-    .doc-legenda b { display: block; font-size: 9.4px; font-weight: 800; color: var(--tinta); letter-spacing: .01em; margin-bottom: 2px; }
-    .doc-legenda span { display: block; font-size: 9px; line-height: 1.42; color: var(--suave); }
+    .doc-legendas { margin: 14px 0 0; }
+    .doc-legendas-titulo { font-size: 8.6px; font-weight: 800; letter-spacing: .08em; color: var(--suave); text-transform: uppercase; margin: 0 0 6px; }
+    .doc-legenda { position: relative; padding: 0 0 0 13px; margin: 0 0 5px; font-size: 9.4px; line-height: 1.42; color: var(--suave); break-inside: avoid; }
+    .doc-legenda:last-child { margin-bottom: 0; }
+    .doc-legenda::before { content: ''; position: absolute; left: 1px; top: 4px; width: 5px; height: 5px; border-radius: 50%; background: var(--brand); }
+    .doc-legenda b { font-weight: 800; color: var(--tinta); }
     .cel-tend { font-weight: 800; font-variant-numeric: tabular-nums; white-space: nowrap; }
     .cel-tend.sobe { color: var(--verde); }
     .cel-tend.desce { color: var(--vermelho); }
@@ -1432,10 +1434,11 @@
             <h1 class="doc-titulo">Panorama de qualidade dos registros assistenciais</h1>
             <p class="doc-recorte">Recorte: ${esc(recorte)}.</p>
             <div class="doc-legendas">
-              <div class="doc-legenda"><b>Conformidade geral</b><span>Quanto dos itens auditados está correto (conformes ÷ auditáveis).</span></div>
-              <div class="doc-legenda"><b>Prontuários bons/excelentes</b><span>Registros com nota igual ou acima de 70%.</span></div>
-              <div class="doc-legenda"><b>Meta institucional</b><span>O alvo de qualidade definido pela instituição.</span></div>
-              <div class="doc-legenda"><b>Δ p.p. (pontos percentuais)</b><span>Diferença direta entre dois percentuais. Ex.: de 80% para 70% são −10 p.p.</span></div>
+              <p class="doc-legendas-titulo">Como ler os números</p>
+              <div class="doc-legenda"><b>Conformidade</b> — conformes ÷ itens auditáveis.</div>
+              <div class="doc-legenda"><b>Prontuários bons/excelentes</b> — registros com nota ≥ 70%.</div>
+              <div class="doc-legenda"><b>Meta institucional</b> — alvo de qualidade definido pela instituição.</div>
+              <div class="doc-legenda"><b>Δ p.p.</b> — diferença entre dois percentuais (80% → 70% = −10 p.p.).</div>
             </div>
           </div>
           <aside class="doc-placar">

@@ -1171,12 +1171,28 @@
     }
 
     function corGradiente(v) {
-      if (v == null || Number.isNaN(Number(v))) return { bg: '#f1f4f3', fg: 'var(--suave)' };
+      if (v == null || Number.isNaN(Number(v))) return { bg: '#edf0ef', fg: '#8a9fa3' };
       const n = Math.max(0, Math.min(100, Number(v)));
-      let h, s, l;
-      if (n < 60) { h = (n / 60) * 38; s = 72; l = 48; }
-      else { h = 38 + ((n - 60) / 40) * 92; s = 65; l = 42; }
-      return { fg: `hsl(${h.toFixed(0)},${s}%,${l}%)`, bg: `hsl(${h.toFixed(0)},${Math.round(s * 0.45)}%,${Math.round(l + 38)}%)` };
+      // 3 âncoras: 0→vermelho, 60→âmbar, 100→verde; interpolação linear entre pares
+      let r, g, b;
+      if (n < 60) {
+        const t = n / 60;
+        // vermelho [220,50,50] → âmbar [210,140,30]
+        r = Math.round(220 + t * (210 - 220));
+        g = Math.round(50  + t * (140 - 50));
+        b = Math.round(50  + t * (30  - 50));
+      } else {
+        const t = (n - 60) / 40;
+        // âmbar [210,140,30] → verde [30,160,70]
+        r = Math.round(210 + t * (30  - 210));
+        g = Math.round(140 + t * (160 - 140));
+        b = Math.round(30  + t * (70  - 30));
+      }
+      // fundo: mistura com branco (80%) para clarear; texto: cor saturada
+      const mix = p => Math.round(p * 0.28 + 255 * 0.72);
+      const bg = `rgb(${mix(r)},${mix(g)},${mix(b)})`;
+      const fg = `rgb(${Math.round(r*0.7)},${Math.round(g*0.7)},${Math.round(b*0.7)})`;
+      return { bg, fg };
     }
 
     function sparklineIndicador(serie) {

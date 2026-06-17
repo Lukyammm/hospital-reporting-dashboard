@@ -1181,7 +1181,7 @@
       const linha = ({ rotulo, rel }) => {
         const c = rel.classif, tot = rel.prontuariosClassificados;
         const cel = chave => tot
-          ? `${fmtNum(c[chave])}<span class="cel-sub">${fmtPct((c[chave] / tot) * 100)}</span>` : '—';
+          ? `${fmtNum(c[chave])}<span class="cel-sub">(${fmtPct((c[chave] / tot) * 100)})</span>` : '—';
         return `<tr>
           <td>${esc(rotulo)}</td>
           <td class="num">${cel('excelente')}</td>
@@ -1367,10 +1367,10 @@
         ${secaoTexto(1, 'intro')}
         ${secaoTexto(2, 'metodo')}
         <section class="doc-graficos">
-          <div class="grafico-caixa"><h4>Evolução mensal da conformidade</h4>${svgEvolucao(rel.evolucao, rel.metaInstitucional)}</div>
-          ${periodos.length >= 2
-            ? `<div class="grafico-caixa"><h4>Conformes × não conformes por período</h4>${svgConformidadePorPeriodo(periodos)}</div>`
-            : `<div class="grafico-caixa"><h4>Itens auditáveis: conformes × não conformes</h4>${svgDonut(rel)}</div>`}
+          <div class="grafico-caixa" style="grid-column: 1 / -1"><h4>Evolução mensal da conformidade</h4>${svgEvolucao(rel.evolucao, rel.metaInstitucional)}</div>
+          ${periodos.length < 2
+            ? `<div class="grafico-caixa"><h4>Itens auditáveis: conformes × não conformes</h4>${svgDonut(rel)}</div>`
+            : ''}
         </section>`;
 
       const pagina2 = `

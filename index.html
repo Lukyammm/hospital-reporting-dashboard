@@ -368,6 +368,18 @@
     .mini-classif > i { display: block; height: 100%; min-width: 1px; }
     .doc-tabela tr.linha-total td { font-weight: 800; color: var(--tinta); background: #f3f7f6; border-top: 1.5px solid var(--linha); }
     .doc-secao-nota { font-size: 10px; font-weight: 600; color: var(--suave); white-space: nowrap; }
+    /* ===== Anexo B: heatmap de evolução ===== */
+    .tabela-mapa { overflow-x: auto; }
+    .tabela-mapa table { font-size: 9.2px; border-collapse: collapse; }
+    .tabela-mapa th, .tabela-mapa td { padding: 4px 6px; white-space: nowrap; }
+    .tabela-mapa th.col-ind, .tabela-mapa td.col-ind { position: sticky; left: 0; z-index: 2; text-align: left; max-width: 168px; white-space: normal; background: #f4f7f6; font-weight: 700; color: var(--tinta); border-right: 1.5px solid var(--linha); }
+    .tabela-mapa thead th.col-ind { z-index: 3; }
+    .tabela-mapa th.col-mes { font-size: 8.6px; min-width: 44px; text-align: center; }
+    .tabela-mapa td.cel-mapa { text-align: center; font-weight: 800; font-variant-numeric: tabular-nums; min-width: 44px; }
+    .tabela-mapa .col-spark { width: 96px; padding: 2px 6px; }
+    .tabela-mapa svg.spark { display: block; width: 92px; height: 22px; }
+    .legenda-mapa { display: flex; align-items: center; gap: 6px; padding: 7px 9px 2px; flex-wrap: wrap; font-size: 9px; color: var(--suave); }
+    .legenda-mapa .grad-bar { width: 100px; height: 10px; border-radius: 4px; background: linear-gradient(to right, #b42318, #b45709, #15803d); display: inline-block; vertical-align: middle; margin-right: 2px; }
 
     .doc-alerta {
       border: 1px solid #f2d399;
@@ -1158,6 +1170,54 @@
         <tbody>${linhas}</tbody></table></div>`;
     }
 
+    function corGradiente(v) {
+      if (v == null || Number.isNaN(Number(v))) return { bg: '#f1f4f3', fg: 'var(--suave)' };
+      const n = Math.max(0, Math.min(100, Number(v)));
+      let h, s, l;
+      if (n < 60) { h = (n / 60) * 38; s = 72; l = 48; }
+      else { h = 38 + ((n - 60) / 40) * 92; s = 65; l = 42; }
+      return { fg: `hsl(${h.toFixed(0)},${s}%,${l}%)`, bg: `hsl(${h.toFixed(0)},${Math.round(s * 0.45)}%,${Math.round(l + 38)}%)` };
+    }
+
+    function sparklineIndicador(serie) {
+      const W = 92, H = 22, p = 3, w = W - p * 2, h = H - p * 2, n = serie.length;
+      const cx = i => n <= 1 ? p + w / 2 : p + (w * i) / (n - 1);
+      const cy = v => p + h - (Math.max(0, Math.min(100, v)) / 100) * h;
+      const segs = []; let atual = [];
+      serie.forEach((v, i) => {
+        if (v == null) { if (atual.length) { segs.push(atual); atual = []; } }
+        else atual.push([cx(i), cy(v)]);
+      });
+      if (atual.length) segs.push(atual);
+      const linhas = segs.map(s => s.length === 1
+        ? `<circle cx="${s[0][0].toFixed(1)}" cy="${s[0][1].toFixed(1)}" r="1.6" fill="#0f766e"/>`
+        : `<polyline points="${s.map(pt => pt.map(c => c.toFixed(1)).join(',')).join(' ')}" fill="none" stroke="#0f766e" stroke-width="1.4" stroke-linejoin="round" stroke-linecap="round"/>`).join('');
+      let ult = '';
+      for (let i = n - 1; i >= 0; i--) {
+        if (serie[i] != null) { ult = `<circle cx="${cx(i).toFixed(1)}" cy="${cy(serie[i]).toFixed(1)}" r="2" fill="#0b5a54"/>`; break; }
+      }
+      const base = `<line x1="${p}" y1="${(p + h).toFixed(1)}" x2="${W - p}" y2="${(p + h).toFixed(1)}" stroke="#e9eeed" stroke-width="1"/>`;
+      return `<svg class="spark" viewBox="0 0 ${W} ${H}" role="img" aria-hidden="true">${base}${linhas}${ult}</svg>`;
+    }
+
+    function tabelaEvolucaoIndicadores(periodos) {
+      if (periodos.length < 2) return `<div class="doc-recorte" style="margin:0">A evolução exige pelo menos dois períodos no recorte.</div>`;
+      const cabMeses = periodos.map(p => `<th class="num col-mes">${esc(rotuloPeriodo(p.ano, p.mes))}</th>`).join('');
+      const indicadores = periodos[0].rel.indicadores;
+      const linhas = indicadores.map((ind, idx) => {
+        const serie = periodos.map(p => { const c = p.rel.indicadores[idx]; return (c && c.avaliados) ? c.percentual : null; });
+        const cels = serie.map(v => { const { bg, fg } = corGradiente(v); return `<td class="num cel-mapa" style="background:${bg};color:${fg}">${v == null ? '—' : fmtPct(v)}</td>`; }).join('');
+        const spark = `<td class="col-spark">${sparklineIndicador(serie)}</td>`;
+        const delta = celulaTendencia(...tendenciaIndicador(periodos, idx));
+        return `<tr><th scope="row" class="col-ind">${esc(ind.nome)}</th>${cels}${spark}${delta}</tr>`;
+      }).join('');
+      return `<div class="doc-tabela tabela-mapa"><table>
+        <thead><tr><th class="col-ind">Indicador</th>${cabMeses}<th class="col-spark">Tendência</th><th class="num">Δ p.p.</th></tr></thead>
+        <tbody>${linhas}</tbody></table>
+        <div class="legenda-mapa"><span class="grad-bar"></span><span>Vermelho = resultado baixo (&lt;60%) → Verde = resultado alto (≥90%)</span></div>
+      </div>`;
+    }
+
     const CLASSIF_FAIXAS = [
       { chave: 'excelente', rotulo: 'Excelente', faixa: '≥ 90', cor: '#0f766e' },
       { chave: 'bom', rotulo: 'Bom', faixa: '70–89', cor: '#15803d' },
@@ -1337,7 +1397,7 @@
 
     function renderDocumento(rel) {
       const tokens = tokensAtuais(rel);
-      const totalPaginas = state.incluirAnexo ? 4 : 3;
+      const totalPaginas = state.incluirAnexo ? 5 : 3;
       const deltaOk = rel.diferencaMeta >= 0;
       const recorte = tokens.setores;
       // Quebra por período calculada uma única vez e propagada às seções.
@@ -1408,7 +1468,15 @@
         montarPagina(tokens, 2, totalPaginas, pagina2),
         montarPagina(tokens, 3, totalPaginas, pagina3)
       ];
-      if (state.incluirAnexo) paginas.push(montarPagina(tokens, 4, totalPaginas, pagina4));
+      const pagina5 = `
+        <section class="doc-secao">
+          <div class="doc-secao-cab"><h3>Anexo B. Evolução do desempenho dos indicadores</h3>${periodos.length >= 2 ? `<span class="doc-secao-nota">${periodos.length} períodos no recorte</span>` : ''}</div>
+          ${tabelaEvolucaoIndicadores(periodos)}
+        </section>`;
+      if (state.incluirAnexo) {
+        paginas.push(montarPagina(tokens, 4, totalPaginas, pagina4));
+        paginas.push(montarPagina(tokens, 5, totalPaginas, pagina5));
+      }
       $('documento').innerHTML = paginas.join('');
 
       // O texto entra via textContent (não innerHTML): preserva quebras de

@@ -1137,14 +1137,25 @@
       const txt = `${Math.abs(d).toLocaleString('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1 })} p.p.`;
       return `<td class="num cel-tend ${cls}" title="${tip}">${seta} ${txt}</td>`;
     }
+    // Tendência = primeiro vs. último período COM valor no recorte. Se o último
+    // mês não tiver avaliação, usa o último período que de fato tem dado (em vez
+    // de cair em "—" como se fosse erro).
     function tendenciaIndicador(periodos, idx) {
-      const ini = periodos[0].rel.indicadores[idx];
-      const fim = periodos[periodos.length - 1].rel.indicadores[idx];
-      return [ini && ini.avaliados ? ini.percentual : null, fim && fim.avaliados ? fim.percentual : null];
+      let ini = null, fim = null;
+      for (const p of periodos) {
+        const c = p.rel.indicadores[idx];
+        if (c && c.avaliados) { if (ini == null) ini = c.percentual; fim = c.percentual; }
+      }
+      return [ini, fim];
     }
     function tendenciaSetor(periodos, nome) {
       const buscar = p => { const s = (p.rel.setores || []).find(x => x.setor === nome); return s ? s.percentual : null; };
-      return [buscar(periodos[0]), buscar(periodos[periodos.length - 1])];
+      let ini = null, fim = null;
+      for (const p of periodos) {
+        const v = buscar(p);
+        if (v != null) { if (ini == null) ini = v; fim = v; }
+      }
+      return [ini, fim];
     }
 
     function tabelaCriticos(rel, periodos) {
@@ -1204,7 +1215,9 @@
       return { bg, fg };
     }
 
-    function sparklineIndicador(serie) {
+    // cor: define o tom da linha conforme a tendência (verde sobe, vermelho desce,
+    // teal neutro/padrão). dotCor é um tom mais escuro para o ponto final.
+    function sparklineIndicador(serie, cor = '#0f766e', dotCor = '#0b5a54') {
       const W = 92, H = 22, p = 3, w = W - p * 2, h = H - p * 2, n = serie.length;
       const cx = i => n <= 1 ? p + w / 2 : p + (w * i) / (n - 1);
       const cy = v => p + h - (Math.max(0, Math.min(100, v)) / 100) * h;
@@ -1215,11 +1228,11 @@
       });
       if (atual.length) segs.push(atual);
       const linhas = segs.map(s => s.length === 1
-        ? `<circle cx="${s[0][0].toFixed(1)}" cy="${s[0][1].toFixed(1)}" r="1.6" fill="#0f766e"/>`
-        : `<polyline points="${s.map(pt => pt.map(c => c.toFixed(1)).join(',')).join(' ')}" fill="none" stroke="#0f766e" stroke-width="1.4" stroke-linejoin="round" stroke-linecap="round"/>`).join('');
+        ? `<circle cx="${s[0][0].toFixed(1)}" cy="${s[0][1].toFixed(1)}" r="1.6" fill="${cor}"/>`
+        : `<polyline points="${s.map(pt => pt.map(c => c.toFixed(1)).join(',')).join(' ')}" fill="none" stroke="${cor}" stroke-width="1.4" stroke-linejoin="round" stroke-linecap="round"/>`).join('');
       let ult = '';
       for (let i = n - 1; i >= 0; i--) {
-        if (serie[i] != null) { ult = `<circle cx="${cx(i).toFixed(1)}" cy="${cy(serie[i]).toFixed(1)}" r="2" fill="#0b5a54"/>`; break; }
+        if (serie[i] != null) { ult = `<circle cx="${cx(i).toFixed(1)}" cy="${cy(serie[i]).toFixed(1)}" r="2" fill="${dotCor}"/>`; break; }
       }
       const base = `<line x1="${p}" y1="${(p + h).toFixed(1)}" x2="${W - p}" y2="${(p + h).toFixed(1)}" stroke="#e9eeed" stroke-width="1"/>`;
       return `<svg class="spark" viewBox="0 0 ${W} ${H}" role="img" aria-hidden="true">${base}${linhas}${ult}</svg>`;
@@ -1232,8 +1245,13 @@
       const linhas = indicadores.map((ind, idx) => {
         const serie = periodos.map(p => { const c = p.rel.indicadores[idx]; return (c && c.avaliados) ? c.percentual : null; });
         const cels = serie.map(v => { const { bg, fg } = corGradiente(v); return `<td class="num cel-mapa" style="background:${bg};color:${fg}">${v == null ? '—' : fmtPct(v)}</td>`; }).join('');
-        const spark = `<td class="col-spark">${sparklineIndicador(serie)}</td>`;
-        const delta = celulaTendencia(...tendenciaIndicador(periodos, idx));
+        const [ini, fim] = tendenciaIndicador(periodos, idx);
+        const d = (ini != null && fim != null) ? fim - ini : 0;
+        // linha vermelha quando a tendência é negativa (mesma cor do p.p.), verde quando sobe
+        const corLinha = d < 0 ? '#b42318' : d > 0 ? '#15803d' : '#0f766e';
+        const dotLinha = d < 0 ? '#8f1b12' : d > 0 ? '#0f5c2e' : '#0b5a54';
+        const spark = `<td class="col-spark">${sparklineIndicador(serie, corLinha, dotLinha)}</td>`;
+        const delta = celulaTendencia(ini, fim);
         return `<tr><th scope="row" class="col-ind">${esc(ind.nome)}</th>${cels}${spark}${delta}</tr>`;
       }).join('');
       return `<div class="doc-tabela tabela-mapa"><table>

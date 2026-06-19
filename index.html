@@ -391,6 +391,33 @@
     .legenda-mapa { display: flex; align-items: center; gap: 6px; padding: 7px 9px 2px; flex-wrap: wrap; font-size: 9px; color: var(--suave); }
     .legenda-mapa .grad-bar { width: 100px; height: 10px; border-radius: 4px; background: linear-gradient(to right, #b42318, #b45709, #15803d); display: inline-block; vertical-align: middle; margin-right: 2px; }
 
+    .pagina.compacta { padding: 10mm 12mm 9mm; gap: 8px; }
+    .pagina.compacta > div { gap: 8px !important; }
+    .pagina.compacta .doc-cab { padding-bottom: 6px; }
+    .pagina.compacta .doc-cab h2 { font-size: 14px; }
+    .pagina.compacta .doc-cab-sub, .pagina.compacta .doc-cab-meta { font-size: 9px; }
+    .pagina.compacta .doc-secao h3 { font-size: 12px; }
+    .pagina.compacta table { font-size: 8.8px; }
+    .pagina.compacta th, .pagina.compacta td { padding: 4px 6px; }
+    .pagina.compacta .selo-pct { min-width: 42px; padding: 1px 5px; font-size: 8.4px; }
+    .pagina.compacta .mini-barra { max-width: 88px; height: 6px; }
+    .pagina.compacta .doc-rodape { padding-top: 6px; font-size: 8px; }
+    .pagina.mapa-compacto .tabela-mapa table { font-size: 7.8px; }
+    .pagina.mapa-compacto .tabela-mapa th,
+    .pagina.mapa-compacto .tabela-mapa td { padding: 3px 4px; }
+    .pagina.mapa-compacto .tabela-mapa th.col-ind,
+    .pagina.mapa-compacto .tabela-mapa td.col-ind { max-width: 132px; }
+    .pagina.mapa-compacto .tabela-mapa th.col-mes,
+    .pagina.mapa-compacto .tabela-mapa td.cel-mapa { min-width: 34px; }
+    .pagina.mapa-compacto .tabela-mapa .col-spark { width: 76px; }
+    .pagina.mapa-compacto .tabela-mapa svg.spark { width: 72px; height: 18px; }
+    .pagina.mapa-longo .tabela-mapa th.col-ind,
+    .pagina.mapa-longo .tabela-mapa td.col-ind { max-width: 112px; }
+    .pagina.mapa-longo .tabela-mapa th.col-mes,
+    .pagina.mapa-longo .tabela-mapa td.cel-mapa { min-width: 30px; font-size: 7.2px; }
+    .pagina.mapa-longo .tabela-mapa .col-spark { display: none; }
+    .pagina.mapa-longo .tabela-mapa .cel-tend { font-size: 7.2px; white-space: nowrap; }
+
     .doc-alerta {
       border: 1px solid #f2d399;
       border-radius: 9px;
@@ -1280,20 +1307,22 @@
       return `<svg class="spark" viewBox="0 0 ${W} ${H}" role="img" aria-hidden="true">${base}${linhas}${ult}</svg>`;
     }
 
-    function tabelaEvolucaoIndicadores(periodos) {
+    function tabelaEvolucaoIndicadores(periodos, inicio = 0, fimIndice = null) {
       if (periodos.length < 2) return `<div class="doc-recorte" style="margin:0">A evolução exige pelo menos dois períodos no recorte.</div>`;
       const cabMeses = periodos.map(p => `<th class="num col-mes">${esc(rotuloPeriodo(p.ano, p.mes))}</th>`).join('');
-      const indicadores = periodos[0].rel.indicadores;
-      const linhas = indicadores.map((ind, idx) => {
+      const todosIndicadores = periodos[0].rel.indicadores;
+      const indicadores = todosIndicadores.slice(inicio, fimIndice == null ? todosIndicadores.length : fimIndice);
+      const linhas = indicadores.map((ind, offset) => {
+        const idx = inicio + offset;
         const serie = periodos.map(p => { const c = p.rel.indicadores[idx]; return (c && c.avaliados) ? c.percentual : null; });
         const cels = serie.map(v => { const { bg, fg } = corGradiente(v); return `<td class="num cel-mapa" style="background:${bg};color:${fg}">${v == null ? '—' : fmtPct(v)}</td>`; }).join('');
-        const [ini, fim] = tendenciaIndicador(periodos, idx);
-        const d = (ini != null && fim != null) ? fim - ini : 0;
+        const [ini, ultimo] = tendenciaIndicador(periodos, idx);
+        const d = (ini != null && ultimo != null) ? ultimo - ini : 0;
         // mesma cor do p.p.: vermelho quando desce, verde quando sobe, cinza quando estável
         const corLinha = d < 0 ? '#b42318' : d > 0 ? '#15803d' : '#5d6f73';
         const dotLinha = d < 0 ? '#8f1b12' : d > 0 ? '#0f5c2e' : '#45545a';
         const spark = `<td class="col-spark">${sparklineIndicador(serie, corLinha, dotLinha)}</td>`;
-        const delta = celulaTendencia(ini, fim);
+        const delta = celulaTendencia(ini, ultimo);
         return `<tr><th scope="row" class="col-ind">${esc(ind.nome)}</th>${cels}${spark}${delta}</tr>`;
       }).join('');
       return `<div class="doc-tabela tabela-mapa"><table>
@@ -1482,7 +1511,6 @@
 
     function renderDocumento(rel) {
       const tokens = tokensAtuais(rel);
-      const totalPaginas = state.incluirAnexo ? 5 : 3;
       const deltaOk = rel.diferencaMeta >= 0;
       const recorte = tokens.setores;
       // Quebra por período calculada uma única vez e propagada às seções.
@@ -1514,20 +1542,24 @@
           <article class="doc-metrica"><span>Conformes</span><strong style="color:var(--verde)">${fmtNum(rel.conformes)}</strong></article>
           <article class="doc-metrica"><span>Não conformes</span><strong style="color:var(--vermelho)">${fmtNum(rel.naoConformes)}</strong></article>
         </section>
-        ${classificacaoPorPeriodo(periodos, rel)}
-        ${tabelaPorPeriodo(periodos, rel)}
         ${secaoTexto(1, 'intro')}
-        ${secaoTexto(2, 'metodo')}
+        ${secaoTexto(2, 'metodo')}`;
+
+      const pagina2 = `
+        ${classificacaoPorPeriodo(periodos, rel)}
+        ${tabelaPorPeriodo(periodos, rel)}`;
+
+      const pagina3 = `
         <section class="doc-graficos">
           <div class="grafico-caixa" style="grid-column: 1 / -1"><h4>Evolução mensal da conformidade</h4>${svgEvolucao(rel.evolucao, rel.metaInstitucional)}</div>
           ${periodos.length < 2
             ? `<div class="grafico-caixa"><h4>Itens auditáveis: conformes × não conformes</h4>${svgDonut(rel)}</div>`
             : ''}
-        </section>`;
-
-      const pagina2 = `
+        </section>
         ${secaoTexto(3, 'analise')}
-        ${alertasEstruturaDoc()}
+        ${alertasEstruturaDoc()}`;
+
+      const pagina4 = `
         <section class="doc-secao">
           <div class="doc-secao-cab"><h3>4. Indicadores críticos</h3></div>
           ${tabelaCriticos(rel, periodos)}
@@ -1538,7 +1570,7 @@
         </section>
         ${secaoAusentes(rel, periodos)}`;
 
-      const pagina3 = `
+      const pagina5 = `
         <section class="doc-secao">
           <div class="doc-secao-cab"><h3>5. Setores com maior oportunidade de melhoria</h3></div>
           ${tabelaSetores(rel, periodos)}
@@ -1549,27 +1581,36 @@
           <div class="assinatura"><div class="linha-ass">Presidente da Comissão de Revisão de Prontuários</div></div>
         </div>`;
 
-      const pagina4 = `
+      const paginaAnexoA = `
         <section class="doc-secao">
           <div class="doc-secao-cab"><h3>Anexo A. Desempenho completo dos indicadores</h3></div>
           ${tabelaAnexo(rel)}
         </section>`;
 
-      const paginas = [
-        montarPagina(tokens, 1, totalPaginas, pagina1),
-        montarPagina(tokens, 2, totalPaginas, pagina2),
-        montarPagina(tokens, 3, totalPaginas, pagina3)
-      ];
-      const pagina5 = `
+      const montarAnexoB = (titulo, inicio = 0, fim = null) => `
         <section class="doc-secao">
-          <div class="doc-secao-cab"><h3>Anexo B. Evolução do desempenho dos indicadores</h3>${periodos.length >= 2 ? `<span class="doc-secao-nota">${periodos.length} períodos no recorte</span>` : ''}</div>
-          ${tabelaEvolucaoIndicadores(periodos)}
+          <div class="doc-secao-cab"><h3>${titulo}</h3>${periodos.length >= 2 ? `<span class="doc-secao-nota">${periodos.length} períodos no recorte</span>` : ''}</div>
+          ${tabelaEvolucaoIndicadores(periodos, inicio, fim)}
         </section>`;
+
+      const paginas = [
+        { corpo: pagina1 },
+        { corpo: pagina2 },
+        { corpo: pagina3 },
+        { corpo: pagina4 },
+        { corpo: pagina5 }
+      ];
       if (state.incluirAnexo) {
-        paginas.push(montarPagina(tokens, 4, totalPaginas, pagina4));
-        paginas.push(montarPagina(tokens, 5, totalPaginas, pagina5));
+        paginas.push({ corpo: paginaAnexoA, classe: 'compacta' });
+        if (periodos.length >= 8) {
+          const meio = Math.ceil(rel.indicadores.length / 2);
+          paginas.push({ corpo: montarAnexoB('Anexo B.1. Evolução dos indicadores', 0, meio), classe: 'compacta mapa-compacto mapa-longo' });
+          paginas.push({ corpo: montarAnexoB('Anexo B.2. Evolução dos indicadores', meio), classe: 'compacta mapa-compacto mapa-longo' });
+        } else {
+          paginas.push({ corpo: montarAnexoB('Anexo B. Evolução do desempenho dos indicadores'), classe: 'compacta mapa-compacto' });
+        }
       }
-      $('documento').innerHTML = paginas.join('');
+      $('documento').innerHTML = paginas.map((p, idx) => montarPagina(tokens, idx + 1, paginas.length, p.corpo, p.classe)).join('');
       ligarTextosEditaveis(tokens, () => tokensAtuais(agregar(registrosFiltrados())));
     }
 
@@ -1601,8 +1642,9 @@
       });
     }
 
-    function montarPagina(tokens, num, total, corpo) {
-      return `<section class="pagina">${cabecalhoDoc(tokens)}<div style="display:grid;gap:11px">${corpo}</div>${rodapeDoc(num)}</section>`;
+    function montarPagina(tokens, num, total, corpo, classe = '') {
+      const classes = ['pagina', classe].filter(Boolean).join(' ');
+      return `<section class="${classes}">${cabecalhoDoc(tokens)}<div style="display:grid;gap:11px">${corpo}</div>${rodapeDoc(num)}</section>`;
     }
 
     function marcarEdicao(chave, editado) {
@@ -1923,20 +1965,21 @@
         <thead><tr><th>Período</th><th class="num">Óbitos</th><th class="num">Analisados</th><th class="num">Tx. avaliação</th><th class="num">A esclarecer</th></tr></thead>
         <tbody>${rel.evolucao.map(e => `<tr><td>${esc(rotuloPeriodo(e.ano, e.mes))}</td><td class="num">${fmtNum(e.total)}</td><td class="num">${fmtNum(e.analisados)}</td><td class="num">${seloPct(e.taxaAnalisados)}</td><td class="num">${fmtNum(e.londres)}</td></tr>`).join('')}
         <tr class="linha-total"><td>Consolidado</td><td class="num">${fmtNum(rel.total)}</td><td class="num">${fmtNum(rel.analisados)}</td><td class="num">${seloPct(rel.taxaAnalisados)}</td><td class="num">${fmtNum(rel.londres)}</td></tr></tbody></table></div>` : '';
-      return `<section class="doc-graficos">
-          ${temEvol ? caixaGraficoCRO('Taxa de avaliação de óbitos (1ª análise)', svgLinhaCRO(serieAval, rel.metaInstitucional, 'META ' + String(rel.metaInstitucional).replace('.', ',') + '%'), true) : ''}
-          ${temEvol ? caixaGraficoCRO('Taxa de óbitos "a esclarecer" (Protocolo de Londres)', svgLinhaCRO(serieLon, null), true) : ''}
-        </section>${tabela}`;
+      return {
+        avaliacao: temEvol ? caixaGraficoCRO('Taxa de avaliação de óbitos (1ª análise)', svgLinhaCRO(serieAval, rel.metaInstitucional, 'META ' + String(rel.metaInstitucional).replace('.', ',') + '%'), true) : '',
+        londres: temEvol ? caixaGraficoCRO('Taxa de óbitos "a esclarecer" (Protocolo de Londres)', svgLinhaCRO(serieLon, null), true) : '',
+        tabela
+      };
     }
 
     function renderDocumentoCRO(rel) {
       const tokens = tokensAtuaisCRO(rel);
-      const totalPaginas = 5;
       const deltaOk = rel.diferencaMeta == null ? true : rel.diferencaMeta >= 0;
       const permNota = rel.permanencia.media != null
         ? `<p style="margin:6px 0 0;font-size:11px;color:var(--suave)">Tempo médio de permanência: ${rel.permanencia.media.toLocaleString('pt-BR', { maximumFractionDigits: 1 })} dias (${fmtNum(rel.permanencia.comDado)} óbitos com data).</p>` : '';
       const comorbNota = rel.comorbidades.comRegistro
         ? `<p style="margin:6px 0 0;font-size:11px;color:var(--suave)">Base: ${fmtNum(rel.comorbidades.comRegistro)} óbitos com comorbidade registrada. Um óbito pode ter mais de uma comorbidade.</p>` : '';
+      const evolucao = indicadorEvolucaoCRO(rel);
 
       const pagina1 = `
         <section class="doc-capa">
@@ -1979,29 +2022,33 @@
         <section class="doc-graficos">
           ${caixaGraficoCRO('Macrorregião de origem', svgBarrasCRO(rel.porMacro, { total: rel.total }))}
           ${caixaGraficoCRO('Tempo de permanência', svgBarrasCRO(rel.permanencia.itens, { total: rel.permanencia.comDado }))}
+        </section>
+        ${permNota}`;
+
+      const pagina4 = `
+        <section class="doc-graficos">
           ${caixaGraficoCRO('Unidade de origem', svgBarrasCRO(rel.porOrigem, { total: rel.total, limite: 10 }), true)}
           ${caixaGraficoCRO('Comorbidades mais frequentes', svgBarrasCRO(rel.comorbidades.itens, { total: rel.comorbidades.comRegistro, limite: 12 }), true)}
         </section>
-        ${permNota}${comorbNota}`;
-
-      const pagina4 = `
-        ${secaoTexto(3, 'indicadores')}
-        ${indicadorEvolucaoCRO(rel)}`;
+        ${comorbNota}`;
 
       const pagina5 = `
+        ${secaoTexto(3, 'indicadores')}
+        <section class="doc-graficos">${evolucao.avaliacao}</section>`;
+
+      const pagina6 = `
+        <section class="doc-graficos">${evolucao.londres}</section>
+        ${evolucao.tabela}`;
+
+      const pagina7 = `
         ${secaoTexto(4, 'acoes')}
         ${secaoTexto(5, 'conclusaoCRO')}
         <div class="doc-assinaturas">
           <div class="assinatura"><div class="linha-ass">Presidente da Comissão de Revisão de Óbitos</div></div>
         </div>`;
 
-      $('documento').innerHTML = [
-        montarPagina(tokens, 1, totalPaginas, pagina1),
-        montarPagina(tokens, 2, totalPaginas, pagina2),
-        montarPagina(tokens, 3, totalPaginas, pagina3),
-        montarPagina(tokens, 4, totalPaginas, pagina4),
-        montarPagina(tokens, 5, totalPaginas, pagina5)
-      ].join('');
+      const paginas = [pagina1, pagina2, pagina3, pagina4, pagina5, pagina6, pagina7];
+      $('documento').innerHTML = paginas.map((corpo, idx) => montarPagina(tokens, idx + 1, paginas.length, corpo)).join('');
       ligarTextosEditaveis(tokens, () => tokensAtuaisCRO(agregarCRO(registrosFiltrados())));
     }
 

@@ -22,7 +22,10 @@
 /* ===== Parametrização ===== */
 const PLANILHAS = {
   principal: '1XUtI9TSMJmTpbtfLjZbJ-uarRN94lu_Aqpsc46Lxmt4',
-  relatorios: '1DjE-1Gx33RfWPkUtUW883-5SM2NVdeuDsq4wQ0XxGUw'
+  relatorios: '1DjE-1Gx33RfWPkUtUW883-5SM2NVdeuDsq4wQ0XxGUw',
+  // Planilha de gerenciamento das análises dos óbitos (CRO). A base da CRO fica
+  // numa planilha própria; pode ser sobrescrita por cfg.planilhaIdCRO.
+  relatoriosCRO: '1Tqit0LGFH9-5WZVNj3mhJZdBxw1bpm2TUxeXL2WDMy8'
 };
 const ABA_RELATORIO_CRP = 'BASE_DADOS(NÃOEDITAR)';
 const ABA_RELATORIO_CRO = 'CRO';
@@ -128,7 +131,10 @@ function doGet(e) {
   const params = (e && e.parameter) || {};
 
   if (params.api === 'dados' || params.api === 'relatorios' || params.api === '1') {
-    return responderJson(executarRota('api-dados', () => montarPayloadDados(params.refresh === '1' || params.refresh === 'true')));
+    const refresh = params.refresh === '1' || params.refresh === 'true';
+    const comissao = String(params.comissao || '').trim().toUpperCase() === 'CRO' ? 'CRO' : 'CRP';
+    return responderJson(executarRota('api-dados', () =>
+      comissao === 'CRO' ? montarPayloadDadosCRO(refresh) : montarPayloadDados(refresh)));
   }
 
   if (params.api === 'configrel') {
@@ -837,4 +843,243 @@ function montarPayloadDados(forcarRefresh) {
 
 function obterDadosRelatorio(opcoes) {
   return executarRota('rpc-dados', () => montarPayloadDados(Boolean(opcoes && opcoes.refresh)));
+}
+
+/* ============================================================
+   RELATÓRIO CRO — Comissão de Revisão de Óbitos
+   ------------------------------------------------------------
+   Diferente da CRP (conformidade de itens do prontuário), a CRO
+   analisa óbitos. A base é achatada: 1 linha por óbito, no modelo
+   da aba "Distribuição e análises dos Óbitos", com unidade do
+   óbito, mês/ano, status da 1ª avaliação (SIM / NÃO / LONDRES
+   AVALIADO), ocorrência de evento adverso, sexo, faixa etária,
+   macrorregião, unidade de origem, comorbidades e as datas de
+   internação e óbito (para o tempo de permanência).
+
+   O servidor lê a base, mapeia as colunas por NOME de cabeçalho
+   (tolerante a reordenação, ao sufixo "GRÁFICO" e a cabeçalhos de
+   múltiplas linhas) e devolve um dataset compacto. Filtro,
+   agregação e montagem do documento acontecem no navegador.
+   ============================================================ */
+const META_CRO_AVALIACAO = 100;
+
+// Nomes de aba aceitos para a base da CRO, em ordem de preferência.
+const RELATORIO_CRO_ABAS = [
+  'Distribuição e análises dos Óbitos',
+  'Distribuição e análises dos Óbi',
+  'Distribuição e Análise dos Óbitos',
+  'Distribuição e Análise dos Óbit',
+  'CRO', 'BASE CRO', 'BASE_CRO', 'CRO - BASE', 'RELATÓRIO CRO', 'RELATORIO CRO'
+];
+
+// Sinônimos de cabeçalho → campo lógico. A comparação usa
+// normalizarCabecalho (sem acento, só A-Z0-9) e casa a frase
+// delimitada por espaços, evitando falso positivo como IDADE dentro
+// de "UNIDADE". O sufixo "GRÁFICO" e quebras de linha são ignorados.
+const RELATORIO_CRO_CABECALHOS = [
+  { chave: 'unidadeObito',   termos: ['UNIDADE DO OBITO', 'UNIDADE OBITO'] },
+  { chave: 'mes',            termos: ['MES'] },
+  { chave: 'ano',            termos: ['ANO'] },
+  { chave: 'avaliacao1',     termos: ['1 AVALIACAO CONCLUIDA', 'AVALIACAO CONCLUIDA', 'AVALIACAO REALIZADA', 'AVALIADO'] },
+  { chave: 'eventoAdverso',  termos: ['EV ADVERSO', 'EVENTO ADVERSO'] },
+  { chave: 'prontuario',     termos: ['PRONT', 'PRONTUARIO'] },
+  { chave: 'idade',          termos: ['IDADE'] },
+  { chave: 'faixaEtaria',    termos: ['FAIXA ETARIA', 'FAIXA ETARIA GRAFICO'] },
+  { chave: 'sexo',           termos: ['SEXO', 'GENERO'] },
+  { chave: 'comorbidades',   termos: ['COMORBIDADES', 'COMORBIDADE'] },
+  { chave: 'macrorregiao',   termos: ['MACRORREGIAO', 'MACRO REGIAO'] },
+  { chave: 'unidadeOrigem',  termos: ['UNIDADE DE ORIGEM', 'UNIDADE ORIGEM'] },
+  { chave: 'dataInternacao', termos: ['DATA INTERNACAO', 'DATA DE INTERNACAO'] },
+  { chave: 'dataObito',      termos: ['DATA OBITO', 'DATA DO OBITO'] }
+];
+
+const TEXTOS_PADRAO_CRO = {
+  apresentacao: 'No período {periodo}, ocorreram {totalObitos} óbitos no HUC, sendo {taxaAnalisados} deles analisados pela Comissão de Revisão de Óbitos (CRO). Na primeira avaliação, {londres} óbito(s) foram classificados como "A esclarecer" e encaminhados a uma segunda avaliação, usando como ferramenta de investigação o Protocolo de Londres — que considera os fatores institucionais, ambientais, tecnológicos, individuais dos profissionais e do próprio paciente. Foram identificados {eventosAdversos} óbito(s) com eventos adversos graves/moderados que contribuíram, direta ou indiretamente, para o desfecho.',
+  epidemiologia: 'No recorte {periodo}, a maioria dos óbitos ocorreu em {unidadeTop} ({unidadeTopPct} do total). Quanto ao perfil, {sexoMasculino} eram do sexo masculino e {sexoFeminino} do feminino, com predomínio da faixa etária {faixaTop}. Em relação à procedência, {macroTop} concentrou a maior parte dos casos. As comorbidades mais frequentes entre os óbitos foram {comorbidadesTop}.',
+  indicadores: 'O indicador de avaliação de óbitos (1ª análise) alcançou {taxaAnalisados} no período (meta {metaInstitucional}). A taxa de óbitos "a esclarecer", encaminhados ao Protocolo de Londres, foi de {taxaLondres}. Os indicadores são monitorados mensalmente para sustentar a melhoria contínua e a segurança assistencial.',
+  acoes: 'As ações abaixo decorrem dos planos de ação elaborados na investigação dos óbitos classificados como "a esclarecer" e dos eventos adversos identificados, com responsáveis, prazos e evidências de conclusão pactuados pela gestão.',
+  conclusao: 'A análise consolidada da Comissão de Revisão de Óbitos evidencia o panorama do período {periodo} e direciona intervenções para reduzir eventos adversos evitáveis e qualificar a assistência. A continuidade do monitoramento por período e unidade permitirá verificar tendências e a sustentabilidade das melhorias.'
+};
+
+function configPadraoRelCRO() {
+  return {
+    comissao: 'CRO',
+    metaInstitucional: META_CRO_AVALIACAO,
+    logoUrl: LOGO_PADRAO,
+    rodapeUrl: RODAPE_PADRAO,
+    textosPadrao: {
+      apresentacao: TEXTOS_PADRAO_CRO.apresentacao,
+      epidemiologia: TEXTOS_PADRAO_CRO.epidemiologia,
+      indicadores: TEXTOS_PADRAO_CRO.indicadores,
+      acoes: TEXTOS_PADRAO_CRO.acoes,
+      conclusaoCRO: TEXTOS_PADRAO_CRO.conclusao
+    }
+  };
+}
+
+function limparValorCRO(valor) {
+  const texto = String(valor == null ? '' : valor).trim();
+  if (!texto || texto === '#REF!' || texto === '#DIV/0!' || texto === '-') return '';
+  return texto;
+}
+
+function cabecalhoCROContemTermo(headerNorm, termo) {
+  return (' ' + headerNorm + ' ').indexOf(' ' + termo + ' ') !== -1;
+}
+
+// Localiza a linha de cabeçalho (entre as primeiras linhas) e devolve o
+// índice da linha e o mapa campo→coluna, casando por nome.
+function mapearColunasCRO(values) {
+  const limite = Math.min(values.length, 8);
+  let melhor = null;
+  for (let r = 0; r < limite; r++) {
+    const headerNorm = (values[r] || []).map(c => normalizarCabecalho(c));
+    const mapa = {};
+    RELATORIO_CRO_CABECALHOS.forEach(def => {
+      for (let c = 0; c < headerNorm.length; c++) {
+        if (mapa[def.chave] != null) break;
+        if (!headerNorm[c]) continue;
+        if (def.termos.some(t => cabecalhoCROContemTermo(headerNorm[c], t))) {
+          mapa[def.chave] = c;
+          break;
+        }
+      }
+    });
+    const achados = Object.keys(mapa).length;
+    if (!melhor || achados > melhor.achados) melhor = { linha: r, mapa, achados };
+    if (achados >= RELATORIO_CRO_CABECALHOS.length) break;
+  }
+  return melhor || { linha: 0, mapa: {}, achados: 0 };
+}
+
+function obterAbaRelatorioCRO(ss, cfg) {
+  const nomes = (cfg && cfg.abaNomeCRO ? [cfg.abaNomeCRO] : []).concat(RELATORIO_CRO_ABAS);
+  for (let i = 0; i < nomes.length; i++) {
+    const sh = ss.getSheetByName(nomes[i]);
+    if (sh) return sh;
+  }
+  return null;
+}
+
+function diasEntreDatas(inicio, fim) {
+  if (!(inicio instanceof Date) || !(fim instanceof Date)) return null;
+  if (isNaN(inicio.getTime()) || isNaN(fim.getTime())) return null;
+  const ms = fim.getTime() - inicio.getTime();
+  if (ms < 0) return null;
+  return Math.round(ms / 86400000);
+}
+
+function normalizarSexoCRO(valor) {
+  const t = normalizarTexto(valor);
+  if (!t) return 'Não informado';
+  if (t === 'M' || t.indexOf('MASC') === 0) return 'Masculino';
+  if (t === 'F' || t.indexOf('FEM') === 0) return 'Feminino';
+  return limparValorCRO(valor) || 'Não informado';
+}
+
+function faixaPorIdadeCRO(idade) {
+  if (idade < 20) return '<= 19 ANOS';
+  if (idade >= 100) return '>= 100 ANOS';
+  const dezena = Math.floor(idade / 10) * 10;
+  return `${dezena} A ${dezena + 9} ANOS`;
+}
+
+// A idade é a fonte autoritativa da faixa etária. Quando a planilha não tem
+// idade, a coluna de faixa costuma cair no default de fórmula "<= 19 ANOS"
+// (data de nascimento vazia); nesse caso classificamos como "Não informado"
+// para não inflar a faixa mais jovem.
+function faixaEtariaCRO(valorIdade, valorFaixa) {
+  const idade = numeroOuNull(limparValorCRO(valorIdade));
+  if (idade != null && idade >= 0 && idade < 130) return faixaPorIdadeCRO(idade);
+  const faixa = limparValorCRO(valorFaixa);
+  if (!faixa) return 'Não informado';
+  const norm = normalizarTexto(faixa);
+  if (norm === '<= 19 ANOS' || norm === '<=19 ANOS' || norm === '< 20 ANOS') return 'Não informado';
+  return faixa;
+}
+
+function montarPayloadDadosCRO(forcarRefresh) {
+  const cfgCRP = obterConfigRel(forcarRefresh === true);
+  const cfg = configPadraoRelCRO();
+  cfg.logoUrl = cfgCRP.logoUrl || LOGO_PADRAO;
+  cfg.rodapeUrl = cfgCRP.rodapeUrl || RODAPE_PADRAO;
+
+  const id = (cfgCRP.planilhaIdCRO && String(cfgCRP.planilhaIdCRO).trim()) || PLANILHAS.relatoriosCRO || cfgCRP.planilhaId || PLANILHAS.relatorios;
+  const ss = abrirPlanilhaPorIdCache(id, 'do relatório CRO');
+  const sh = obterAbaRelatorioCRO(ss, cfgCRP);
+
+  if (!sh) {
+    return {
+      success: true,
+      geradoEm: carimboAgora(),
+      config: cfg,
+      base: {
+        comissao: 'CRO', aba: '', totalRegistros: 0,
+        alertasEstrutura: ['Base da CRO não encontrada. Esperado uma aba como "Distribuição e análises dos Óbitos" ou "CRO".'],
+        registros: []
+      }
+    };
+  }
+
+  const ultimaLinha = Math.max(sh.getLastRow(), 1);
+  const ultimaColuna = Math.max(sh.getLastColumn(), 1);
+  const values = sh.getRange(1, 1, ultimaLinha, ultimaColuna).getValues();
+  const { linha: linhaHeader, mapa, achados } = mapearColunasCRO(values);
+
+  const alertas = [];
+  if (achados < 6) {
+    alertas.push(`A base da CRO foi localizada em "${sh.getName()}", mas só ${achados} colunas conhecidas foram reconhecidas no cabeçalho.`);
+  }
+  ['unidadeObito', 'avaliacao1', 'mes'].forEach(chave => {
+    if (mapa[chave] == null) alertas.push(`Coluna "${chave}" não encontrada no cabeçalho da base da CRO.`);
+  });
+
+  const col = chave => (mapa[chave] != null ? mapa[chave] : -1);
+  const valorCol = (row, chave) => { const c = col(chave); return c >= 0 ? row[c] : ''; };
+
+  const registros = [];
+  for (let r = linhaHeader + 1; r < values.length; r++) {
+    const row = values[r];
+    const prontuario = limparValorCRO(valorCol(row, 'prontuario'));
+    const unidade = limparValorCRO(valorCol(row, 'unidadeObito'));
+    const mes = normalizarMes(valorCol(row, 'mes'));
+    const ano = normalizarAno(limparValorCRO(valorCol(row, 'ano')));
+    // Linha é válida se tem ao menos prontuário, unidade ou mês reconhecível.
+    if (!prontuario && !unidade && !mes) continue;
+
+    const dias = diasEntreDatas(valorCol(row, 'dataInternacao'), valorCol(row, 'dataObito'));
+    const idadeNum = numeroOuNull(limparValorCRO(valorCol(row, 'idade')));
+
+    registros.push([
+      ano || 'Não informado',
+      mes || 'Não informado',
+      unidade || 'Não informado',
+      normalizarTexto(valorCol(row, 'avaliacao1')) || 'NÃO INFORMADO',
+      normalizarTexto(valorCol(row, 'eventoAdverso')) || '',
+      normalizarSexoCRO(valorCol(row, 'sexo')),
+      faixaEtariaCRO(valorCol(row, 'idade'), valorCol(row, 'faixaEtaria')),
+      limparValorCRO(valorCol(row, 'macrorregiao')) || 'Não informado',
+      limparValorCRO(valorCol(row, 'unidadeOrigem')) || 'Não informado',
+      limparValorCRO(valorCol(row, 'comorbidades')),
+      dias,
+      idadeNum
+    ]);
+  }
+
+  return {
+    success: true,
+    geradoEm: carimboAgora(),
+    config: cfg,
+    base: {
+      comissao: 'CRO',
+      aba: sh.getName(),
+      totalRegistros: registros.length,
+      alertasEstrutura: alertas,
+      registros: registros
+    }
+  };
+}
+
+function obterDadosRelatorioCRO(opcoes) {
+  return executarRota('rpc-dados-cro', () => montarPayloadDadosCRO(Boolean(opcoes && opcoes.refresh)));
 }

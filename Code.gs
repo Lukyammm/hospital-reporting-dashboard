@@ -1022,7 +1022,24 @@ function montarPayloadDadosCRO(forcarRefresh) {
   }
 
   const ultimaLinha = Math.max(sh.getLastRow(), 1);
-  const ultimaColuna = Math.max(sh.getLastColumn(), 1);
+  const ultimaColunaPlanilha = Math.max(sh.getLastColumn(), 1);
+  const linhasBuscaCabecalho = Math.min(ultimaLinha, 30);
+  const colunasBuscaCabecalho = Math.min(ultimaColunaPlanilha, 80);
+  let amostraCabecalho = sh.getRange(1, 1, linhasBuscaCabecalho, colunasBuscaCabecalho).getValues();
+  let mapaInicial = mapearColunasCRO(amostraCabecalho);
+
+  if (mapaInicial.achados < 6 && linhasBuscaCabecalho < ultimaLinha) {
+    amostraCabecalho = sh.getRange(1, 1, ultimaLinha, colunasBuscaCabecalho).getValues();
+    mapaInicial = mapearColunasCRO(amostraCabecalho);
+  }
+
+  if (mapaInicial.achados < 6 && colunasBuscaCabecalho < ultimaColunaPlanilha) {
+    amostraCabecalho = sh.getRange(1, 1, ultimaLinha, ultimaColunaPlanilha).getValues();
+    mapaInicial = mapearColunasCRO(amostraCabecalho);
+  }
+
+  const maiorColunaMapeada = Object.keys(mapaInicial.mapa).reduce((max, chave) => Math.max(max, mapaInicial.mapa[chave] || 0), 0);
+  const ultimaColuna = Math.min(ultimaColunaPlanilha, Math.max(colunasBuscaCabecalho, maiorColunaMapeada + 1));
   const values = sh.getRange(1, 1, ultimaLinha, ultimaColuna).getValues();
   const { linha: linhaHeader, mapa, achados } = mapearColunasCRO(values);
 

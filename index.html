@@ -761,6 +761,7 @@
       incluirAnexo: true,
       ocupado: false,
       pdfLoader: null,
+      cargaSeq: 0,
       adminCarregado: false,
       adminPodeEditar: true
     };
@@ -881,6 +882,10 @@
         throw new Error((payload && (payload.mensagem || payload.detalhe)) || 'Resposta inválida do Apps Script.');
       }
       return payload;
+    }
+
+    function comissaoPayload(payload) {
+      return String(payload && payload.base && payload.base.comissao || '').trim().toUpperCase();
     }
 
     /* ================= Filtro e agregação (100% no navegador) ================= */
@@ -2179,6 +2184,8 @@
       if (!COMISSOES[nova]) return;
       state.comissao = nova;
       FILTROS = filtrosAtuais();
+      fecharFiltros();
+      state.dados = state.cacheDados[nova] || null;
       // Seletor e textos auxiliares
       document.querySelectorAll('#seletor-comissao .seletor-opcao').forEach(b => {
         const on = b.dataset.comissao === nova;
@@ -2194,6 +2201,13 @@
       const optAnexo = $('opt-anexo') && $('opt-anexo').closest('.opcao-doc');
       if (optAnexo) optAnexo.style.display = nova === 'CRO' ? 'none' : '';
       construirFiltros();
+      if (state.dados) {
+        renderTudo();
+      } else {
+        $('documento').innerHTML = '';
+        $('chips').innerHTML = '<span class="chip">Carregando dados da base</span>';
+        $('topo-status').textContent = `Carregando base da ${nova}...`;
+      }
       if (nova === 'CRP') garantirResumoCRP();
       await iniciar(false);
     }
@@ -2211,18 +2225,27 @@
     }
 
     async function iniciar(refresh = false) {
+      const seq = ++state.cargaSeq;
       const comissao = state.comissao;
       definirEstado(refresh ? 'Relendo a base na planilha…' : 'Lendo a base na planilha…');
       $('btn-atualizar').disabled = true;
       try {
         // Cache em memória por comissão: trocar de tema não relê a planilha
         // toda vez; "Atualizar" força a releitura.
+        let payload;
         if (!refresh && state.cacheDados[comissao]) {
-          state.dados = state.cacheDados[comissao];
+          payload = state.cacheDados[comissao];
         } else {
-          state.dados = await carregarDados(refresh, comissao);
-          state.cacheDados[comissao] = state.dados;
+          payload = await carregarDados(refresh, comissao);
         }
+        if (seq !== state.cargaSeq || comissao !== state.comissao) return;
+        const recebida = comissaoPayload(payload);
+        if (recebida && recebida !== comissao) {
+          throw new Error(`A base retornada é da ${recebida}, mas a tela está em ${comissao}. Atualize novamente.`);
+        }
+        state.dados = payload;
+        state.cacheDados[comissao] = payload;
+        construirFiltros();
         // Limpa seleções que deixaram de existir na base carregada.
         filtrosAtuais().forEach(def => {
           const validos = new Set(state.dados.base.registros.map(r => r[def.idx]));
@@ -2235,7 +2258,7 @@
         console.error(erro);
         definirEstado(erro.message || 'Não foi possível carregar os dados.', true);
       } finally {
-        $('btn-atualizar').disabled = false;
+        if (seq === state.cargaSeq) $('btn-atualizar').disabled = false;
       }
     }
 
@@ -2255,11 +2278,10 @@
         clone.querySelectorAll('[contenteditable]').forEach(n => n.removeAttribute('contenteditable'));
         // Preserva ids internos de SVG (gradientes referenciados por url(#...)).
         clone.querySelectorAll('[id]').forEach(n => { if (!n.closest('svg')) n.removeAttribute('id'); });
-        // O clone vai para fora da tela (left:-9999px) em vez de
-        // position:fixed com margin:auto, o que evita que html2canvas
-        // capture com offset errado e produza PDF cortado à esquerda.
+        // Mantem o clone ancorado em (0,0). Em alguns navegadores, capturar
+        // um elemento em left:-9999px desloca o canvas e corta o PDF.
         const palco = document.createElement('div');
-        palco.style.cssText = 'position:absolute;left:-9999px;top:0;z-index:2147483647;background:#fff;pointer-events:none';
+        palco.style.cssText = 'position:fixed;left:0;top:0;width:794px;z-index:-1;background:#fff;pointer-events:none';
         clone.style.cssText = 'width:794px;margin:0;background:#fff';
         clone.querySelectorAll('.pagina').forEach(p => { p.style.width = '794px'; p.style.margin = '0'; p.style.border = '0'; p.style.borderRadius = '0'; p.style.boxShadow = 'none'; });
         palco.appendChild(clone);
@@ -2289,7 +2311,7 @@
             margin: 0,
             filename: nome,
             image: { type: 'jpeg', quality: 0.94 },
-            html2canvas: { scale: 2, useCORS: true, scrollX: 0, scrollY: 0, backgroundColor: '#ffffff', windowWidth: 794 },
+            html2canvas: { scale: 2, useCORS: true, scrollX: 0, scrollY: 0, backgroundColor: '#ffffff', windowWidth: 794, windowHeight: 1123 },
             jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait', compress: true },
             pagebreak: { mode: ['css'], avoid: ['.doc-tabela', '.grafico-caixa', '.doc-metrica', '.doc-alerta', '.doc-assinaturas'] }
           }).from(clone).save();

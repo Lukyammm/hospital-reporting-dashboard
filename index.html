@@ -563,9 +563,9 @@
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9V3h12v6M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2M6 14h12v7H6z"/></svg>
         <span>Imprimir</span>
       </button>
-      <button class="botao primario" type="button" id="btn-pdf" title="Salvar como PDF pelo navegador (texto vetorial)">
+      <button class="botao primario" type="button" id="btn-pdf" title="Baixar o relatório em PDF (A4)">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12m0 0 4-4m-4 4-4-4M4 21h16"/></svg>
-        <span>Salvar PDF</span>
+        <span>Baixar PDF</span>
       </button>
       <button class="botao" type="button" id="btn-admin" title="Administração do relatório">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .34 1.87l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.7 1.7 0 0 0-1.87-.34 1.7 1.7 0 0 0-1.03 1.56V21a2 2 0 1 1-4 0v-.09a1.7 1.7 0 0 0-1.12-1.56 1.7 1.7 0 0 0-1.87.34l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.7 1.7 0 0 0 .34-1.87 1.7 1.7 0 0 0-1.56-1.03H3a2 2 0 1 1 0-4h.09a1.7 1.7 0 0 0 1.56-1.12 1.7 1.7 0 0 0-.34-1.87l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.7 1.7 0 0 0 1.87.34h.01A1.7 1.7 0 0 0 10 3.09V3a2 2 0 1 1 4 0v.09a1.7 1.7 0 0 0 1.03 1.56 1.7 1.7 0 0 0 1.87-.34l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.7 1.7 0 0 0-.34 1.87v.01A1.7 1.7 0 0 0 20.91 10H21a2 2 0 1 1 0 4h-.09a1.7 1.7 0 0 0-1.51 1z"/></svg>
@@ -710,6 +710,7 @@
 
     /* ================= Constantes e estado ================= */
     const APP_URL = '<?!= appUrl ?>';
+    const HTML2PDF_SRC = 'https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js';
 
     // Índices posicionais de cada registro do dataset compacto da CRP (ver Code.gs).
     const R = { ano: 0, mes: 1, status: 2, unidade: 3, eixo: 4, categoria: 5, satisfacao: 6, flags: 7, num: 8, den: 9, res: 10 };
@@ -761,6 +762,7 @@
       textos: {},                  // chave → { manual: bool, valor: string }
       incluirAnexo: true,
       ocupado: false,
+      pdfLoader: null,
       cargaSeq: 0,
       adminCarregado: false,
       adminPodeEditar: true
@@ -838,6 +840,18 @@
         veu.addEventListener('keydown', ev => { if (ev.key === 'Escape') fim(false); });
         document.body.appendChild(veu);
         veu.querySelector('[data-cancela]').focus();
+      });
+    }
+
+    function carregarScript(src, nomeGlobal) {
+      return new Promise((resolve, reject) => {
+        if (nomeGlobal && window[nomeGlobal]) return resolve(window[nomeGlobal]);
+        const s = document.createElement('script');
+        s.src = src;
+        s.async = true;
+        s.onload = () => resolve(nomeGlobal ? window[nomeGlobal] : true);
+        s.onerror = () => reject(new Error('Não foi possível carregar a biblioteca de PDF (sem acesso ao CDN). Use o botão Imprimir e escolha "Salvar como PDF".'));
+        document.head.appendChild(s);
       });
     }
 
@@ -2262,6 +2276,14 @@
     /* ================= Exportação ================= */
     async function baixarPdf(botao) {
       if (!state.dados) return;
+      // A CRO sai branca com o html2pdf (rasterização dos SVGs), então usa a
+      // impressão nativa do navegador. A CRP é paginada corretamente pelo
+      // html2pdf — manter cada relatório no mecanismo em que funciona.
+      if (state.comissao === 'CRO') return imprimirComoPdf(botao);
+      return gerarPdfHtml2pdf(botao);
+    }
+
+    async function imprimirComoPdf(botao) {
       botao.disabled = true;
       const conteudoOriginal = botao.innerHTML;
       botao.innerHTML = '<span class="spinner" aria-hidden="true"></span><span>Abrindo…</span>';
@@ -2272,6 +2294,70 @@
       } catch (erro) {
         console.error(erro);
         toast(erro.message || 'Não foi possível abrir a janela de impressão.', 'erro', 'PDF');
+      } finally {
+        botao.disabled = false;
+        botao.innerHTML = conteudoOriginal;
+      }
+    }
+
+    async function gerarPdfHtml2pdf(botao) {
+      botao.disabled = true;
+      const conteudoOriginal = botao.innerHTML;
+      botao.innerHTML = '<span class="spinner" aria-hidden="true"></span><span>Gerando…</span>';
+      try {
+        if (!state.pdfLoader) state.pdfLoader = carregarScript(HTML2PDF_SRC, 'html2pdf');
+        const html2pdf = await state.pdfLoader;
+        if (document.fonts && document.fonts.ready) { try { await document.fonts.ready; } catch (_) {} }
+        const origem = $('documento');
+        const clone = origem.cloneNode(true);
+        clone.querySelectorAll('.no-print, .botao-restaurar').forEach(n => n.remove());
+        clone.querySelectorAll('[contenteditable]').forEach(n => n.removeAttribute('contenteditable'));
+        // Preserva ids internos de SVG (gradientes referenciados por url(#...)).
+        clone.querySelectorAll('[id]').forEach(n => { if (!n.closest('svg')) n.removeAttribute('id'); });
+        // Mantem o clone ancorado em (0,0). Em alguns navegadores, capturar
+        // um elemento em left:-9999px desloca o canvas e corta o PDF.
+        const palco = document.createElement('div');
+        palco.style.cssText = 'position:fixed;left:0;top:0;width:794px;z-index:-1;background:#fff;pointer-events:none';
+        clone.style.cssText = 'width:794px;margin:0;background:#fff';
+        clone.querySelectorAll('.pagina').forEach(p => { p.style.width = '794px'; p.style.margin = '0'; p.style.border = '0'; p.style.borderRadius = '0'; p.style.boxShadow = 'none'; });
+        palco.appendChild(clone);
+        document.body.appendChild(palco);
+        // html2canvas falha ao rasterizar SVG com largura percentual (vira
+        // branco). Com o clone já renderizado a 794px, fixamos cada SVG no
+        // seu tamanho real — preservando a largura da coluna no documento.
+        clone.querySelectorAll('svg').forEach(svg => {
+          const r = svg.getBoundingClientRect();
+          let w = r.width, h = r.height;
+          if (!(w > 0 && h > 0)) {
+            const vb = (svg.getAttribute('viewBox') || '').trim().split(/\s+/);
+            w = parseFloat(vb[2]); h = parseFloat(vb[3]);
+          }
+          if (w > 0 && h > 0) {
+            svg.setAttribute('width', Math.round(w));
+            svg.setAttribute('height', Math.round(h));
+            svg.style.width = Math.round(w) + 'px';
+            svg.style.height = Math.round(h) + 'px';
+            svg.style.maxWidth = 'none';
+            svg.style.minHeight = '0';
+          }
+        });
+        const nome = `relatorio-${state.comissao.toLowerCase()}-${new Date().toISOString().slice(0, 10)}.pdf`;
+        try {
+          await html2pdf().set({
+            margin: 0,
+            filename: nome,
+            image: { type: 'jpeg', quality: 0.94 },
+            html2canvas: { scale: 2, useCORS: true, scrollX: 0, scrollY: 0, backgroundColor: '#ffffff', windowWidth: 794, windowHeight: 1123 },
+            jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait', compress: true },
+            pagebreak: { mode: ['css'], avoid: ['.doc-tabela', '.grafico-caixa', '.doc-metrica', '.doc-alerta', '.doc-assinaturas'] }
+          }).from(clone).save();
+          toast('PDF gerado em A4.', 'sucesso', 'PDF');
+        } finally {
+          palco.remove();
+        }
+      } catch (erro) {
+        console.error(erro);
+        toast(erro.message || 'Não foi possível gerar o PDF.', 'erro', 'PDF');
       } finally {
         botao.disabled = false;
         botao.innerHTML = conteudoOriginal;

@@ -227,6 +227,10 @@
     .opcao-doc { display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 600; cursor: pointer; user-select: none; }
     .opcao-doc input { accent-color: var(--brand); }
     .nota-comissao { font-size: 11.5px; color: var(--suave); }
+    .seletor-comissao { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; background: var(--fundo); border: 1px solid var(--linha); border-radius: 9px; padding: 3px; margin-bottom: 8px; }
+    .seletor-opcao { border: 0; background: transparent; border-radius: 7px; padding: 7px 10px; font-size: 13px; font-weight: 700; color: var(--suave); cursor: pointer; transition: background .12s ease, color .12s ease; }
+    .seletor-opcao:hover { color: var(--tinta); }
+    .seletor-opcao.ativo { background: var(--brand); color: #fff; box-shadow: 0 1px 3px rgba(15,118,110,.3); }
 
     /* ===== Área do documento ===== */
     .palco { display: grid; gap: 14px; min-width: 0; }
@@ -574,7 +578,7 @@
     <aside class="lateral no-print" aria-label="Recorte e opções">
       <section class="cartao" aria-label="Resumo do recorte">
         <div class="cartao-cab"><h2>Resumo do recorte</h2></div>
-        <div class="cartao-corpo">
+        <div class="cartao-corpo" id="resumo-corpo">
           <div class="resumo-principal">
             <strong id="res-taxa">--</strong>
             <span class="rotulo-principal">prontuários bons<br>ou excelentes</span>
@@ -600,7 +604,11 @@
           <button class="botao" type="button" id="btn-limpar" style="min-height:28px;padding:3px 10px;font-size:12px">Limpar</button>
         </div>
         <div class="cartao-corpo">
-          <div class="nota-comissao">Comissão <b>CRP</b> · registros assistenciais. CRO será habilitada em versão futura.</div>
+          <div class="seletor-comissao" id="seletor-comissao" role="tablist" aria-label="Comissão">
+            <button type="button" class="seletor-opcao ativo" data-comissao="CRP" role="tab" aria-selected="true">CRP</button>
+            <button type="button" class="seletor-opcao" data-comissao="CRO" role="tab" aria-selected="false">CRO</button>
+          </div>
+          <div class="nota-comissao" id="nota-comissao">Comissão <b>CRP</b> · Revisão de Prontuários (conformidade dos registros).</div>
           <div class="filtros-pilha" id="filtros"></div>
           <div class="chips-ativos" id="chips"></div>
         </div>
@@ -702,26 +710,52 @@
     const APP_URL = '<?!= appUrl ?>';
     const HTML2PDF_SRC = 'https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js';
 
-    // Índices posicionais de cada registro do dataset compacto (ver Code.gs).
+    // Índices posicionais de cada registro do dataset compacto da CRP (ver Code.gs).
     const R = { ano: 0, mes: 1, status: 2, unidade: 3, eixo: 4, categoria: 5, satisfacao: 6, flags: 7, num: 8, den: 9, res: 10 };
+    // Índices posicionais do dataset da CRO (ver montarPayloadDadosCRO no Code.gs).
+    const RC = { ano: 0, mes: 1, unidade: 2, avaliacao: 3, evento: 4, sexo: 5, faixa: 6, macro: 7, origem: 8, comorb: 9, dias: 10, idade: 11 };
 
     const MES_ORDEM = {
       'Janeiro': 1, 'Fevereiro': 2, 'Março': 3, 'Abril': 4, 'Maio': 5, 'Junho': 6,
       'Julho': 7, 'Agosto': 8, 'Setembro': 9, 'Outubro': 10, 'Novembro': 11, 'Dezembro': 12
     };
+    const ordenarMes = (a, b) => (MES_ORDEM[a] || 99) - (MES_ORDEM[b] || 99) || a.localeCompare(b, 'pt-BR');
+    const ordenarAno = (a, b) => Number(a) - Number(b) || a.localeCompare(b, 'pt-BR');
 
-    const FILTROS = [
-      { id: 'anos', rotulo: 'Ano', curto: 'Ano', idx: R.ano, ordenar: (a, b) => Number(a) - Number(b) || a.localeCompare(b, 'pt-BR') },
-      { id: 'meses', rotulo: 'Mês', curto: 'Mês', idx: R.mes, ordenar: (a, b) => (MES_ORDEM[a] || 99) - (MES_ORDEM[b] || 99) || a.localeCompare(b, 'pt-BR') },
+    const FILTROS_CRP = [
+      { id: 'anos', rotulo: 'Ano', curto: 'Ano', idx: R.ano, ordenar: ordenarAno },
+      { id: 'meses', rotulo: 'Mês', curto: 'Mês', idx: R.mes, ordenar: ordenarMes },
       { id: 'unidades', rotulo: 'Setor', curto: 'Setor', idx: R.unidade }
     ];
+    const FILTROS_CRO = [
+      { id: 'anosCRO', rotulo: 'Ano', curto: 'Ano', idx: RC.ano, ordenar: ordenarAno },
+      { id: 'mesesCRO', rotulo: 'Mês', curto: 'Mês', idx: RC.mes, ordenar: ordenarMes },
+      { id: 'unidadesCRO', rotulo: 'Unidade do óbito', curto: 'Unidade', idx: RC.unidade }
+    ];
+    // FILTROS aponta sempre para a comissão ativa (mantém compatibilidade com o
+    // código da CRP, que referencia FILTROS diretamente).
+    let FILTROS = FILTROS_CRP;
+    function filtrosAtuais() { return state.comissao === 'CRO' ? FILTROS_CRO : FILTROS_CRP; }
+
+    const COMISSOES = {
+      CRP: { sigla: 'CRP', titulo: 'Relatório Analítico da CRP', nomeLongo: 'Comissão de Revisão de Prontuários' },
+      CRO: { sigla: 'CRO', titulo: 'Relatório Analítico da CRO', nomeLongo: 'Comissão de Revisão de Óbitos' }
+    };
+    function comissaoInfo() { return COMISSOES[state.comissao] || COMISSOES.CRP; }
 
     const CHAVES_TEXTO = ['intro', 'metodo', 'analise', 'plano', 'conclusao'];
-    const TITULOS_TEXTO = { intro: 'Introdução', metodo: 'Metodologia', analise: 'Análise crítica', plano: 'Plano de ação recomendado', conclusao: 'Conclusão' };
+    const CHAVES_TEXTO_CRO = ['apresentacao', 'epidemiologia', 'indicadores', 'acoes', 'conclusaoCRO'];
+    const CHAVES_TEXTO_TODAS = CHAVES_TEXTO.concat(CHAVES_TEXTO_CRO);
+    const TITULOS_TEXTO = {
+      intro: 'Introdução', metodo: 'Metodologia', analise: 'Análise crítica', plano: 'Plano de ação recomendado', conclusao: 'Conclusão',
+      apresentacao: 'Apresentação dos resultados', epidemiologia: 'Perfil epidemiológico', indicadores: 'Indicadores gerenciados', acoes: 'Ações planejadas e desenvolvidas', conclusaoCRO: 'Conclusão'
+    };
     const TIPO_ROTULO = { executivo: 'Relatório executivo', tecnico: 'Relatório técnico', sintese: 'Síntese executiva' };
 
     const state = {
-      dados: null,                 // payload de obterDadosRelatorio
+      comissao: 'CRP',             // CRP | CRO — tema/comissão ativo
+      dados: null,                 // payload da comissão ativa
+      cacheDados: {},              // comissão → payload já carregado
       sel: {},                     // id do filtro → Set de valores selecionados
       textos: {},                  // chave → { manual: bool, valor: string }
       incluirAnexo: true,
@@ -730,8 +764,8 @@
       adminCarregado: false,
       adminPodeEditar: true
     };
-    FILTROS.forEach(f => { state.sel[f.id] = new Set(); });
-    CHAVES_TEXTO.forEach(k => { state.textos[k] = { manual: false, valor: '' }; });
+    FILTROS_CRP.concat(FILTROS_CRO).forEach(f => { state.sel[f.id] = new Set(); });
+    CHAVES_TEXTO_TODAS.forEach(k => { state.textos[k] = { manual: false, valor: '' }; });
 
     // Persistência local das edições manuais: o texto padrão continua na
     // memória do app; o que o usuário altera é guardado em tempo real no
@@ -740,7 +774,7 @@
     function salvarTextosLocais() {
       try {
         const dados = {};
-        CHAVES_TEXTO.forEach(k => { if (state.textos[k] && state.textos[k].manual) dados[k] = state.textos[k].valor; });
+        CHAVES_TEXTO_TODAS.forEach(k => { if (state.textos[k] && state.textos[k].manual) dados[k] = state.textos[k].valor; });
         localStorage.setItem(TEXTOS_STORE, JSON.stringify(dados));
       } catch (e) { /* armazenamento indisponível: segue só em memória */ }
     }
@@ -748,7 +782,7 @@
     function carregarTextosLocais() {
       try {
         const dados = JSON.parse(localStorage.getItem(TEXTOS_STORE) || '{}');
-        CHAVES_TEXTO.forEach(k => {
+        CHAVES_TEXTO_TODAS.forEach(k => {
           if (dados && typeof dados[k] === 'string') state.textos[k] = { manual: true, valor: dados[k] };
         });
       } catch (e) { /* ignora dados corrompidos */ }
@@ -825,19 +859,24 @@
     }
 
     /* ================= Comunicação com o Apps Script ================= */
-    function rpcDados(refresh) {
+    function rpcDados(refresh, comissao) {
+      const cro = comissao === 'CRO';
       if (window.google && google.script && google.script.run) {
         return new Promise((resolve, reject) => {
-          google.script.run.withSuccessHandler(resolve).withFailureHandler(reject).obterDadosRelatorio({ refresh: Boolean(refresh) });
+          const run = google.script.run.withSuccessHandler(resolve).withFailureHandler(reject);
+          if (cro) run.obterDadosRelatorioCRO({ refresh: Boolean(refresh) });
+          else run.obterDadosRelatorio({ refresh: Boolean(refresh) });
         });
       }
-      const query = refresh ? '?api=dados&refresh=1' : '?api=dados';
-      return fetch(`${APP_URL || location.pathname}${query}`, { cache: 'no-store' })
+      const params = ['api=dados'];
+      if (cro) params.push('comissao=CRO');
+      if (refresh) params.push('refresh=1');
+      return fetch(`${APP_URL || location.pathname}?${params.join('&')}`, { cache: 'no-store' })
         .then(r => r.ok ? r.json() : Promise.reject(new Error('Falha ao carregar os dados do relatório.')));
     }
 
-    async function carregarDados(refresh) {
-      const payload = await comTimeout(rpcDados(refresh), 60000, 'A planilha demorou demais para responder. Tente novamente.');
+    async function carregarDados(refresh, comissao) {
+      const payload = await comTimeout(rpcDados(refresh, comissao), 60000, 'A planilha demorou demais para responder. Tente novamente.');
       if (!payload || payload.success === false) {
         throw new Error((payload && (payload.mensagem || payload.detalhe)) || 'Resposta inválida do Apps Script.');
       }
@@ -1088,24 +1127,24 @@
     /* ================= Montagem do documento ================= */
     function cabecalhoDoc(tokens) {
       const cfg = state.dados.config;
-      const tipo = TIPO_ROTULO[cfg.tipoRelatorio] || TIPO_ROTULO.executivo;
+      const info = comissaoInfo();
       return `<header class="doc-cab">
         <div class="doc-cab-marca">
           ${cfg.logoUrl ? `<img class="doc-logo" src="${esc(cfg.logoUrl)}" alt="" onerror="this.remove()">` : ''}
           <div style="min-width:0">
-            <h2>Relatório Analítico da ${esc(tokens.comissao)}</h2>
-            <p class="doc-cab-sub">Comissão de Revisão de Prontuários · ${esc(tokens.periodo)}</p>
+            <h2>Relatório Analítico da ${esc(info.sigla)}</h2>
+            <p class="doc-cab-sub">${esc(info.nomeLongo)} · ${esc(tokens.periodo)}</p>
           </div>
         </div>
-        <div class="doc-cab-meta">Gerado em ${new Date().toLocaleDateString('pt-BR')}<br>Fonte: Base de dados da ${esc(tokens.comissao)}</div>
+        <div class="doc-cab-meta">Gerado em ${new Date().toLocaleDateString('pt-BR')}<br>Fonte: Base de dados da ${esc(info.sigla)}</div>
       </header>`;
     }
 
     function rodapeDoc(pagina, total) {
       const cfg = state.dados.config;
-      const comissao = state.dados.base.comissao || 'CRP';
+      const info = comissaoInfo();
       return `<footer class="doc-rodape">
-        <span>${esc(comissao)} · Comissão de Revisão de Prontuários</span>
+        <span>${esc(info.sigla)} · ${esc(info.nomeLongo)}</span>
         ${cfg.rodapeUrl ? `<img src="${esc(cfg.rodapeUrl)}" alt="" onerror="this.remove()">` : ''}
         <span>Página ${pagina} de ${total}</span>
       </footer>`;
@@ -1524,9 +1563,14 @@
         paginas.push(montarPagina(tokens, 5, totalPaginas, pagina5));
       }
       $('documento').innerHTML = paginas.join('');
+      ligarTextosEditaveis(tokens, () => tokensAtuais(agregar(registrosFiltrados())));
+    }
 
-      // O texto entra via textContent (não innerHTML): preserva quebras de
-      // linha do contenteditable e elimina qualquer risco de injeção.
+    // Conecta as seções editáveis (contenteditable) do documento ao estado.
+    // O texto entra via textContent (não innerHTML): preserva quebras de linha
+    // e elimina qualquer risco de injeção. recalcTokens() recompõe os tokens
+    // quando o usuário restaura uma seção para o automático.
+    function ligarTextosEditaveis(tokens, recalcTokens) {
       document.querySelectorAll('[data-texto]').forEach(div => {
         const chave = div.dataset.texto;
         div.textContent = textoAtual(chave, tokens);
@@ -1543,7 +1587,7 @@
           state.textos[chave] = { manual: false, valor: '' };
           salvarTextosLocais();
           const div = document.querySelector(`[data-texto="${chave}"]`);
-          if (div) div.textContent = textoAtual(chave, tokensAtuais(agregar(registrosFiltrados())));
+          if (div) div.textContent = textoAtual(chave, recalcTokens());
           marcarEdicao(chave, false);
           toast(`Texto de "${TITULOS_TEXTO[chave]}" voltou ao automático.`, 'info', 'Texto');
         });
@@ -1559,6 +1603,361 @@
       if (!btn) return;
       btn.classList.toggle('editado', editado);
       btn.textContent = editado ? '✎ editado · restaurar' : '↺ automático';
+    }
+
+    /* ============================================================
+       RELATÓRIO CRO — agregação, gráficos e documento
+       A CRO analisa óbitos: cada registro é um óbito com unidade,
+       status da 1ª avaliação, evento adverso e o perfil
+       epidemiológico (sexo, faixa etária, macrorregião, origem,
+       comorbidades e tempo de permanência). Todo o cálculo é feito
+       no navegador a partir do dataset compacto (índices em RC).
+       ============================================================ */
+    const FAIXA_ETARIA_ORDEM = ['<= 19 ANOS', '20 A 29 ANOS', '30 A 39 ANOS', '40 A 49 ANOS', '50 A 59 ANOS', '60 A 69 ANOS', '70 A 79 ANOS', '80 A 89 ANOS', '90 A 99 ANOS', '>= 100 ANOS'];
+    // Categorias para tokenizar o campo livre de comorbidades. Cada óbito
+    // conta no máximo uma vez por categoria; a busca é por palavra-chave no
+    // texto normalizado (sem acento, maiúsculas).
+    const COMORBIDADES_CATEGORIAS = [
+      { rotulo: 'Hipertensão (HAS)', termos: ['HAS', 'HIPERTENS'] },
+      { rotulo: 'Diabetes (DM)', termos: ['DM', 'DIABET'] },
+      { rotulo: 'Câncer / Neoplasia', termos: ['CANCER', 'NEOPLAS', 'TUMOR', 'CA DE', 'METASTA', 'ONCOLOG'] },
+      { rotulo: 'Cardiopatia', termos: ['CARDIOPAT', 'DAC', 'ICC', 'IAM', 'INSUF CARD', 'FA CRONICA', 'CHAGAS', 'VALVOPAT', 'MCP'] },
+      { rotulo: 'DPOC / Pneumopatia', termos: ['DPOC', 'ENFISEM', 'PNEUMOPAT', 'ASMA'] },
+      { rotulo: 'Doença renal (DRC)', termos: ['DRC', 'RENAL', 'DIALIS', 'DAOP'] },
+      { rotulo: 'AVC / Doença cerebrovascular', termos: ['AVC', 'AVE', 'AVCI', 'CEREBROVASC'] },
+      { rotulo: 'Hepatopatia', termos: ['HEPATOPAT', 'CIRROS', 'HEPATIC', 'FIGADO', 'ENCEFALOPATIA HEPAT'] },
+      { rotulo: 'Demência / Alzheimer', termos: ['DEMENC', 'ALZHEIM'] },
+      { rotulo: 'Tabagismo', termos: ['TABAG'] },
+      { rotulo: 'Etilismo', termos: ['ETIL', 'ALCOOL', 'ALCOOLIC'] },
+      { rotulo: 'Obesidade', termos: ['OBES', 'IMC'] }
+    ];
+    const TEMPO_PERMANENCIA_FAIXAS = [
+      { rotulo: '0 a 3 dias', min: 0, max: 3 },
+      { rotulo: '4 a 7 dias', min: 4, max: 7 },
+      { rotulo: '8 a 15 dias', min: 8, max: 15 },
+      { rotulo: '16 a 30 dias', min: 16, max: 30 },
+      { rotulo: '> 30 dias', min: 31, max: Infinity }
+    ];
+
+    function normTxt(v) {
+      return String(v == null ? '' : v).trim().toUpperCase()
+        .normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+    }
+    function obitoAnalisado(avaliacao) {
+      const t = normTxt(avaliacao);
+      if (!t || t === 'NAO' || t === 'NAO INFORMADO' || t.indexOf('NAO ') === 0) return false;
+      return t.indexOf('SIM') === 0 || t.indexOf('LONDRES') !== -1 || t.indexOf('CONCLU') !== -1 || t === 'S';
+    }
+    function obitoLondres(avaliacao) { return normTxt(avaliacao).indexOf('LONDRES') !== -1; }
+    function obitoComEvento(evento) {
+      const t = normTxt(evento);
+      return !!t && t !== 'NAO' && t.indexOf('EVENTO') !== -1;
+    }
+
+    function distribuicaoSimples(regs, idx, ordenarPorOrdem) {
+      const mapa = {};
+      regs.forEach(r => { const v = r[idx] || 'Não informado'; mapa[v] = (mapa[v] || 0) + 1; });
+      let itens = Object.keys(mapa).map(rotulo => ({ rotulo, valor: mapa[rotulo] }));
+      if (ordenarPorOrdem) {
+        itens.sort((a, b) => {
+          const ia = ordenarPorOrdem.indexOf(a.rotulo), ib = ordenarPorOrdem.indexOf(b.rotulo);
+          return (ia === -1 ? 99 : ia) - (ib === -1 ? 99 : ib) || b.valor - a.valor;
+        });
+      } else {
+        itens.sort((a, b) => b.valor - a.valor || a.rotulo.localeCompare(b.rotulo, 'pt-BR'));
+      }
+      return itens;
+    }
+
+    function distribuicaoComorbidades(regs) {
+      const cont = {};
+      COMORBIDADES_CATEGORIAS.forEach(c => { cont[c.rotulo] = 0; });
+      let comRegistro = 0;
+      regs.forEach(r => {
+        const txt = normTxt(r[RC.comorb]);
+        if (!txt || txt === 'NAO' || txt === 'SEM REGISTRO' || txt === 'SEM INFORMACOES' || txt === 'DESCONHECE' || txt === 'SEM INFORMACAO') return;
+        comRegistro++;
+        COMORBIDADES_CATEGORIAS.forEach(c => {
+          if (c.termos.some(t => txt.indexOf(t) !== -1)) cont[c.rotulo]++;
+        });
+      });
+      const itens = COMORBIDADES_CATEGORIAS.map(c => ({ rotulo: c.rotulo, valor: cont[c.rotulo] }))
+        .filter(i => i.valor > 0).sort((a, b) => b.valor - a.valor);
+      return { itens, comRegistro };
+    }
+
+    function distribuicaoPermanencia(regs) {
+      const cont = TEMPO_PERMANENCIA_FAIXAS.map(f => ({ rotulo: f.rotulo, valor: 0 }));
+      let comDado = 0, soma = 0;
+      regs.forEach(r => {
+        const d = r[RC.dias];
+        if (d == null || Number.isNaN(Number(d))) return;
+        comDado++; soma += Number(d);
+        const fi = TEMPO_PERMANENCIA_FAIXAS.findIndex(f => d >= f.min && d <= f.max);
+        if (fi >= 0) cont[fi].valor++;
+      });
+      return { itens: cont.filter(i => i.valor > 0), comDado, media: comDado ? soma / comDado : null };
+    }
+
+    function agregarCRO(regs) {
+      const cfg = state.dados.config;
+      const total = regs.length;
+      let analisados = 0, naoAnalisados = 0, londres = 0, eventos = 0;
+      const evoMap = {};
+      regs.forEach(r => {
+        const an = obitoAnalisado(r[RC.avaliacao]);
+        if (an) analisados++; else naoAnalisados++;
+        if (obitoLondres(r[RC.avaliacao])) londres++;
+        if (obitoComEvento(r[RC.evento])) eventos++;
+        const ano = r[RC.ano], mes = r[RC.mes];
+        if (MES_ORDEM[mes]) {
+          const chave = ano + ' ' + mes;
+          if (!evoMap[chave]) evoMap[chave] = { ano, mes, total: 0, analisados: 0, londres: 0 };
+          evoMap[chave].total++;
+          if (an) evoMap[chave].analisados++;
+          if (obitoLondres(r[RC.avaliacao])) evoMap[chave].londres++;
+        }
+      });
+
+      const evolucao = Object.values(evoMap)
+        .sort((a, b) => (Number(a.ano) - Number(b.ano)) || (MES_ORDEM[a.mes] - MES_ORDEM[b.mes]))
+        .map(e => ({
+          ano: e.ano, mes: e.mes, total: e.total, analisados: e.analisados, londres: e.londres,
+          taxaAnalisados: e.total ? Number(((e.analisados / e.total) * 100).toFixed(1)) : null,
+          taxaLondres: e.total ? Number(((e.londres / e.total) * 100).toFixed(1)) : null
+        }));
+
+      const meta = Number(cfg.metaInstitucional || 100);
+      const taxaAnalisados = total ? Number(((analisados / total) * 100).toFixed(1)) : null;
+      return {
+        total, analisados, naoAnalisados, londres, eventos,
+        taxaAnalisados, diferencaMeta: taxaAnalisados == null ? null : Number((taxaAnalisados - meta).toFixed(1)),
+        taxaLondres: total ? Number(((londres / total) * 100).toFixed(1)) : null,
+        metaInstitucional: meta,
+        evolucao,
+        porUnidade: distribuicaoSimples(regs, RC.unidade),
+        porSexo: distribuicaoSimples(regs, RC.sexo),
+        porFaixa: distribuicaoSimples(regs, RC.faixa, FAIXA_ETARIA_ORDEM),
+        porMacro: distribuicaoSimples(regs, RC.macro),
+        porOrigem: distribuicaoSimples(regs, RC.origem),
+        comorbidades: distribuicaoComorbidades(regs),
+        permanencia: distribuicaoPermanencia(regs)
+      };
+    }
+
+    /* ===== Gráficos da CRO ===== */
+    // Barras horizontais com rótulo, valor e % sobre o total da própria série.
+    function svgBarrasCRO(itens, opcoes) {
+      opcoes = opcoes || {};
+      const limite = opcoes.limite || 12;
+      const cor = opcoes.cor || '#0f766e';
+      const lista = itens.slice(0, limite);
+      if (!lista.length) return `<div style="display:grid;place-items:center;height:120px;color:var(--suave);font-size:11px">Sem dados no recorte selecionado.</div>`;
+      const totalBase = opcoes.total != null ? opcoes.total : itens.reduce((s, i) => s + i.valor, 0);
+      const maxValor = Math.max(1, ...lista.map(i => i.valor));
+      const linhaAlt = 26, gap = 8, padX = 4, rotuloW = 150, valorW = 92;
+      const larguraBarra = 520 - rotuloW - valorW - padX * 2;
+      const H = lista.length * (linhaAlt + gap);
+      const linhas = lista.map((it, i) => {
+        const y = i * (linhaAlt + gap);
+        const w = Math.max(2, (it.valor / maxValor) * larguraBarra);
+        const pct = totalBase ? fmtPct((it.valor / totalBase) * 100) : '';
+        return `<g transform="translate(0 ${y})">
+          <text x="${padX}" y="${linhaAlt / 2 + 4}" font-size="13" fill="#3a4b4e" font-weight="600">${esc(cortar(it.rotulo, 24))}</text>
+          <rect x="${rotuloW}" y="3" width="${w.toFixed(1)}" height="${linhaAlt - 6}" rx="4" fill="${cor}"/>
+          <text x="${rotuloW + larguraBarra + valorW - padX}" y="${linhaAlt / 2 + 4}" text-anchor="end" font-size="13" font-weight="700" fill="#1a2b2e">${fmtNum(it.valor)} · ${pct}</text>
+        </g>`;
+      }).join('');
+      return `<svg viewBox="0 0 520 ${H}" role="img" width="100%" style="max-width:520px">${linhas}</svg>`;
+    }
+    function cortar(txt, n) { txt = String(txt || ''); return txt.length > n ? txt.slice(0, n - 1) + '…' : txt; }
+
+    // Linha de evolução de um indicador (0–100%) com linha de meta — mesma
+    // identidade visual do gráfico de conformidade da CRP.
+    function svgLinhaCRO(serie, meta, rotuloMeta) {
+      const W = 480, H = 220, mx = 44, mt = 24, mb = 40, mr = 24;
+      const aw = W - mx - mr, ah = H - mt - mb;
+      const pts0 = serie.filter(p => p.valor != null);
+      if (!pts0.length) return `<div style="display:grid;place-items:center;height:${H}px;color:var(--suave);font-size:11px">Sem meses com dados no recorte selecionado.</div>`;
+      const ultimo = serie.length - 1;
+      const x = i => serie.length === 1 ? mx + aw / 2 : mx + (aw * i) / ultimo;
+      const y = v => mt + ah - (ah * Math.max(0, Math.min(100, v))) / 100;
+      const fmtRot = v => String(v).replace('.', ',');
+      const ancora = i => i === 0 ? 'start' : i === ultimo ? 'end' : 'middle';
+      const grade = [0, 25, 50, 75, 100].map(v =>
+        `<line x1="${mx}" y1="${y(v)}" x2="${W - mr}" y2="${y(v)}" stroke="${v === 0 ? '#d8e2e0' : '#edf2f1'}" stroke-width="1"/>` +
+        `<text x="${mx - 6}" y="${y(v) + 4}" text-anchor="end" font-size="13" fill="#9db0b3">${v}</text>`).join('');
+      const pts = serie.map((e, i) => e.valor == null ? null : [Math.round(x(i)), Math.round(y(e.valor))]);
+      const segs = []; let atual = [];
+      pts.forEach(p => { if (p) atual.push(p); else if (atual.length) { segs.push(atual); atual = []; } });
+      if (atual.length) segs.push(atual);
+      const linha = segs.map(s => s.length === 1
+        ? `<circle cx="${s[0][0]}" cy="${s[0][1]}" r="3" fill="#0f766e"/>`
+        : `<polyline points="${s.map(p => p.join(',')).join(' ')}" fill="none" stroke="#0f766e" stroke-width="2.6" stroke-linejoin="round" stroke-linecap="round"/>`).join('');
+      const mostraValores = serie.length <= 13;
+      const marcadores = serie.map((e, i) => e.valor == null ? '' :
+        `<circle cx="${pts[i][0]}" cy="${pts[i][1]}" r="4.5" fill="#0f766e" stroke="#ffffff" stroke-width="2"/>` +
+        (mostraValores ? `<text x="${pts[i][0]}" y="${pts[i][1] - 12}" text-anchor="${ancora(i)}" font-size="14" font-weight="800" fill="#0b5a54">${fmtRot(e.valor)}%</text>` : '')).join('');
+      const passo = Math.max(1, Math.ceil(serie.length / 12));
+      const rotulos = serie.map((e, i) => {
+        const viradaAno = i === 0 || serie[i - 1].ano !== e.ano;
+        if (!(viradaAno || i % passo === 0)) return '';
+        const aa = String(e.ano).slice(-2);
+        const px = i === 0 ? mx : i === ultimo ? W - mr : x(i);
+        return `<text x="${px}" y="${H - 12}" text-anchor="${ancora(i)}" font-size="13" font-weight="600" fill="#5d6f73">${esc(String(e.mes).slice(0, 3))}/${esc(aa)}</text>`;
+      }).join('');
+      let linhaMeta = '';
+      if (meta != null) {
+        const yMeta = y(meta);
+        linhaMeta = `<line x1="${mx}" y1="${yMeta}" x2="${W - mr}" y2="${yMeta}" stroke="#b45709" stroke-width="1.4" stroke-dasharray="5 4" opacity=".8"/>` +
+          `<rect x="${mx}" y="${yMeta - 18}" width="92" height="16" rx="8" fill="#fdf3e3"/>` +
+          `<text x="${mx + 46}" y="${yMeta - 6}" text-anchor="middle" font-size="11" font-weight="800" fill="#b45709">${esc(rotuloMeta || ('META ' + fmtRot(meta) + '%'))}</text>`;
+      }
+      return `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Evolução mensal do indicador">${grade}${linha}${linhaMeta}${marcadores}${rotulos}</svg>`;
+    }
+
+    /* ===== Tokens e textos da CRO ===== */
+    function periodoTextoCRO() {
+      const anos = [...state.sel.anosCRO];
+      const meses = [...state.sel.mesesCRO].sort(ordenarMes);
+      const txtAnos = anos.length ? anos.sort().join(', ') : 'todos os anos';
+      const txtMeses = meses.length ? meses.join(', ') : 'todos os meses';
+      return `${txtMeses} de ${txtAnos}`;
+    }
+    function tokensAtuaisCRO(rel) {
+      const unidadeTop = rel.porUnidade[0];
+      const faixaTop = rel.porFaixa.slice().sort((a, b) => b.valor - a.valor)[0];
+      const macroTop = rel.porMacro.filter(m => m.rotulo !== 'Não informado')[0] || rel.porMacro[0];
+      const sexoM = rel.porSexo.find(s => s.rotulo === 'Masculino');
+      const sexoF = rel.porSexo.find(s => s.rotulo === 'Feminino');
+      const comorb = rel.comorbidades.itens.slice(0, 4).map(c => `${c.rotulo} (${fmtNum(c.valor)})`).join('; ') || 'sem comorbidades registradas no recorte';
+      const pctDe = it => it && rel.total ? `${fmtNum(it.valor)} (${fmtPct((it.valor / rel.total) * 100)})` : '0';
+      return {
+        comissao: 'CRO',
+        periodo: periodoTextoCRO(),
+        totalObitos: fmtNum(rel.total),
+        analisados: fmtNum(rel.analisados),
+        taxaAnalisados: fmtPct(rel.taxaAnalisados),
+        taxaLondres: fmtPct(rel.taxaLondres),
+        londres: fmtNum(rel.londres),
+        eventosAdversos: fmtNum(rel.eventos),
+        unidadeTop: unidadeTop ? unidadeTop.rotulo : '—',
+        unidadeTopPct: unidadeTop && rel.total ? fmtPct((unidadeTop.valor / rel.total) * 100) : 'N/A',
+        faixaTop: faixaTop ? faixaTop.rotulo.toLowerCase() : '—',
+        macroTop: macroTop ? macroTop.rotulo : '—',
+        sexoMasculino: pctDe(sexoM),
+        sexoFeminino: pctDe(sexoF),
+        comorbidadesTop: comorb,
+        metaInstitucional: fmtPct(rel.metaInstitucional)
+      };
+    }
+
+    /* ===== Documento da CRO ===== */
+    function caixaGraficoCRO(titulo, conteudo, full) {
+      return `<div class="grafico-caixa"${full ? ' style="grid-column: 1 / -1"' : ''}><h4>${esc(titulo)}</h4>${conteudo}</div>`;
+    }
+
+    function indicadorEvolucaoCRO(rel) {
+      const serieAval = rel.evolucao.map(e => ({ ano: e.ano, mes: e.mes, valor: e.taxaAnalisados }));
+      const serieLon = rel.evolucao.map(e => ({ ano: e.ano, mes: e.mes, valor: e.taxaLondres }));
+      const temEvol = rel.evolucao.length >= 1;
+      const tabela = rel.evolucao.length >= 2 ? `<div class="doc-tabela"><table>
+        <thead><tr><th>Período</th><th class="num">Óbitos</th><th class="num">Analisados</th><th class="num">Tx. avaliação</th><th class="num">A esclarecer</th></tr></thead>
+        <tbody>${rel.evolucao.map(e => `<tr><td>${esc(rotuloPeriodo(e.ano, e.mes))}</td><td class="num">${fmtNum(e.total)}</td><td class="num">${fmtNum(e.analisados)}</td><td class="num">${seloPct(e.taxaAnalisados)}</td><td class="num">${fmtNum(e.londres)}</td></tr>`).join('')}
+        <tr class="linha-total"><td>Consolidado</td><td class="num">${fmtNum(rel.total)}</td><td class="num">${fmtNum(rel.analisados)}</td><td class="num">${seloPct(rel.taxaAnalisados)}</td><td class="num">${fmtNum(rel.londres)}</td></tr></tbody></table></div>` : '';
+      return `<section class="doc-graficos">
+          ${temEvol ? caixaGraficoCRO('Taxa de avaliação de óbitos (1ª análise)', svgLinhaCRO(serieAval, rel.metaInstitucional, 'META ' + String(rel.metaInstitucional).replace('.', ',') + '%'), true) : ''}
+          ${temEvol ? caixaGraficoCRO('Taxa de óbitos "a esclarecer" (Protocolo de Londres)', svgLinhaCRO(serieLon, null), true) : ''}
+        </section>${tabela}`;
+    }
+
+    function renderDocumentoCRO(rel) {
+      const tokens = tokensAtuaisCRO(rel);
+      const totalPaginas = 3;
+      const deltaOk = rel.diferencaMeta == null ? true : rel.diferencaMeta >= 0;
+      const permNota = rel.permanencia.media != null
+        ? `<p style="margin:6px 0 0;font-size:11px;color:var(--suave)">Tempo médio de permanência: ${rel.permanencia.media.toLocaleString('pt-BR', { maximumFractionDigits: 1 })} dias (${fmtNum(rel.permanencia.comDado)} óbitos com data).</p>` : '';
+      const comorbNota = rel.comorbidades.comRegistro
+        ? `<p style="margin:6px 0 0;font-size:11px;color:var(--suave)">Base: ${fmtNum(rel.comorbidades.comRegistro)} óbitos com comorbidade registrada. Um óbito pode ter mais de uma comorbidade.</p>` : '';
+
+      const pagina1 = `
+        <section class="doc-capa">
+          <div>
+            <h1 class="doc-titulo">Gerenciamento das análises dos óbitos</h1>
+            <p class="doc-recorte">Recorte: ${esc(tokens.periodo)}.</p>
+            <div class="doc-legendas">
+              <p class="doc-legendas-titulo">Como ler os números</p>
+              <div class="doc-legenda"><b>Taxa de avaliação</b> — óbitos analisados na 1ª avaliação ÷ total de óbitos.</div>
+              <div class="doc-legenda"><b>A esclarecer</b> — óbitos encaminhados à 2ª avaliação (Protocolo de Londres).</div>
+              <div class="doc-legenda"><b>Evento adverso</b> — óbito com evento adverso grave/moderado contribuinte.</div>
+              <div class="doc-legenda"><b>Meta institucional</b> — alvo de avaliação de óbitos definido pela instituição.</div>
+            </div>
+          </div>
+          <aside class="doc-placar">
+            <strong>${fmtNum(rel.total)}</strong>
+            <span>óbitos no recorte</span>
+            <small class="${deltaOk ? 'ok' : 'ruim'}">Avaliação ${fmtPct(rel.taxaAnalisados)}${rel.diferencaMeta == null ? '' : ` · ${rel.diferencaMeta >= 0 ? '+' : ''}${String(rel.diferencaMeta).replace('.', ',')} p.p. vs meta ${fmtPct(rel.metaInstitucional)}`}</small>
+          </aside>
+        </section>
+        <section class="doc-metricas">
+          <article class="doc-metrica"><span>Óbitos</span><strong>${fmtNum(rel.total)}</strong></article>
+          <article class="doc-metrica"><span>Analisados (1ª aval.)</span><strong style="color:var(--brand)">${fmtNum(rel.analisados)}</strong></article>
+          <article class="doc-metrica"><span>Taxa de avaliação</span><strong>${fmtPct(rel.taxaAnalisados)}</strong></article>
+          <article class="doc-metrica"><span>A esclarecer (Londres)</span><strong>${fmtNum(rel.londres)}</strong></article>
+          <article class="doc-metrica"><span>Eventos adversos</span><strong style="color:var(--vermelho)">${fmtNum(rel.eventos)}</strong></article>
+        </section>
+        ${secaoTexto(1, 'apresentacao')}
+        ${alertasEstruturaDoc()}`;
+
+      const pagina2 = `
+        ${secaoTexto(2, 'epidemiologia')}
+        <section class="doc-graficos">
+          ${caixaGraficoCRO('Óbitos por unidade', svgBarrasCRO(rel.porUnidade, { total: rel.total }), true)}
+          ${caixaGraficoCRO('Sexo', svgBarrasCRO(rel.porSexo, { total: rel.total }))}
+          ${caixaGraficoCRO('Faixa etária', svgBarrasCRO(rel.porFaixa, { total: rel.total }))}
+          ${caixaGraficoCRO('Macrorregião de origem', svgBarrasCRO(rel.porMacro, { total: rel.total }))}
+          ${caixaGraficoCRO('Tempo de permanência', svgBarrasCRO(rel.permanencia.itens, { total: rel.permanencia.comDado }))}
+          ${caixaGraficoCRO('Unidade de origem', svgBarrasCRO(rel.porOrigem, { total: rel.total, limite: 10 }), true)}
+          ${caixaGraficoCRO('Comorbidades mais frequentes', svgBarrasCRO(rel.comorbidades.itens, { total: rel.comorbidades.comRegistro, limite: 12 }), true)}
+        </section>
+        ${permNota}${comorbNota}`;
+
+      const pagina3 = `
+        ${secaoTexto(3, 'indicadores')}
+        ${indicadorEvolucaoCRO(rel)}
+        ${secaoTexto(4, 'acoes')}
+        ${secaoTexto(5, 'conclusaoCRO')}
+        <div class="doc-assinaturas">
+          <div class="assinatura"><div class="linha-ass">Presidente da Comissão de Revisão de Óbitos</div></div>
+        </div>`;
+
+      $('documento').innerHTML = [
+        montarPagina(tokens, 1, totalPaginas, pagina1),
+        montarPagina(tokens, 2, totalPaginas, pagina2),
+        montarPagina(tokens, 3, totalPaginas, pagina3)
+      ].join('');
+      ligarTextosEditaveis(tokens, () => tokensAtuaisCRO(agregarCRO(registrosFiltrados())));
+    }
+
+    /* ===== Resumo lateral da CRO ===== */
+    function renderResumoCRO(rel) {
+      const corpo = $('resumo-corpo');
+      const ok = rel.diferencaMeta == null ? true : rel.diferencaMeta >= 0;
+      const deltaTxt = rel.diferencaMeta == null ? 'sem meses com dados' : `${ok ? '+' : ''}${String(rel.diferencaMeta).replace('.', ',')} p.p. vs meta`;
+      corpo.innerHTML = `
+        <div class="resumo-principal">
+          <strong>${fmtPct(rel.taxaAnalisados)}</strong>
+          <span class="rotulo-principal">óbitos avaliados<br>(1ª análise)</span>
+        </div>
+        <div class="linha-conf"><span>Total de óbitos <b>${fmtNum(rel.total)}</b></span><span class="delta ${ok ? 'ok' : 'ruim'}">${deltaTxt}</span></div>
+        <div class="barra-meta"><i style="width:${Math.max(0, Math.min(100, rel.taxaAnalisados || 0))}%"></i><b style="left:${Math.max(0, Math.min(100, rel.metaInstitucional))}%"></b></div>
+        <div class="resumo-grade">
+          <div class="resumo-celula"><span>Analisados</span><strong style="color:var(--brand)">${fmtNum(rel.analisados)}</strong></div>
+          <div class="resumo-celula"><span>A esclarecer</span><strong>${fmtNum(rel.londres)}</strong></div>
+          <div class="resumo-celula"><span>Eventos adversos</span><strong style="color:var(--vermelho)">${fmtNum(rel.eventos)}</strong></div>
+          <div class="resumo-celula"><span>Não analisados</span><strong>${fmtNum(rel.naoAnalisados)}</strong></div>
+        </div>
+        ${(state.dados.base.alertasEstrutura || []).length ? `<div class="aviso-estrutura ativo"><span aria-hidden="true">⚠</span><span>${(state.dados.base.alertasEstrutura || []).length} alerta(s) de estrutura na base — detalhes no documento.</span></div>` : ''}`;
     }
 
     /* ================= Painel lateral: resumo e filtros ================= */
@@ -1625,8 +2024,11 @@
           renderListaFiltro(id, busca.value);
         }));
       });
-      document.addEventListener('click', fecharFiltros);
-      document.addEventListener('keydown', ev => { if (ev.key === 'Escape') fecharFiltros(); });
+      if (!construirFiltros._globais) {
+        construirFiltros._globais = true;
+        document.addEventListener('click', fecharFiltros);
+        document.addEventListener('keydown', ev => { if (ev.key === 'Escape') fecharFiltros(); });
+      }
     }
 
     function fecharFiltros() {
@@ -1691,18 +2093,60 @@
     }
 
     /* ================= Orquestração ================= */
+    // Guarda o HTML original do resumo da CRP para restaurar ao voltar de CRO.
+    let resumoCRPHtml = null;
+    function garantirResumoCRP() {
+      if (resumoCRPHtml == null) return;
+      if (!$('res-taxa')) $('resumo-corpo').innerHTML = resumoCRPHtml;
+    }
+
     function renderTudo() {
       if (!state.dados) return;
-      const rel = agregar(registrosFiltrados());
-      renderResumo(rel);
-      renderGatilhos();
-      renderChips();
-      renderDocumento(rel);
+      if (state.comissao === 'CRO') {
+        const rel = agregarCRO(registrosFiltrados());
+        renderResumoCRO(rel);
+        renderGatilhos();
+        renderChips();
+        renderDocumentoCRO(rel);
+      } else {
+        garantirResumoCRP();
+        const rel = agregar(registrosFiltrados());
+        renderResumo(rel);
+        renderGatilhos();
+        renderChips();
+        renderDocumento(rel);
+      }
       const alertas = (state.dados.base.alertasEstrutura || []).length;
       $('topo-status').textContent = `Fonte: ${state.dados.base.aba || 'não localizada'} · ${fmtNum(state.dados.base.totalRegistros)} registros · ${state.dados.geradoEm}${alertas ? ` · ⚠ ${alertas} alerta(s)` : ''}`;
     }
 
     const aoMudarFiltro = debounce(() => renderTudo(), 60);
+
+    // Troca de comissão/tema (CRP ↔ CRO). Reaponta filtros, reconstrói a UI e
+    // carrega o dataset da comissão (com cache em memória por comissão).
+    async function trocarComissao(nova) {
+      if (nova === state.comissao) return;
+      if (!COMISSOES[nova]) return;
+      state.comissao = nova;
+      FILTROS = filtrosAtuais();
+      // Seletor e textos auxiliares
+      document.querySelectorAll('#seletor-comissao .seletor-opcao').forEach(b => {
+        const on = b.dataset.comissao === nova;
+        b.classList.toggle('ativo', on);
+        b.setAttribute('aria-selected', on ? 'true' : 'false');
+      });
+      const info = comissaoInfo();
+      $('topo-titulo').textContent = info.titulo;
+      $('nota-comissao').innerHTML = nova === 'CRO'
+        ? 'Comissão <b>CRO</b> · Revisão de Óbitos (análise dos óbitos e perfil epidemiológico).'
+        : 'Comissão <b>CRP</b> · Revisão de Prontuários (conformidade dos registros).';
+      // Opções de documento que só fazem sentido na CRP
+      const optAnexo = $('opt-anexo') && $('opt-anexo').closest('.opcao-doc');
+      if (optAnexo) optAnexo.style.display = nova === 'CRO' ? 'none' : '';
+      construirFiltros();
+      if (nova === 'CRP') garantirResumoCRP();
+      await iniciar(false);
+    }
 
     function definirEstado(texto, erro = false) {
       const caixa = $('estado');
@@ -1717,12 +2161,20 @@
     }
 
     async function iniciar(refresh = false) {
+      const comissao = state.comissao;
       definirEstado(refresh ? 'Relendo a base na planilha…' : 'Lendo a base na planilha…');
       $('btn-atualizar').disabled = true;
       try {
-        state.dados = await carregarDados(refresh);
-        // Limpa seleções que deixaram de existir após uma atualização da base.
-        FILTROS.forEach(def => {
+        // Cache em memória por comissão: trocar de tema não relê a planilha
+        // toda vez; "Atualizar" força a releitura.
+        if (!refresh && state.cacheDados[comissao]) {
+          state.dados = state.cacheDados[comissao];
+        } else {
+          state.dados = await carregarDados(refresh, comissao);
+          state.cacheDados[comissao] = state.dados;
+        }
+        // Limpa seleções que deixaram de existir na base carregada.
+        filtrosAtuais().forEach(def => {
           const validos = new Set(state.dados.base.registros.map(r => r[def.idx]));
           state.sel[def.id] = new Set([...state.sel[def.id]].filter(v => validos.has(v)));
         });
@@ -1759,7 +2211,7 @@
         clone.querySelectorAll('.pagina').forEach(p => { p.style.margin = '0 auto'; p.style.border = '0'; p.style.borderRadius = '0'; p.style.boxShadow = 'none'; });
         palco.appendChild(clone);
         document.body.appendChild(palco);
-        const nome = `relatorio-crp-${new Date().toISOString().slice(0, 10)}.pdf`;
+        const nome = `relatorio-${state.comissao.toLowerCase()}-${new Date().toISOString().slice(0, 10)}.pdf`;
         try {
           await html2pdf().set({
             margin: 0,
@@ -1935,7 +2387,8 @@
         renderTudo();
       });
       $('btn-textos-padrao').addEventListener('click', () => {
-        CHAVES_TEXTO.forEach(k => { state.textos[k] = { manual: false, valor: '' }; });
+        const chaves = state.comissao === 'CRO' ? CHAVES_TEXTO_CRO : CHAVES_TEXTO;
+        chaves.forEach(k => { state.textos[k] = { manual: false, valor: '' }; });
         salvarTextosLocais();
         renderTudo();
         toast('Textos regenerados com os números do recorte atual.', 'sucesso', 'Texto');
@@ -1944,6 +2397,8 @@
         state.incluirAnexo = ev.target.checked;
         renderTudo();
       });
+      document.querySelectorAll('#seletor-comissao .seletor-opcao').forEach(b =>
+        b.addEventListener('click', () => trocarComissao(b.dataset.comissao)));
       $('btn-admin').addEventListener('click', abrirAdmin);
       $('admin-fechar').addEventListener('click', fecharAdmin);
       $('admin-veu').addEventListener('click', fecharAdmin);
@@ -1953,6 +2408,8 @@
       $('admin-form').addEventListener('submit', ev => { ev.preventDefault(); salvarAdmin(); });
     }
 
+    // Guarda o markup original do resumo da CRP antes de qualquer troca de tema.
+    resumoCRPHtml = $('resumo-corpo').innerHTML;
     construirFiltros();
     ligarEventos();
     iniciar(false);

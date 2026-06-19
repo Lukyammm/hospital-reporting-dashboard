@@ -287,6 +287,8 @@ function configPadraoRel() {
     metaInstitucional: META_INSTITUCIONAL,
     planilhaId: PLANILHAS.relatorios,
     abaNome: ABA_RELATORIO_CRP,
+    planilhaIdCRO: PLANILHAS.relatoriosCRO,
+    abaNomeCRO: ABA_RELATORIO_CRO,
     tipoRelatorio: 'executivo',
     logoUrl: LOGO_PADRAO,
     rodapeUrl: RODAPE_PADRAO,
@@ -479,6 +481,8 @@ function lerConfigRelDaAba(sh, padrao) {
     metaInstitucional: mapa['Meta institucional (%)'],
     planilhaId: mapa['ID da planilha do relatório'],
     abaNome: mapa['Aba da base CRP'],
+    planilhaIdCRO: mapa['ID da planilha da CRO'],
+    abaNomeCRO: mapa['Aba da base CRO'],
     tipoRelatorio: mapa['Tipo do relatório'],
     logoUrl: mapa['Logo do cabeçalho (URL)'],
     rodapeUrl: mapa['Imagem do rodapé (URL)'],
@@ -507,6 +511,8 @@ function escreverConfigRelNaAba(sh, cfg, observacao) {
     ['Meta institucional (%)', cfg.metaInstitucional],
     ['ID da planilha do relatório', cfg.planilhaId || PLANILHAS.relatorios],
     ['Aba da base CRP', cfg.abaNome || ABA_RELATORIO_CRP],
+    ['ID da planilha da CRO', cfg.planilhaIdCRO || PLANILHAS.relatoriosCRO],
+    ['Aba da base CRO', cfg.abaNomeCRO || ABA_RELATORIO_CRO],
     ['Tipo do relatório', cfg.tipoRelatorio || 'executivo'],
     ['Logo do cabeçalho (URL)', cfg.logoUrl || LOGO_PADRAO],
     ['Imagem do rodapé (URL)', cfg.rodapeUrl || RODAPE_PADRAO],
@@ -531,10 +537,11 @@ function escreverConfigRelNaAba(sh, cfg, observacao) {
   sh.getRange(1, 1, rows.length, 2).setValues(rows);
   aplicarLayoutAbaConfigRel(sh);
   try {
-    sh.getRange(21, 1, 1, 2).setFontWeight('bold').setBackground('#e4f5f2').setFontColor('#0b4f4a');
+    sh.getRange(23, 1, 1, 2).setFontWeight('bold').setBackground('#e4f5f2').setFontColor('#0b4f4a');
     sh.getRange(5, 2).setNote('Nome exato da aba que contém a base CRP.');
-    sh.getRange(9, 2, 5, 1).setNote('Use tokens como {comissao}, {periodo}, {setores}, {conformidadeGeral}, {taxaBonsExcelentes}, {excelentes}, {bons}, {criticos}, {fortalezas} e {metaInstitucional}.');
-    sh.getRange(14, 2, 3, 1).setNote('Um termo por linha. A comparação ignora maiúsculas/minúsculas e espaços extras.');
+    sh.getRange(7, 2).setNote('Nome exato da aba que contém a base CRO.');
+    sh.getRange(11, 2, 5, 1).setNote('Use tokens como {comissao}, {periodo}, {setores}, {conformidadeGeral}, {taxaBonsExcelentes}, {excelentes}, {bons}, {criticos}, {fortalezas} e {metaInstitucional}.');
+    sh.getRange(16, 2, 3, 1).setNote('Um termo por linha. A comparação ignora maiúsculas/minúsculas e espaços extras.');
   } catch (erro) {
     registrarErro('formatar-config-rel', erro);
   }
@@ -585,6 +592,8 @@ function mesclarConfigRel(padrao, salvo) {
   if (!Number.isNaN(meta) && meta >= 0 && meta <= 100) cfg.metaInstitucional = meta;
   if (salvo.planilhaId && String(salvo.planilhaId).trim()) cfg.planilhaId = String(salvo.planilhaId).trim();
   if (salvo.abaNome && String(salvo.abaNome).trim()) cfg.abaNome = String(salvo.abaNome).trim();
+  if (salvo.planilhaIdCRO && String(salvo.planilhaIdCRO).trim()) cfg.planilhaIdCRO = String(salvo.planilhaIdCRO).trim();
+  if (salvo.abaNomeCRO && String(salvo.abaNomeCRO).trim()) cfg.abaNomeCRO = String(salvo.abaNomeCRO).trim();
   if (salvo.tipoRelatorio && String(salvo.tipoRelatorio).trim()) cfg.tipoRelatorio = String(salvo.tipoRelatorio).trim();
   if (salvo.logoUrl != null && String(salvo.logoUrl).trim()) cfg.logoUrl = String(salvo.logoUrl).trim();
   if (salvo.rodapeUrl != null && String(salvo.rodapeUrl).trim()) cfg.rodapeUrl = String(salvo.rodapeUrl).trim();
@@ -929,8 +938,8 @@ function cabecalhoCROContemTermo(headerNorm, termo) {
 
 // Localiza a linha de cabeçalho (entre as primeiras linhas) e devolve o
 // índice da linha e o mapa campo→coluna, casando por nome.
-function mapearColunasCRO(values) {
-  const limite = Math.min(values.length, 8);
+function mapearColunasCRO(values, limiteLinhas) {
+  const limite = Math.min(values.length, limiteLinhas || 8);
   let melhor = null;
   for (let r = 0; r < limite; r++) {
     const headerNorm = (values[r] || []).map(c => normalizarCabecalho(c));
@@ -1026,24 +1035,36 @@ function montarPayloadDadosCRO(forcarRefresh) {
   const linhasBuscaCabecalho = Math.min(ultimaLinha, 30);
   const colunasBuscaCabecalho = Math.min(ultimaColunaPlanilha, 80);
   let amostraCabecalho = sh.getRange(1, 1, linhasBuscaCabecalho, colunasBuscaCabecalho).getValues();
-  let mapaInicial = mapearColunasCRO(amostraCabecalho);
-
-  if (mapaInicial.achados < 6 && linhasBuscaCabecalho < ultimaLinha) {
-    amostraCabecalho = sh.getRange(1, 1, ultimaLinha, colunasBuscaCabecalho).getValues();
-    mapaInicial = mapearColunasCRO(amostraCabecalho);
-  }
+  let mapaInicial = mapearColunasCRO(amostraCabecalho, linhasBuscaCabecalho);
 
   if (mapaInicial.achados < 6 && colunasBuscaCabecalho < ultimaColunaPlanilha) {
-    amostraCabecalho = sh.getRange(1, 1, ultimaLinha, ultimaColunaPlanilha).getValues();
-    mapaInicial = mapearColunasCRO(amostraCabecalho);
+    amostraCabecalho = sh.getRange(1, 1, linhasBuscaCabecalho, ultimaColunaPlanilha).getValues();
+    mapaInicial = mapearColunasCRO(amostraCabecalho, linhasBuscaCabecalho);
+  }
+
+  const alertas = [];
+  if (mapaInicial.achados < 6) {
+    alertas.push(`A base da CRO foi localizada em "${sh.getName()}", mas só ${mapaInicial.achados} colunas conhecidas foram reconhecidas no cabeçalho.`);
+    alertas.push('A leitura foi interrompida para evitar varrer a planilha inteira. Confira os cabeçalhos nas primeiras 30 linhas.');
+    return {
+      success: true,
+      geradoEm: carimboAgora(),
+      config: cfg,
+      base: {
+        comissao: 'CRO',
+        aba: sh.getName(),
+        totalRegistros: 0,
+        alertasEstrutura: alertas,
+        registros: []
+      }
+    };
   }
 
   const maiorColunaMapeada = Object.keys(mapaInicial.mapa).reduce((max, chave) => Math.max(max, mapaInicial.mapa[chave] || 0), 0);
   const ultimaColuna = Math.min(ultimaColunaPlanilha, Math.max(colunasBuscaCabecalho, maiorColunaMapeada + 1));
   const values = sh.getRange(1, 1, ultimaLinha, ultimaColuna).getValues();
-  const { linha: linhaHeader, mapa, achados } = mapearColunasCRO(values);
+  const { linha: linhaHeader, mapa, achados } = mapearColunasCRO(values, linhasBuscaCabecalho);
 
-  const alertas = [];
   if (achados < 6) {
     alertas.push(`A base da CRO foi localizada em "${sh.getName()}", mas só ${achados} colunas conhecidas foram reconhecidas no cabeçalho.`);
   }

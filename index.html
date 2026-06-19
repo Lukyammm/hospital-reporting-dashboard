@@ -1755,56 +1755,80 @@
       if (!lista.length) return `<div style="display:grid;place-items:center;height:120px;color:var(--suave);font-size:11px">Sem dados no recorte selecionado.</div>`;
       const totalBase = opcoes.total != null ? opcoes.total : itens.reduce((s, i) => s + i.valor, 0);
       const maxValor = Math.max(1, ...lista.map(i => i.valor));
-      const linhaAlt = 26, gap = 8, padX = 4, rotuloW = 150, valorW = 92;
-      const larguraBarra = 520 - rotuloW - valorW - padX * 2;
-      const H = lista.length * (linhaAlt + gap);
+      const W = 520, linhaAlt = 25, gap = 9, padX = 2, rotuloW = 148, valorW = 86;
+      const x0 = rotuloW;
+      const larguraBarra = W - rotuloW - valorW - padX;
+      const barH = linhaAlt - 9;
+      const H = lista.length * (linhaAlt + gap) - gap + 4;
       const linhas = lista.map((it, i) => {
         const y = i * (linhaAlt + gap);
-        const w = Math.max(2, (it.valor / maxValor) * larguraBarra);
+        const w = Math.max(3, (it.valor / maxValor) * larguraBarra);
         const pct = totalBase ? fmtPct((it.valor / totalBase) * 100) : '';
+        const cy = linhaAlt / 2 + 4;
         return `<g transform="translate(0 ${y})">
-          <text x="${padX}" y="${linhaAlt / 2 + 4}" font-size="13" fill="#3a4b4e" font-weight="600">${esc(cortar(it.rotulo, 24))}</text>
-          <rect x="${rotuloW}" y="3" width="${w.toFixed(1)}" height="${linhaAlt - 6}" rx="4" fill="${cor}"/>
-          <text x="${rotuloW + larguraBarra + valorW - padX}" y="${linhaAlt / 2 + 4}" text-anchor="end" font-size="13" font-weight="700" fill="#1a2b2e">${fmtNum(it.valor)} · ${pct}</text>
+          <text x="${padX}" y="${cy}" font-size="12.5" fill="#41524f" font-weight="600">${esc(cortar(it.rotulo, 22))}</text>
+          <rect x="${x0}" y="${(linhaAlt - barH) / 2 - 1}" width="${larguraBarra}" height="${barH}" rx="${barH / 2}" fill="#eef3f2"/>
+          <rect x="${x0}" y="${(linhaAlt - barH) / 2 - 1}" width="${w.toFixed(1)}" height="${barH}" rx="${barH / 2}" fill="${cor}"/>
+          <text x="${W - padX}" y="${cy}" text-anchor="end" font-size="12.5" font-weight="700" fill="#1a2b2e">${fmtNum(it.valor)}<tspan fill="#7c8d8f" font-weight="600"> · ${pct}</tspan></text>
         </g>`;
       }).join('');
-      return `<svg viewBox="0 0 520 ${H}" role="img" width="100%" style="max-width:520px">${linhas}</svg>`;
+      return `<svg viewBox="0 0 ${W} ${H}" role="img" width="100%" style="max-width:520px">${linhas}</svg>`;
     }
     function cortar(txt, n) { txt = String(txt || ''); return txt.length > n ? txt.slice(0, n - 1) + '…' : txt; }
 
     // Linha de evolução de um indicador (0–100%) com linha de meta — mesma
     // identidade visual do gráfico de conformidade da CRP.
     function svgLinhaCRO(serie, meta, rotuloMeta) {
-      const W = 480, H = 220, mx = 44, mt = 24, mb = 40, mr = 24;
+      const W = 480, H = 236, mx = 34, mt = 40, mb = 44, mr = 16;
       const aw = W - mx - mr, ah = H - mt - mb;
       const pts0 = serie.filter(p => p.valor != null);
       if (!pts0.length) return `<div style="display:grid;place-items:center;height:${H}px;color:var(--suave);font-size:11px">Sem meses com dados no recorte selecionado.</div>`;
+      const uid = 'cro' + Math.random().toString(36).slice(2, 8);
       const ultimo = serie.length - 1;
       const x = i => serie.length === 1 ? mx + aw / 2 : mx + (aw * i) / ultimo;
       const y = v => mt + ah - (ah * Math.max(0, Math.min(100, v))) / 100;
       const fmtRot = v => String(v).replace('.', ',');
       const ancora = i => i === 0 ? 'start' : i === ultimo ? 'end' : 'middle';
+
+      // Grade horizontal + escala do eixo Y (0–100%).
       const grade = [0, 25, 50, 75, 100].map(v =>
-        `<line x1="${mx}" y1="${y(v)}" x2="${W - mr}" y2="${y(v)}" stroke="${v === 0 ? '#d8e2e0' : '#edf2f1'}" stroke-width="1"/>` +
-        `<text x="${mx - 6}" y="${y(v) + 4}" text-anchor="end" font-size="13" fill="#9db0b3">${v}</text>`).join('');
-      const pts = serie.map((e, i) => e.valor == null ? null : [Math.round(x(i)), Math.round(y(e.valor))]);
+        `<line x1="${mx}" y1="${y(v).toFixed(1)}" x2="${W - mr}" y2="${y(v).toFixed(1)}" stroke="${v === 0 ? '#d3dddb' : '#eef3f2'}" stroke-width="1"/>` +
+        `<text x="${mx - 7}" y="${(y(v) + 4).toFixed(1)}" text-anchor="end" font-size="11" font-weight="600" fill="#a7b6b8">${v}</text>`).join('');
+
+      // Pontos e segmentos contínuos (quebrados onde não há dado).
+      const pts = serie.map((e, i) => e.valor == null ? null : [+x(i).toFixed(1), +y(e.valor).toFixed(1)]);
       const segs = []; let atual = [];
       pts.forEach(p => { if (p) atual.push(p); else if (atual.length) { segs.push(atual); atual = []; } });
       if (atual.length) segs.push(atual);
+
+      // Área preenchida sob a linha (gradiente suave) + a própria linha.
+      const yBase = y(0).toFixed(1);
+      const area = segs.filter(s => s.length > 1).map(s =>
+        `<polygon points="${s[0][0]},${yBase} ${s.map(p => p.join(',')).join(' ')} ${s[s.length - 1][0]},${yBase}" fill="url(#${uid})"/>`).join('');
       const linha = segs.map(s => s.length === 1
-        ? `<circle cx="${s[0][0]}" cy="${s[0][1]}" r="3" fill="#0f766e"/>`
+        ? `<circle cx="${s[0][0]}" cy="${s[0][1]}" r="3.5" fill="#0f766e"/>`
         : `<polyline points="${s.map(p => p.join(',')).join(' ')}" fill="none" stroke="#0f766e" stroke-width="2.6" stroke-linejoin="round" stroke-linecap="round"/>`).join('');
+      const circulos = serie.map((e, i) => e.valor == null ? '' :
+        `<circle cx="${pts[i][0]}" cy="${pts[i][1]}" r="4.2" fill="#ffffff" stroke="#0f766e" stroke-width="2.4"/>`).join('');
+
+      // Rótulos de valor: sempre acima da linha (o topo tem folga), com
+      // supressão por colisão horizontal (1º e último preservados).
       const mostraValores = serie.length <= 13;
-      const marcadores = serie.map((e, i) => e.valor == null ? '' :
-        `<circle cx="${pts[i][0]}" cy="${pts[i][1]}" r="4.5" fill="#0f766e" stroke="#ffffff" stroke-width="2"/>` +
-        (mostraValores ? `<text x="${pts[i][0]}" y="${pts[i][1] - 12}" text-anchor="${ancora(i)}" font-size="14" font-weight="800" fill="#0b5a54">${fmtRot(e.valor)}%</text>` : '')).join('');
-      // Rótulos do eixo X: dois passes para evitar colisão.
-      // 1º: calcula posição (esq, dir) de cada rótulo (~46px por "Mmm/AA").
-      // 2º: decide quais exibir — 1º e último sempre; intermediários só se
-      //     não encostarem no anterior visível NEM no último.
-      const labelW = 46;
-      const gap = 6;
-      const xFinal = W - mr;
+      const valW = 32, valGap = 4;
+      let valDir = -Infinity;
+      const valores = !mostraValores ? '' : serie.map((e, i) => {
+        if (e.valor == null) return '';
+        const px = pts[i][0], anc = ancora(i);
+        const esq = anc === 'start' ? px : anc === 'end' ? px - valW : px - valW / 2;
+        if (i !== 0 && i !== ultimo && esq - valDir < valGap) return '';
+        valDir = esq + valW;
+        const vy = Math.max(13, pts[i][1] - 11);
+        return `<text x="${px}" y="${vy.toFixed(1)}" text-anchor="${anc}" font-size="12.5" font-weight="800" fill="#0b5a54">${fmtRot(e.valor)}%</text>`;
+      }).join('');
+
+      // Rótulos do eixo X (dois passes anti-colisão): 1º e último sempre;
+      // intermediários só se não encostarem no anterior visível nem no último.
+      const labelW = 44, gap = 6, xFinal = W - mr;
       const posicoes = serie.map((e, i) => {
         const px = i === 0 ? mx : i === ultimo ? xFinal : x(i);
         const anc = ancora(i);
@@ -1815,20 +1839,31 @@
       let anteriorDir = -Infinity;
       const rotulos = posicoes.map((p, i) => {
         if (i !== 0 && i !== ultimo) {
-          if (p.esq - anteriorDir < gap) return '';          // encosta no anterior
-          if (ultimoPos.esq - p.dir < gap) return '';        // encosta no último
+          if (p.esq - anteriorDir < gap) return '';
+          if (ultimoPos.esq - p.dir < gap) return '';
         }
         anteriorDir = p.dir;
-        return `<text x="${p.px}" y="${H - 12}" text-anchor="${p.anc}" font-size="13" font-weight="600" fill="#5d6f73">${esc(p.mes)}/${esc(p.aa)}</text>`;
+        return `<text x="${p.px}" y="${H - 13}" text-anchor="${p.anc}" font-size="12.5" font-weight="600" fill="#5d6f73">${esc(p.mes)}/${esc(p.aa)}</text>`;
       }).join('');
+
+      // Linha de meta com a etiqueta no canto direito, abaixo da linha,
+      // longe dos rótulos de valor (que ficam acima).
       let linhaMeta = '';
       if (meta != null) {
         const yMeta = y(meta);
-        linhaMeta = `<line x1="${mx}" y1="${yMeta}" x2="${W - mr}" y2="${yMeta}" stroke="#b45709" stroke-width="1.4" stroke-dasharray="5 4" opacity=".8"/>` +
-          `<rect x="${mx}" y="${yMeta - 18}" width="92" height="16" rx="8" fill="#fdf3e3"/>` +
-          `<text x="${mx + 46}" y="${yMeta - 6}" text-anchor="middle" font-size="11" font-weight="800" fill="#b45709">${esc(rotuloMeta || ('META ' + fmtRot(meta) + '%'))}</text>`;
+        const txt = rotuloMeta || ('META ' + fmtRot(meta) + '%');
+        const pillW = Math.round(txt.length * 6.2 + 14);
+        const pillX = W - mr - pillW;
+        linhaMeta =
+          `<line x1="${mx}" y1="${yMeta.toFixed(1)}" x2="${W - mr}" y2="${yMeta.toFixed(1)}" stroke="#c2700f" stroke-width="1.4" stroke-dasharray="5 4" opacity=".85"/>` +
+          `<rect x="${pillX}" y="${(yMeta + 4).toFixed(1)}" width="${pillW}" height="15" rx="7.5" fill="#fbeccd"/>` +
+          `<text x="${(W - mr - pillW / 2).toFixed(1)}" y="${(yMeta + 14.5).toFixed(1)}" text-anchor="middle" font-size="10.5" font-weight="800" fill="#9a560b">${esc(txt)}</text>`;
       }
-      return `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Evolução mensal do indicador">${grade}${linha}${linhaMeta}${marcadores}${rotulos}</svg>`;
+
+      const defs = `<defs><linearGradient id="${uid}" x1="0" y1="0" x2="0" y2="1">` +
+        `<stop offset="0" stop-color="#0f766e" stop-opacity="0.16"/>` +
+        `<stop offset="1" stop-color="#0f766e" stop-opacity="0"/></linearGradient></defs>`;
+      return `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Evolução mensal do indicador">${defs}${grade}${area}${linha}${linhaMeta}${circulos}${valores}${rotulos}</svg>`;
     }
 
     /* ===== Tokens e textos da CRO ===== */
@@ -2229,22 +2264,23 @@
         clone.querySelectorAll('.pagina').forEach(p => { p.style.width = '794px'; p.style.margin = '0'; p.style.border = '0'; p.style.borderRadius = '0'; p.style.boxShadow = 'none'; });
         palco.appendChild(clone);
         document.body.appendChild(palco);
-        // html2canvas falha ao rasterizar SVG com largura percentual: extrai
-        // as dimensões do viewBox e fixa em px para evitar PDF branco.
-        clone.querySelectorAll('svg[viewBox]').forEach(svg => {
-          const vb = svg.getAttribute('viewBox');
-          if (vb) {
-            const parts = vb.trim().split(/\s+/);
-            const w = parseFloat(parts[2]);
-            const h = parseFloat(parts[3]);
-            if (w > 0 && h > 0) {
-              svg.setAttribute('width', w);
-              svg.setAttribute('height', h);
-              svg.style.width = w + 'px';
-              svg.style.height = h + 'px';
-              svg.style.maxWidth = 'none';
-              svg.style.minHeight = '0';
-            }
+        // html2canvas falha ao rasterizar SVG com largura percentual (vira
+        // branco). Com o clone já renderizado a 794px, fixamos cada SVG no
+        // seu tamanho real — preservando a largura da coluna no documento.
+        clone.querySelectorAll('svg').forEach(svg => {
+          const r = svg.getBoundingClientRect();
+          let w = r.width, h = r.height;
+          if (!(w > 0 && h > 0)) {
+            const vb = (svg.getAttribute('viewBox') || '').trim().split(/\s+/);
+            w = parseFloat(vb[2]); h = parseFloat(vb[3]);
+          }
+          if (w > 0 && h > 0) {
+            svg.setAttribute('width', Math.round(w));
+            svg.setAttribute('height', Math.round(h));
+            svg.style.width = Math.round(w) + 'px';
+            svg.style.height = Math.round(h) + 'px';
+            svg.style.maxWidth = 'none';
+            svg.style.minHeight = '0';
           }
         });
         const nome = `relatorio-${state.comissao.toLowerCase()}-${new Date().toISOString().slice(0, 10)}.pdf`;

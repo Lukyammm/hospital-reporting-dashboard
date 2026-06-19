@@ -1798,26 +1798,28 @@
       const marcadores = serie.map((e, i) => e.valor == null ? '' :
         `<circle cx="${pts[i][0]}" cy="${pts[i][1]}" r="4.5" fill="#0f766e" stroke="#ffffff" stroke-width="2"/>` +
         (mostraValores ? `<text x="${pts[i][0]}" y="${pts[i][1] - 12}" text-anchor="${ancora(i)}" font-size="14" font-weight="800" fill="#0b5a54">${fmtRot(e.valor)}%</text>` : '')).join('');
-      // Rótulos do eixo X com prevenção de colisão: o 1º e o último são
-      // sempre desenhados; os intermediários só aparecem se não encostarem
-      // no rótulo anterior já desenhado nem no último (largura ~46px por
-      // "Mmm/AA"). Evita a sobreposição tipo "Jan/2Fev/24".
+      // Rótulos do eixo X: dois passes para evitar colisão.
+      // 1º: calcula posição (esq, dir) de cada rótulo (~46px por "Mmm/AA").
+      // 2º: decide quais exibir — 1º e último sempre; intermediários só se
+      //     não encostarem no anterior visível NEM no último.
       const labelW = 46;
-      const margem = 7;
+      const gap = 6;
       const xFinal = W - mr;
-      let ultimoDir = -Infinity;
-      const rotulos = serie.map((e, i) => {
+      const posicoes = serie.map((e, i) => {
         const px = i === 0 ? mx : i === ultimo ? xFinal : x(i);
         const anc = ancora(i);
         const esq = anc === 'start' ? px : anc === 'end' ? px - labelW : px - labelW / 2;
-        const dir = esq + labelW;
+        return { px, anc, esq, dir: esq + labelW, aa: String(e.ano).slice(-2), mes: String(e.mes).slice(0, 3) };
+      });
+      const ultimoPos = posicoes[posicoes.length - 1];
+      let anteriorDir = -Infinity;
+      const rotulos = posicoes.map((p, i) => {
         if (i !== 0 && i !== ultimo) {
-          if (esq - ultimoDir < margem) return '';          // colaria no anterior
-          if ((xFinal - labelW) - esq < margem) return '';  // colaria no último
+          if (p.esq - anteriorDir < gap) return '';          // encosta no anterior
+          if (ultimoPos.esq - p.dir < gap) return '';        // encosta no último
         }
-        ultimoDir = dir;
-        const aa = String(e.ano).slice(-2);
-        return `<text x="${px}" y="${H - 12}" text-anchor="${anc}" font-size="13" font-weight="600" fill="#5d6f73">${esc(String(e.mes).slice(0, 3))}/${esc(aa)}</text>`;
+        anteriorDir = p.dir;
+        return `<text x="${p.px}" y="${H - 12}" text-anchor="${p.anc}" font-size="13" font-weight="600" fill="#5d6f73">${esc(p.mes)}/${esc(p.aa)}</text>`;
       }).join('');
       let linhaMeta = '';
       if (meta != null) {
@@ -2218,25 +2220,31 @@
         clone.querySelectorAll('[contenteditable]').forEach(n => n.removeAttribute('contenteditable'));
         // Preserva ids internos de SVG (gradientes referenciados por url(#...)).
         clone.querySelectorAll('[id]').forEach(n => { if (!n.closest('svg')) n.removeAttribute('id'); });
+        // O clone vai para fora da tela (left:-9999px) em vez de
+        // position:fixed com margin:auto, o que evita que html2canvas
+        // capture com offset errado e produza PDF cortado à esquerda.
         const palco = document.createElement('div');
-        palco.style.cssText = 'position:fixed;inset:0;z-index:2147483647;overflow:auto;background:#fff;pointer-events:none';
-        clone.style.cssText = 'width:210mm;margin:0 auto;background:#fff';
-        clone.querySelectorAll('.pagina').forEach(p => { p.style.margin = '0 auto'; p.style.border = '0'; p.style.borderRadius = '0'; p.style.boxShadow = 'none'; });
+        palco.style.cssText = 'position:absolute;left:-9999px;top:0;z-index:2147483647;background:#fff;pointer-events:none';
+        clone.style.cssText = 'width:794px;margin:0;background:#fff';
+        clone.querySelectorAll('.pagina').forEach(p => { p.style.width = '794px'; p.style.margin = '0'; p.style.border = '0'; p.style.borderRadius = '0'; p.style.boxShadow = 'none'; });
         palco.appendChild(clone);
         document.body.appendChild(palco);
-        // html2canvas falha ao rasterizar SVG com largura percentual (viewBox
-        // sem dimensão em px): o gráfico colapsa para zero e o PDF sai branco.
-        // Já com o clone no DOM e renderizado, fixamos largura/altura em px a
-        // partir do tamanho real de cada SVG.
-        clone.querySelectorAll('svg').forEach(svg => {
-          const r = svg.getBoundingClientRect();
-          if (r.width && r.height) {
-            svg.setAttribute('width', Math.round(r.width));
-            svg.setAttribute('height', Math.round(r.height));
-            svg.style.width = Math.round(r.width) + 'px';
-            svg.style.height = Math.round(r.height) + 'px';
-            svg.style.maxWidth = 'none';
-            svg.style.minHeight = '0';
+        // html2canvas falha ao rasterizar SVG com largura percentual: extrai
+        // as dimensões do viewBox e fixa em px para evitar PDF branco.
+        clone.querySelectorAll('svg[viewBox]').forEach(svg => {
+          const vb = svg.getAttribute('viewBox');
+          if (vb) {
+            const parts = vb.trim().split(/\s+/);
+            const w = parseFloat(parts[2]);
+            const h = parseFloat(parts[3]);
+            if (w > 0 && h > 0) {
+              svg.setAttribute('width', w);
+              svg.setAttribute('height', h);
+              svg.style.width = w + 'px';
+              svg.style.height = h + 'px';
+              svg.style.maxWidth = 'none';
+              svg.style.minHeight = '0';
+            }
           }
         });
         const nome = `relatorio-${state.comissao.toLowerCase()}-${new Date().toISOString().slice(0, 10)}.pdf`;
@@ -2245,7 +2253,7 @@
             margin: 0,
             filename: nome,
             image: { type: 'jpeg', quality: 0.94 },
-            html2canvas: { scale: 2, useCORS: true, scrollX: 0, scrollY: 0, backgroundColor: '#ffffff', windowWidth: Math.max(clone.scrollWidth, 794) },
+            html2canvas: { scale: 2, useCORS: true, scrollX: 0, scrollY: 0, backgroundColor: '#ffffff', windowWidth: 794 },
             jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait', compress: true },
             pagebreak: { mode: ['css'], avoid: ['.doc-tabela', '.grafico-caixa', '.doc-metrica', '.doc-alerta', '.doc-assinaturas'] }
           }).from(clone).save();

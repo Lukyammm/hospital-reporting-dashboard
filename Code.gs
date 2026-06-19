@@ -138,7 +138,7 @@ function doGet(e) {
   }
 
   if (params.api === 'configrel') {
-    return responderJson(obterConfigRelCRP(params.refresh === '1' || params.refresh === 'true'));
+    return responderJson(obterConfigRelAdmin(params.refresh === '1' || params.refresh === 'true'));
   }
 
   try {
@@ -273,6 +273,10 @@ const CONFIG_REL_LOG_SHEET = 'CRP_REL_CONFIG_LOG';
 const CONFIG_REL_SCHEMA_VERSION = '2.0';
 const CONFIG_REL_CACHE_KEY = 'CRP_REL_CONFIG_CACHE_V2';
 const CONFIG_REL_CACHE_TTL_SECONDS = 21600; // 6 horas
+const CONFIG_REL_CRO_PROP_KEY = 'CRO_REL_CONFIG_V1';
+const CONFIG_REL_CRO_SHEET = 'CRO_REL_CONFIG';
+const CONFIG_REL_CRO_LOG_SHEET = 'CRO_REL_CONFIG_LOG';
+const CONFIG_REL_CRO_CACHE_KEY = 'CRO_REL_CONFIG_CACHE_V1';
 
 const TEXTOS_PADRAO_REL = {
   intro: 'Este relatório apresenta a análise consolidada da comissão {comissao} para o período {periodo}, considerando {setores}. O objetivo é sintetizar o desempenho dos registros avaliados, evidenciar conformidades e não conformidades e apoiar decisões de melhoria contínua.',
@@ -287,8 +291,6 @@ function configPadraoRel() {
     metaInstitucional: META_INSTITUCIONAL,
     planilhaId: PLANILHAS.relatorios,
     abaNome: ABA_RELATORIO_CRP,
-    planilhaIdCRO: PLANILHAS.relatoriosCRO,
-    abaNomeCRO: ABA_RELATORIO_CRO,
     tipoRelatorio: 'executivo',
     logoUrl: LOGO_PADRAO,
     rodapeUrl: RODAPE_PADRAO,
@@ -481,8 +483,6 @@ function lerConfigRelDaAba(sh, padrao) {
     metaInstitucional: mapa['Meta institucional (%)'],
     planilhaId: mapa['ID da planilha do relatório'],
     abaNome: mapa['Aba da base CRP'],
-    planilhaIdCRO: mapa['ID da planilha da CRO'],
-    abaNomeCRO: mapa['Aba da base CRO'],
     tipoRelatorio: mapa['Tipo do relatório'],
     logoUrl: mapa['Logo do cabeçalho (URL)'],
     rodapeUrl: mapa['Imagem do rodapé (URL)'],
@@ -511,8 +511,6 @@ function escreverConfigRelNaAba(sh, cfg, observacao) {
     ['Meta institucional (%)', cfg.metaInstitucional],
     ['ID da planilha do relatório', cfg.planilhaId || PLANILHAS.relatorios],
     ['Aba da base CRP', cfg.abaNome || ABA_RELATORIO_CRP],
-    ['ID da planilha da CRO', cfg.planilhaIdCRO || PLANILHAS.relatoriosCRO],
-    ['Aba da base CRO', cfg.abaNomeCRO || ABA_RELATORIO_CRO],
     ['Tipo do relatório', cfg.tipoRelatorio || 'executivo'],
     ['Logo do cabeçalho (URL)', cfg.logoUrl || LOGO_PADRAO],
     ['Imagem do rodapé (URL)', cfg.rodapeUrl || RODAPE_PADRAO],
@@ -537,11 +535,10 @@ function escreverConfigRelNaAba(sh, cfg, observacao) {
   sh.getRange(1, 1, rows.length, 2).setValues(rows);
   aplicarLayoutAbaConfigRel(sh);
   try {
-    sh.getRange(23, 1, 1, 2).setFontWeight('bold').setBackground('#e4f5f2').setFontColor('#0b4f4a');
-    sh.getRange(5, 2).setNote('Nome exato da aba que contém a base CRP.');
-    sh.getRange(7, 2).setNote('Nome exato da aba que contém a base CRO.');
-    sh.getRange(11, 2, 5, 1).setNote('Use tokens como {comissao}, {periodo}, {setores}, {conformidadeGeral}, {taxaBonsExcelentes}, {excelentes}, {bons}, {criticos}, {fortalezas} e {metaInstitucional}.');
-    sh.getRange(16, 2, 3, 1).setNote('Um termo por linha. A comparação ignora maiúsculas/minúsculas e espaços extras.');
+    sh.getRange(21, 1, 1, 2).setFontWeight('bold').setBackground('#e4f5f2').setFontColor('#0b4f4a');
+    sh.getRange(5, 2).setNote('Nome exato da aba que contem a base CRP.');
+    sh.getRange(9, 2, 5, 1).setNote('Use tokens como {comissao}, {periodo}, {setores}, {conformidadeGeral}, {taxaBonsExcelentes}, {excelentes}, {bons}, {criticos}, {fortalezas} e {metaInstitucional}.');
+    sh.getRange(14, 2, 3, 1).setNote('Um termo por linha. A comparacao ignora maiusculas/minusculas e espacos extras.');
   } catch (erro) {
     registrarErro('formatar-config-rel', erro);
   }
@@ -592,8 +589,6 @@ function mesclarConfigRel(padrao, salvo) {
   if (!Number.isNaN(meta) && meta >= 0 && meta <= 100) cfg.metaInstitucional = meta;
   if (salvo.planilhaId && String(salvo.planilhaId).trim()) cfg.planilhaId = String(salvo.planilhaId).trim();
   if (salvo.abaNome && String(salvo.abaNome).trim()) cfg.abaNome = String(salvo.abaNome).trim();
-  if (salvo.planilhaIdCRO && String(salvo.planilhaIdCRO).trim()) cfg.planilhaIdCRO = String(salvo.planilhaIdCRO).trim();
-  if (salvo.abaNomeCRO && String(salvo.abaNomeCRO).trim()) cfg.abaNomeCRO = String(salvo.abaNomeCRO).trim();
   if (salvo.tipoRelatorio && String(salvo.tipoRelatorio).trim()) cfg.tipoRelatorio = String(salvo.tipoRelatorio).trim();
   if (salvo.logoUrl != null && String(salvo.logoUrl).trim()) cfg.logoUrl = String(salvo.logoUrl).trim();
   if (salvo.rodapeUrl != null && String(salvo.rodapeUrl).trim()) cfg.rodapeUrl = String(salvo.rodapeUrl).trim();
@@ -620,6 +615,238 @@ function mesclarConfigRel(padrao, salvo) {
   cfg.atualizadoEm = salvo.atualizadoEm || '';
   cfg.atualizadoPor = salvo.atualizadoPor || '';
   return cfg;
+}
+
+function mesclarConfigRelCRO(padrao, salvo) {
+  if (!salvo || typeof salvo !== 'object') return padrao;
+  const cfg = JSON.parse(JSON.stringify(padrao));
+  if (salvo.planilhaIdCRO && String(salvo.planilhaIdCRO).trim()) cfg.planilhaIdCRO = String(salvo.planilhaIdCRO).trim();
+  if (salvo.abaNomeCRO && String(salvo.abaNomeCRO).trim()) cfg.abaNomeCRO = String(salvo.abaNomeCRO).trim();
+  if (salvo.logoUrl != null && String(salvo.logoUrl).trim()) cfg.logoUrl = String(salvo.logoUrl).trim();
+  if (salvo.rodapeUrl != null && String(salvo.rodapeUrl).trim()) cfg.rodapeUrl = String(salvo.rodapeUrl).trim();
+  cfg.atualizadoEm = salvo.atualizadoEm || '';
+  cfg.atualizadoPor = salvo.atualizadoPor || '';
+  return cfg;
+}
+
+function configRelCROLegado(cfgCRP) {
+  const cfg = configPadraoRelCRO();
+  cfg.logoUrl = (cfgCRP && cfgCRP.logoUrl) || LOGO_PADRAO;
+  cfg.rodapeUrl = (cfgCRP && cfgCRP.rodapeUrl) || RODAPE_PADRAO;
+  if (cfgCRP && cfgCRP.planilhaIdCRO) cfg.planilhaIdCRO = cfgCRP.planilhaIdCRO;
+  if (cfgCRP && cfgCRP.abaNomeCRO) cfg.abaNomeCRO = cfgCRP.abaNomeCRO;
+  try {
+    const raw = PropertiesService.getScriptProperties().getProperty(CONFIG_REL_PROP_KEY);
+    if (raw) {
+      const antigo = JSON.parse(raw);
+      if (antigo.planilhaIdCRO) cfg.planilhaIdCRO = String(antigo.planilhaIdCRO).trim();
+      if (antigo.abaNomeCRO) cfg.abaNomeCRO = String(antigo.abaNomeCRO).trim();
+    }
+  } catch (erro) {
+    registrarErro('config-cro-legado-properties', erro);
+  }
+  try {
+    const ssConfig = obterPlanilhaConfiguracaoRel((cfgCRP && cfgCRP.planilhaId) || PLANILHAS.relatorios);
+    const sh = ssConfig.getSheetByName(CONFIG_REL_SHEET);
+    if (sh) {
+      const mapa = mapaLinhasConfigRel(sh);
+      if (mapa['ID da planilha da CRO']) cfg.planilhaIdCRO = String(mapa['ID da planilha da CRO']).trim();
+      if (mapa['Aba da base CRO']) cfg.abaNomeCRO = String(mapa['Aba da base CRO']).trim();
+    }
+  } catch (erro) {
+    registrarErro('config-cro-legado-aba-crp', erro);
+  }
+  return cfg;
+}
+
+function obterCacheConfigRelCRO() {
+  try {
+    const raw = CacheService.getScriptCache().get(CONFIG_REL_CRO_CACHE_KEY);
+    return raw ? JSON.parse(raw) : null;
+  } catch (erro) {
+    registrarErro('cache-config-rel-cro-get', erro);
+    return null;
+  }
+}
+
+function salvarCacheConfigRelCRO(cfg) {
+  try {
+    CacheService.getScriptCache().put(CONFIG_REL_CRO_CACHE_KEY, JSON.stringify(cfg), CONFIG_REL_CACHE_TTL_SECONDS);
+  } catch (erro) {
+    registrarErro('cache-config-rel-cro-put', erro);
+  }
+}
+
+function invalidarCacheConfigRelCRO() {
+  try {
+    CacheService.getScriptCache().remove(CONFIG_REL_CRO_CACHE_KEY);
+  } catch (erro) {
+    registrarErro('cache-config-rel-cro-remove', erro);
+  }
+}
+
+function obterConfigRelCRODePropertiesOuPadrao(padrao) {
+  try {
+    const raw = PropertiesService.getScriptProperties().getProperty(CONFIG_REL_CRO_PROP_KEY);
+    return raw ? mesclarConfigRelCRO(padrao, JSON.parse(raw)) : padrao;
+  } catch (erro) {
+    registrarErro('obter-config-rel-cro-properties', erro);
+    return padrao;
+  }
+}
+
+function mapaLinhasConfigRelCRO(sh) {
+  const values = sh.getDataRange().getValues();
+  const mapa = {};
+  values.forEach(row => {
+    const chave = String(row[0] || '').trim();
+    if (chave) mapa[chave] = row[1];
+  });
+  return mapa;
+}
+
+function lerConfigRelCRODaAba(sh, padrao) {
+  if (sh.getLastRow() < 2) {
+    escreverConfigRelCRONaAba(sh, padrao, 'Configuracao da CRO recriada porque a aba estava vazia');
+    return padrao;
+  }
+  const mapa = mapaLinhasConfigRelCRO(sh);
+  return mesclarConfigRelCRO(padrao, {
+    planilhaIdCRO: mapa['ID da planilha da CRO'],
+    abaNomeCRO: mapa['Aba da base CRO'],
+    logoUrl: mapa['Logo do cabecalho (URL)'] || mapa['Logo do cabeÃ§alho (URL)'],
+    rodapeUrl: mapa['Imagem do rodape (URL)'] || mapa['Imagem do rodapÃ© (URL)'],
+    atualizadoEm: mapa['Atualizado em'],
+    atualizadoPor: mapa['Atualizado por']
+  });
+}
+
+function aplicarLayoutAbaConfigRelCRO(sh) {
+  try {
+    sh.setTabColor('#2563eb');
+    sh.setFrozenRows(1);
+    sh.getRange('A1:B1')
+      .setValues([['Campo', 'Valor']])
+      .setFontWeight('bold')
+      .setBackground('#2563eb')
+      .setFontColor('#ffffff');
+    sh.setColumnWidths(1, 1, 260);
+    sh.setColumnWidths(2, 1, 520);
+    sh.getRange('A:B').setWrap(true).setVerticalAlignment('top');
+  } catch (erro) {
+    registrarErro('layout-config-rel-cro', erro);
+  }
+}
+
+function escreverConfigRelCRONaAba(sh, cfg, observacao) {
+  const rows = [
+    ['Campo', 'Valor'],
+    ['Versao do esquema', CONFIG_REL_SCHEMA_VERSION],
+    ['ID da planilha da CRO', cfg.planilhaIdCRO || PLANILHAS.relatoriosCRO],
+    ['Aba da base CRO', cfg.abaNomeCRO || ABA_RELATORIO_CRO],
+    ['Logo do cabecalho (URL)', cfg.logoUrl || LOGO_PADRAO],
+    ['Imagem do rodape (URL)', cfg.rodapeUrl || RODAPE_PADRAO],
+    ['Atualizado em', cfg.atualizadoEm || ''],
+    ['Atualizado por', cfg.atualizadoPor || ''],
+    ['Observacao', observacao || 'Configuracao exclusiva do relatorio da CRO.']
+  ];
+  sh.clear();
+  sh.getRange(1, 1, rows.length, 2).setValues(rows);
+  aplicarLayoutAbaConfigRelCRO(sh);
+  try {
+    sh.getRange(3, 2).setNote('ID da planilha que contem a base da CRO.');
+    sh.getRange(4, 2).setNote('Nome exato da aba que contem a base da CRO.');
+  } catch (erro) {
+    registrarErro('formatar-config-rel-cro', erro);
+  }
+}
+
+function obterOuCriarAbaConfigRelCRO(ss, padrao) {
+  let sh = ss.getSheetByName(CONFIG_REL_CRO_SHEET);
+  if (sh) return sh;
+  sh = ss.insertSheet(CONFIG_REL_CRO_SHEET);
+  escreverConfigRelCRONaAba(sh, padrao, 'Configuracao inicial da CRO criada automaticamente');
+  return sh;
+}
+
+function espelharConfigRelCROEmPropertiesSemCache(cfg) {
+  try {
+    PropertiesService.getScriptProperties().setProperty(CONFIG_REL_CRO_PROP_KEY, JSON.stringify(cfg));
+  } catch (erro) {
+    registrarErro('espelhar-config-rel-cro-properties', erro);
+  }
+}
+
+function espelharConfigRelCROEmProperties(cfg) {
+  espelharConfigRelCROEmPropertiesSemCache(cfg);
+  invalidarCacheConfigRelCRO();
+  salvarCacheConfigRelCRO(cfg);
+}
+
+function obterConfigRelCRO(forcarRefresh, cfgCRP) {
+  cfgCRP = cfgCRP || obterConfigRel(forcarRefresh === true);
+  const padrao = configRelCROLegado(cfgCRP);
+  if (forcarRefresh) invalidarCacheConfigRelCRO();
+  const cfgCache = forcarRefresh ? null : obterCacheConfigRelCRO();
+  if (cfgCache) return mesclarConfigRelCRO(padrao, cfgCache);
+
+  const cfgInicial = obterConfigRelCRODePropertiesOuPadrao(padrao);
+  try {
+    const ssCRO = abrirPlanilhaPorIdCache(cfgInicial.planilhaIdCRO || PLANILHAS.relatoriosCRO, 'de configuracao da CRO');
+    let sh = ssCRO.getSheetByName(CONFIG_REL_CRO_SHEET);
+    if (!sh) {
+      return executarComLockConfigRel('obter-config-rel-cro-criar-aba', () => {
+        sh = ssCRO.getSheetByName(CONFIG_REL_CRO_SHEET);
+        if (!sh) {
+          sh = ssCRO.insertSheet(CONFIG_REL_CRO_SHEET);
+          escreverConfigRelCRONaAba(sh, cfgInicial, 'Configuracao inicial da CRO criada automaticamente');
+          espelharConfigRelCROEmPropertiesSemCache(cfgInicial);
+        }
+        const cfgCriada = lerConfigRelCRODaAba(sh, cfgInicial) || cfgInicial;
+        salvarCacheConfigRelCRO(cfgCriada);
+        return cfgCriada;
+      });
+    }
+    const cfgPlanilha = lerConfigRelCRODaAba(sh, cfgInicial);
+    espelharConfigRelCROEmPropertiesSemCache(cfgPlanilha);
+    salvarCacheConfigRelCRO(cfgPlanilha);
+    return cfgPlanilha;
+  } catch (erro) {
+    registrarErro('obter-config-rel-cro-aba', erro);
+  }
+
+  salvarCacheConfigRelCRO(cfgInicial);
+  return cfgInicial;
+}
+
+function salvarConfigRelCRONaAba(cfg) {
+  const ssCRO = abrirPlanilhaPorIdCache(cfg.planilhaIdCRO || PLANILHAS.relatoriosCRO, 'de configuracao da CRO');
+  const sh = obterOuCriarAbaConfigRelCRO(ssCRO, cfg);
+  escreverConfigRelCRONaAba(sh, cfg, 'Ultima gravacao feita pela tela Administracao do relatorio');
+  espelharConfigRelCROEmProperties(cfg);
+}
+
+function removerConfigRelCRODaAba(cfgRestaurada) {
+  const cfg = cfgRestaurada || configPadraoRelCRO();
+  const ssCRO = abrirPlanilhaPorIdCache(cfg.planilhaIdCRO || PLANILHAS.relatoriosCRO, 'de configuracao da CRO');
+  const sh = obterOuCriarAbaConfigRelCRO(ssCRO, cfg);
+  escreverConfigRelCRONaAba(sh, cfg, 'Configuracao da CRO restaurada para o padrao');
+  try {
+    PropertiesService.getScriptProperties().deleteProperty(CONFIG_REL_CRO_PROP_KEY);
+    invalidarCacheConfigRelCRO();
+  } catch (erro) {
+    registrarErro('limpar-config-rel-cro-properties', erro);
+  }
+}
+
+function combinarConfigsRelAdmin(cfgCRP, cfgCRO) {
+  const combinado = JSON.parse(JSON.stringify(cfgCRP || configPadraoRel()));
+  cfgCRO = cfgCRO || configPadraoRelCRO();
+  combinado.planilhaIdCRO = cfgCRO.planilhaIdCRO || PLANILHAS.relatoriosCRO;
+  combinado.abaNomeCRO = cfgCRO.abaNomeCRO || ABA_RELATORIO_CRO;
+  combinado.atualizadoEmCRO = cfgCRO.atualizadoEm || '';
+  combinado.atualizadoPorCRO = cfgCRO.atualizadoPor || '';
+  return combinado;
 }
 
 function abrirPlanilhaRelatorio(cfg) {
@@ -651,39 +878,76 @@ function usuarioPodeEditarRel() {
   return !!email && admins.indexOf(email) !== -1;
 }
 
-function obterConfigRelCRP(forcarRefresh) {
-  return executarRota('rpc-configrel-get', () => ({
-    success: true,
-    config: obterConfigRel(forcarRefresh === true || forcarRefresh === '1'),
-    podeEditar: usuarioPodeEditarRel(),
-    usuario: emailUsuarioAtualRel(),
-    geradoEm: carimboAgora()
+function obterConfigRelAdmin(forcarRefresh) {
+  return executarRota('rpc-configrel-get', () => {
+    const refresh = forcarRefresh === true || forcarRefresh === '1';
+    const cfgCRP = obterConfigRel(refresh);
+    const cfgCRO = obterConfigRelCRO(refresh, cfgCRP);
+    return {
+      success: true,
+      config: combinarConfigsRelAdmin(cfgCRP, cfgCRO),
+      podeEditar: usuarioPodeEditarRel(),
+      usuario: emailUsuarioAtualRel(),
+      geradoEm: carimboAgora()
+    };
+  });
+}
+
+function salvarConfigRelAdmin(novaConfig) {
+  return executarRota('rpc-configrel-save', () => executarComLockConfigRel('rpc-configrel-save-lock', () => {
+    if (!usuarioPodeEditarRel()) return { success: false, mensagem: 'Voce nao tem permissao para alterar as configuracoes.' };
+    const usuario = emailUsuarioAtualRel() || 'desconhecido';
+    const carimbo = carimboAgora();
+
+    const mergedCRP = mesclarConfigRel(configPadraoRel(), novaConfig || {});
+    mergedCRP.atualizadoEm = carimbo;
+    mergedCRP.atualizadoPor = usuario;
+    salvarConfigRelNaAba(mergedCRP);
+
+    const mergedCRO = mesclarConfigRelCRO(configRelCROLegado(mergedCRP), novaConfig || {});
+    mergedCRO.atualizadoEm = carimbo;
+    mergedCRO.atualizadoPor = usuario;
+    salvarConfigRelCRONaAba(mergedCRO);
+
+    registrarLogRelSemLock(usuario, 'Configuracao do relatorio atualizada', mergedCRP);
+    registrarLogRelCROSemLock(usuario, 'Configuracao da CRO atualizada', mergedCRO);
+    return { success: true, config: combinarConfigsRelAdmin(mergedCRP, mergedCRO), mensagem: 'Configuracoes salvas com sucesso.' };
   }));
+}
+
+function restaurarConfigRelAdmin() {
+  return executarRota('rpc-configrel-reset', () => executarComLockConfigRel('rpc-configrel-reset-lock', () => {
+    if (!usuarioPodeEditarRel()) return { success: false, mensagem: 'Voce nao tem permissao para alterar as configuracoes.' };
+    const usuario = emailUsuarioAtualRel() || 'desconhecido';
+    const carimbo = carimboAgora();
+    const cfgPadraoAtualizada = configPadraoRel();
+    cfgPadraoAtualizada.atualizadoEm = carimbo;
+    cfgPadraoAtualizada.atualizadoPor = usuario;
+    removerConfigRelDaAba(cfgPadraoAtualizada);
+    salvarCacheConfigRel(cfgPadraoAtualizada);
+
+    const cfgCROPadrao = configRelCROLegado(cfgPadraoAtualizada);
+    cfgCROPadrao.atualizadoEm = carimbo;
+    cfgCROPadrao.atualizadoPor = usuario;
+    removerConfigRelCRODaAba(cfgCROPadrao);
+    salvarCacheConfigRelCRO(cfgCROPadrao);
+
+    registrarLogRelSemLock(usuario, 'Configuracao do relatorio restaurada para o padrao', cfgPadraoAtualizada);
+    registrarLogRelCROSemLock(usuario, 'Configuracao da CRO restaurada para o padrao', cfgCROPadrao);
+    return { success: true, config: combinarConfigsRelAdmin(cfgPadraoAtualizada, cfgCROPadrao), mensagem: 'Configuracoes restauradas para o padrao.' };
+  }));
+}
+
+function obterConfigRelCRP(forcarRefresh) {
+  return obterConfigRelAdmin(forcarRefresh);
 }
 
 function salvarConfigRelCRP(novaConfig) {
-  return executarRota('rpc-configrel-save', () => executarComLockConfigRel('rpc-configrel-save-lock', () => {
-    if (!usuarioPodeEditarRel()) return { success: false, mensagem: 'Você não tem permissão para alterar as configurações.' };
-    const merged = mesclarConfigRel(configPadraoRel(), novaConfig || {});
-    merged.atualizadoEm = carimboAgora();
-    merged.atualizadoPor = emailUsuarioAtualRel() || 'desconhecido';
-    salvarConfigRelNaAba(merged);
-    registrarLogRelSemLock(merged.atualizadoPor, 'Configuração do relatório atualizada', merged);
-    return { success: true, config: merged, mensagem: 'Configurações salvas com sucesso.' };
-  }));
+  return salvarConfigRelAdmin(novaConfig);
 }
 
 function restaurarConfigRelCRP() {
-  return executarRota('rpc-configrel-reset', () => executarComLockConfigRel('rpc-configrel-reset-lock', () => {
-    if (!usuarioPodeEditarRel()) return { success: false, mensagem: 'Você não tem permissão para alterar as configurações.' };
-    const cfgPadraoAtualizada = configPadraoRel();
-    cfgPadraoAtualizada.atualizadoEm = carimboAgora();
-    cfgPadraoAtualizada.atualizadoPor = emailUsuarioAtualRel() || 'desconhecido';
-    removerConfigRelDaAba(cfgPadraoAtualizada);
-    salvarCacheConfigRel(cfgPadraoAtualizada);
-    registrarLogRelSemLock(cfgPadraoAtualizada.atualizadoPor, 'Configuração do relatório restaurada para o padrão', cfgPadraoAtualizada);
-    return { success: true, config: cfgPadraoAtualizada, mensagem: 'Configurações restauradas para o padrão.' };
-  }));
+  return restaurarConfigRelAdmin();
 }
 
 function registrarLogRelSemLock(usuario, acao, cfg) {
@@ -699,6 +963,22 @@ function registrarLogRelSemLock(usuario, acao, cfg) {
     const row = [Utilities.formatDate(new Date(), FUSO_HORARIO, 'dd/MM/yyyy HH:mm:ss'), usuario || '', acao || ''];
     sh.getRange(sh.getLastRow() + 1, 1, 1, row.length).setValues([row]);
   } catch (erro) { registrarErro('config-rel-log', erro); }
+}
+
+function registrarLogRelCROSemLock(usuario, acao, cfg) {
+  try {
+    cfg = cfg || obterConfigRelCRO(false);
+    const ss = abrirPlanilhaPorIdCache(cfg.planilhaIdCRO || PLANILHAS.relatoriosCRO, 'de log da CRO');
+    let sh = ss.getSheetByName(CONFIG_REL_CRO_LOG_SHEET);
+    if (!sh) {
+      sh = ss.insertSheet(CONFIG_REL_CRO_LOG_SHEET);
+      sh.getRange(1, 1, 1, 3).setValues([['Data/Hora', 'Usuario', 'Acao']]);
+      sh.setFrozenRows(1);
+      sh.getRange('A1:C1').setFontWeight('bold').setBackground('#2563eb').setFontColor('#ffffff');
+    }
+    const row = [Utilities.formatDate(new Date(), FUSO_HORARIO, 'dd/MM/yyyy HH:mm:ss'), usuario || '', acao || ''];
+    sh.getRange(sh.getLastRow() + 1, 1, 1, row.length).setValues([row]);
+  } catch (erro) { registrarErro('config-rel-cro-log', erro); }
 }
 
 /* ===== Leitura e validação da base ===== */
@@ -914,6 +1194,8 @@ function configPadraoRelCRO() {
   return {
     comissao: 'CRO',
     metaInstitucional: META_CRO_AVALIACAO,
+    planilhaIdCRO: PLANILHAS.relatoriosCRO,
+    abaNomeCRO: ABA_RELATORIO_CRO,
     logoUrl: LOGO_PADRAO,
     rodapeUrl: RODAPE_PADRAO,
     textosPadrao: {
@@ -1009,13 +1291,11 @@ function faixaEtariaCRO(valorIdade, valorFaixa) {
 
 function montarPayloadDadosCRO(forcarRefresh) {
   const cfgCRP = obterConfigRel(forcarRefresh === true);
-  const cfg = configPadraoRelCRO();
-  cfg.logoUrl = cfgCRP.logoUrl || LOGO_PADRAO;
-  cfg.rodapeUrl = cfgCRP.rodapeUrl || RODAPE_PADRAO;
+  const cfg = obterConfigRelCRO(forcarRefresh === true, cfgCRP);
 
-  const id = (cfgCRP.planilhaIdCRO && String(cfgCRP.planilhaIdCRO).trim()) || PLANILHAS.relatoriosCRO || cfgCRP.planilhaId || PLANILHAS.relatorios;
+  const id = (cfg.planilhaIdCRO && String(cfg.planilhaIdCRO).trim()) || PLANILHAS.relatoriosCRO || cfgCRP.planilhaId || PLANILHAS.relatorios;
   const ss = abrirPlanilhaPorIdCache(id, 'do relatório CRO');
-  const sh = obterAbaRelatorioCRO(ss, cfgCRP);
+  const sh = obterAbaRelatorioCRO(ss, cfg);
 
   if (!sh) {
     return {

@@ -2416,9 +2416,9 @@
       return new Promise((resolve, reject) => {
         if (window.google && google.script && google.script.run) {
           const r = google.script.run.withSuccessHandler(resolve).withFailureHandler(reject);
-          if (metodo === 'get') r.obterConfigRelCRP(arg === true);
-          else if (metodo === 'save') r.salvarConfigRelCRP(arg);
-          else if (metodo === 'reset') r.restaurarConfigRelCRP();
+          if (metodo === 'get') r.obterConfigRelAdmin(arg === true);
+          else if (metodo === 'save') r.salvarConfigRelAdmin(arg);
+          else if (metodo === 'reset') r.restaurarConfigRelAdmin();
           return;
         }
         if (metodo === 'get') {

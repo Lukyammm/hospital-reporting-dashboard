@@ -29,18 +29,21 @@ This project was developed to solve real operational problems using web technolo
 The goal of this project is to improve operational efficiency, reduce manual work, and support better decision-making through automation and clear data visualization.
 
 
+
+
+
 ## Guia visual do sistema
 
-> Mockups demonstrativos do sistema, com dados ficticios e sem informacoes reais de pacientes ou da instituicao.
+> Telas demonstrativas baseadas nos componentes, textos, cores e fluxos encontrados no código deste repositório. Os dados exibidos são fictícios e não representam pacientes, profissionais ou instituições reais.
 
-### Dashboard de relatorios
-![Dashboard de relatorios](./docs/screenshots/reporting-dashboard.svg)
+### CRP/CRO - dashboard de relatório
+![CRP/CRO - dashboard de relatório](./docs/screenshots/reporting-dashboard.svg)
 
-### Qualidade dos registros
-![Qualidade dos registros](./docs/screenshots/record-quality.svg)
+### CRP/CRO - qualidade dos registros
+![CRP/CRO - qualidade dos registros](./docs/screenshots/record-quality.svg)
 
-### Fluxo de exportacao
-![Fluxo de exportacao](./docs/screenshots/export-flow.svg)
+### CRP/CRO - exportação e admin
+![CRP/CRO - exportação e admin](./docs/screenshots/export-flow.svg)
 
 ## Status
 

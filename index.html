@@ -390,6 +390,12 @@
     .tabela-mapa svg.spark { display: block; width: 92px; height: 22px; }
     .legenda-mapa { display: flex; align-items: center; gap: 6px; padding: 7px 9px 2px; flex-wrap: wrap; font-size: 9px; color: var(--suave); }
     .legenda-mapa .grad-bar { width: 100px; height: 10px; border-radius: 4px; background: linear-gradient(to right, #b42318, #b45709, #15803d); display: inline-block; vertical-align: middle; margin-right: 2px; }
+    /* Anexos: tabelas longas (1 linha por indicador) compactadas para caberem
+       em uma única folha A4 sem vazar para a seguinte. */
+    .anexo-compacto table th, .anexo-compacto table td { padding-top: 3px; padding-bottom: 3px; }
+    .anexo-compacto .tabela-mapa th, .anexo-compacto .tabela-mapa td { padding-top: 1px; padding-bottom: 1px; }
+    .anexo-compacto .tabela-mapa .col-spark { padding-top: 1px; padding-bottom: 1px; }
+    .anexo-compacto .tabela-mapa svg.spark { height: 16px; }
 
     .doc-alerta {
       border: 1px solid #f2d399;
@@ -710,7 +716,6 @@
 
     /* ================= Constantes e estado ================= */
     const APP_URL = '<?!= appUrl ?>';
-    const HTML2PDF_SRC = 'https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js';
 
     // Índices posicionais de cada registro do dataset compacto da CRP (ver Code.gs).
     const R = { ano: 0, mes: 1, status: 2, unidade: 3, eixo: 4, categoria: 5, satisfacao: 6, flags: 7, num: 8, den: 9, res: 10 };
@@ -762,7 +767,6 @@
       textos: {},                  // chave → { manual: bool, valor: string }
       incluirAnexo: true,
       ocupado: false,
-      pdfLoader: null,
       cargaSeq: 0,
       adminCarregado: false,
       adminPodeEditar: true
@@ -840,18 +844,6 @@
         veu.addEventListener('keydown', ev => { if (ev.key === 'Escape') fim(false); });
         document.body.appendChild(veu);
         veu.querySelector('[data-cancela]').focus();
-      });
-    }
-
-    function carregarScript(src, nomeGlobal) {
-      return new Promise((resolve, reject) => {
-        if (nomeGlobal && window[nomeGlobal]) return resolve(window[nomeGlobal]);
-        const s = document.createElement('script');
-        s.src = src;
-        s.async = true;
-        s.onload = () => resolve(nomeGlobal ? window[nomeGlobal] : true);
-        s.onerror = () => reject(new Error('Não foi possível carregar a biblioteca de PDF (sem acesso ao CDN). Use o botão Imprimir e escolha "Salvar como PDF".'));
-        document.head.appendChild(s);
       });
     }
 
@@ -1482,12 +1474,12 @@
 
     function renderDocumento(rel) {
       const tokens = tokensAtuais(rel);
-      const totalPaginas = state.incluirAnexo ? 5 : 3;
       const deltaOk = rel.diferencaMeta >= 0;
       const recorte = tokens.setores;
       // Quebra por período calculada uma única vez e propagada às seções.
       const periodos = agregarPorPeriodo(registrosFiltrados());
 
+      // Página 1 — painel: capa, métricas, classificação e tabela por período.
       const pagina1 = `
         <section class="doc-capa">
           <div>
@@ -1515,7 +1507,10 @@
           <article class="doc-metrica"><span>Não conformes</span><strong style="color:var(--vermelho)">${fmtNum(rel.naoConformes)}</strong></article>
         </section>
         ${classificacaoPorPeriodo(periodos, rel)}
-        ${tabelaPorPeriodo(periodos, rel)}
+        ${tabelaPorPeriodo(periodos, rel)}`;
+
+      // Página 2 — introdução, metodologia e gráfico de evolução.
+      const pagina2 = `
         ${secaoTexto(1, 'intro')}
         ${secaoTexto(2, 'metodo')}
         <section class="doc-graficos">
@@ -1525,7 +1520,8 @@
             : ''}
         </section>`;
 
-      const pagina2 = `
+      // Página 3 — análise, indicadores críticos e fortalezas.
+      const pagina3 = `
         ${secaoTexto(3, 'analise')}
         ${alertasEstruturaDoc()}
         <section class="doc-secao">
@@ -1538,7 +1534,8 @@
         </section>
         ${secaoAusentes(rel, periodos)}`;
 
-      const pagina3 = `
+      // Página 4 — setores, plano de ação e conclusão.
+      const pagina4 = `
         <section class="doc-secao">
           <div class="doc-secao-cab"><h3>5. Setores com maior oportunidade de melhoria</h3></div>
           ${tabelaSetores(rel, periodos)}
@@ -1549,27 +1546,23 @@
           <div class="assinatura"><div class="linha-ass">Presidente da Comissão de Revisão de Prontuários</div></div>
         </div>`;
 
-      const pagina4 = `
-        <section class="doc-secao">
+      const anexoA = `
+        <section class="doc-secao anexo-compacto">
           <div class="doc-secao-cab"><h3>Anexo A. Desempenho completo dos indicadores</h3></div>
           ${tabelaAnexo(rel)}
         </section>`;
-
-      const paginas = [
-        montarPagina(tokens, 1, totalPaginas, pagina1),
-        montarPagina(tokens, 2, totalPaginas, pagina2),
-        montarPagina(tokens, 3, totalPaginas, pagina3)
-      ];
-      const pagina5 = `
-        <section class="doc-secao">
+      const anexoB = `
+        <section class="doc-secao anexo-compacto">
           <div class="doc-secao-cab"><h3>Anexo B. Evolução do desempenho dos indicadores</h3>${periodos.length >= 2 ? `<span class="doc-secao-nota">${periodos.length} períodos no recorte</span>` : ''}</div>
           ${tabelaEvolucaoIndicadores(periodos)}
         </section>`;
-      if (state.incluirAnexo) {
-        paginas.push(montarPagina(tokens, 4, totalPaginas, pagina4));
-        paginas.push(montarPagina(tokens, 5, totalPaginas, pagina5));
-      }
-      $('documento').innerHTML = paginas.join('');
+
+      // Cada item do array é exatamente uma folha A4; a numeração do rodapé é
+      // sequencial e o total acompanha a presença (ou não) dos anexos.
+      const corpos = [pagina1, pagina2, pagina3, pagina4];
+      if (state.incluirAnexo) corpos.push(anexoA, anexoB);
+      const total = corpos.length;
+      $('documento').innerHTML = corpos.map((c, i) => montarPagina(tokens, i + 1, total, c)).join('');
       ligarTextosEditaveis(tokens, () => tokensAtuais(agregar(registrosFiltrados())));
     }
 
@@ -1915,6 +1908,8 @@
       return `<div class="grafico-caixa"${full ? ' style="grid-column: 1 / -1"' : ''}><h4>${esc(titulo)}</h4>${conteudo}</div>`;
     }
 
+    // Retorna gráficos e tabela da evolução separadamente, para poderem ser
+    // distribuídos em folhas diferentes sem estourar o A4.
     function indicadorEvolucaoCRO(rel) {
       const serieAval = rel.evolucao.map(e => ({ ano: e.ano, mes: e.mes, valor: e.taxaAnalisados }));
       const serieLon = rel.evolucao.map(e => ({ ano: e.ano, mes: e.mes, valor: e.taxaLondres }));
@@ -1923,15 +1918,15 @@
         <thead><tr><th>Período</th><th class="num">Óbitos</th><th class="num">Analisados</th><th class="num">Tx. avaliação</th><th class="num">A esclarecer</th></tr></thead>
         <tbody>${rel.evolucao.map(e => `<tr><td>${esc(rotuloPeriodo(e.ano, e.mes))}</td><td class="num">${fmtNum(e.total)}</td><td class="num">${fmtNum(e.analisados)}</td><td class="num">${seloPct(e.taxaAnalisados)}</td><td class="num">${fmtNum(e.londres)}</td></tr>`).join('')}
         <tr class="linha-total"><td>Consolidado</td><td class="num">${fmtNum(rel.total)}</td><td class="num">${fmtNum(rel.analisados)}</td><td class="num">${seloPct(rel.taxaAnalisados)}</td><td class="num">${fmtNum(rel.londres)}</td></tr></tbody></table></div>` : '';
-      return `<section class="doc-graficos">
+      const graficos = `<section class="doc-graficos">
           ${temEvol ? caixaGraficoCRO('Taxa de avaliação de óbitos (1ª análise)', svgLinhaCRO(serieAval, rel.metaInstitucional, 'META ' + String(rel.metaInstitucional).replace('.', ',') + '%'), true) : ''}
           ${temEvol ? caixaGraficoCRO('Taxa de óbitos "a esclarecer" (Protocolo de Londres)', svgLinhaCRO(serieLon, null), true) : ''}
-        </section>${tabela}`;
+        </section>`;
+      return { graficos, tabela };
     }
 
     function renderDocumentoCRO(rel) {
       const tokens = tokensAtuaisCRO(rel);
-      const totalPaginas = 5;
       const deltaOk = rel.diferencaMeta == null ? true : rel.diferencaMeta >= 0;
       const permNota = rel.permanencia.media != null
         ? `<p style="margin:6px 0 0;font-size:11px;color:var(--suave)">Tempo médio de permanência: ${rel.permanencia.media.toLocaleString('pt-BR', { maximumFractionDigits: 1 })} dias (${fmtNum(rel.permanencia.comDado)} óbitos com data).</p>` : '';
@@ -1975,33 +1970,40 @@
           ${caixaGraficoCRO('Faixa etária', svgBarrasCRO(rel.porFaixa, { total: rel.total }))}
         </section>`;
 
+      // Dois gráficos por página: cada barra pode ter até 10–12 categorias;
+      // quatro juntos estouram o A4 quando os dados têm muitas categorias.
       const pagina3 = `
         <section class="doc-graficos">
-          ${caixaGraficoCRO('Macrorregião de origem', svgBarrasCRO(rel.porMacro, { total: rel.total }))}
-          ${caixaGraficoCRO('Tempo de permanência', svgBarrasCRO(rel.permanencia.itens, { total: rel.permanencia.comDado }))}
+          ${caixaGraficoCRO('Macrorregião de origem', svgBarrasCRO(rel.porMacro, { total: rel.total }), true)}
+          ${caixaGraficoCRO('Tempo de permanência', svgBarrasCRO(rel.permanencia.itens, { total: rel.permanencia.comDado }), true)}
+        </section>
+        ${permNota}`;
+
+      const pagina3b = `
+        <section class="doc-graficos">
           ${caixaGraficoCRO('Unidade de origem', svgBarrasCRO(rel.porOrigem, { total: rel.total, limite: 10 }), true)}
           ${caixaGraficoCRO('Comorbidades mais frequentes', svgBarrasCRO(rel.comorbidades.itens, { total: rel.comorbidades.comRegistro, limite: 12 }), true)}
         </section>
-        ${permNota}${comorbNota}`;
+        ${comorbNota}`;
 
+      // Página 4 — texto de indicadores + gráficos de evolução. A tabela de
+      // evolução vai para a página 5 para nenhuma das duas estourar o A4.
+      const evo = indicadorEvolucaoCRO(rel);
       const pagina4 = `
         ${secaoTexto(3, 'indicadores')}
-        ${indicadorEvolucaoCRO(rel)}`;
+        ${evo.graficos}`;
 
       const pagina5 = `
+        ${evo.tabela}
         ${secaoTexto(4, 'acoes')}
         ${secaoTexto(5, 'conclusaoCRO')}
         <div class="doc-assinaturas">
           <div class="assinatura"><div class="linha-ass">Presidente da Comissão de Revisão de Óbitos</div></div>
         </div>`;
 
-      $('documento').innerHTML = [
-        montarPagina(tokens, 1, totalPaginas, pagina1),
-        montarPagina(tokens, 2, totalPaginas, pagina2),
-        montarPagina(tokens, 3, totalPaginas, pagina3),
-        montarPagina(tokens, 4, totalPaginas, pagina4),
-        montarPagina(tokens, 5, totalPaginas, pagina5)
-      ].join('');
+      const corpos = [pagina1, pagina2, pagina3, pagina3b, pagina4, pagina5];
+      const total = corpos.length;
+      $('documento').innerHTML = corpos.map((c, i) => montarPagina(tokens, i + 1, total, c)).join('');
       ligarTextosEditaveis(tokens, () => tokensAtuaisCRO(agregarCRO(registrosFiltrados())));
     }
 
@@ -2273,91 +2275,24 @@
       }
     }
 
-    /* ================= Exportação ================= */
+    /* ================= Exportação =================
+       CRP e CRO usam o MESMO caminho: impressão nativa do navegador. Cada
+       seção .pagina é dimensionada para caber em exatamente uma folha A4
+       (ver renderDocumento/renderDocumentoCRO), então "Salvar como PDF" sai
+       paginado corretamente e com texto vetorial. O html2pdf foi removido por
+       distorcer o layout (conteúdo espremido/cortado) e depender de CDN. */
     async function baixarPdf(botao) {
       if (!state.dados) return;
-      // A CRO sai branca com o html2pdf (rasterização dos SVGs), então usa a
-      // impressão nativa do navegador. A CRP é paginada corretamente pelo
-      // html2pdf — manter cada relatório no mecanismo em que funciona.
-      if (state.comissao === 'CRO') return imprimirComoPdf(botao);
-      return gerarPdfHtml2pdf(botao);
-    }
-
-    async function imprimirComoPdf(botao) {
       botao.disabled = true;
       const conteudoOriginal = botao.innerHTML;
       botao.innerHTML = '<span class="spinner" aria-hidden="true"></span><span>Abrindo…</span>';
       try {
         if (document.fonts && document.fonts.ready) { try { await document.fonts.ready; } catch (_) {} }
         window.print();
-        toast('Na janela de impressão, escolha "Salvar como PDF" para gerar texto vetorial.', 'info', 'PDF');
+        toast('Na janela de impressão, escolha "Salvar como PDF" (margens: Nenhuma) para gerar o arquivo.', 'info', 'PDF');
       } catch (erro) {
         console.error(erro);
         toast(erro.message || 'Não foi possível abrir a janela de impressão.', 'erro', 'PDF');
-      } finally {
-        botao.disabled = false;
-        botao.innerHTML = conteudoOriginal;
-      }
-    }
-
-    async function gerarPdfHtml2pdf(botao) {
-      botao.disabled = true;
-      const conteudoOriginal = botao.innerHTML;
-      botao.innerHTML = '<span class="spinner" aria-hidden="true"></span><span>Gerando…</span>';
-      try {
-        if (!state.pdfLoader) state.pdfLoader = carregarScript(HTML2PDF_SRC, 'html2pdf');
-        const html2pdf = await state.pdfLoader;
-        if (document.fonts && document.fonts.ready) { try { await document.fonts.ready; } catch (_) {} }
-        const origem = $('documento');
-        const clone = origem.cloneNode(true);
-        clone.querySelectorAll('.no-print, .botao-restaurar').forEach(n => n.remove());
-        clone.querySelectorAll('[contenteditable]').forEach(n => n.removeAttribute('contenteditable'));
-        // Preserva ids internos de SVG (gradientes referenciados por url(#...)).
-        clone.querySelectorAll('[id]').forEach(n => { if (!n.closest('svg')) n.removeAttribute('id'); });
-        // Mantem o clone ancorado em (0,0). Em alguns navegadores, capturar
-        // um elemento em left:-9999px desloca o canvas e corta o PDF.
-        const palco = document.createElement('div');
-        palco.style.cssText = 'position:fixed;left:0;top:0;width:794px;z-index:-1;background:#fff;pointer-events:none';
-        clone.style.cssText = 'width:794px;margin:0;background:#fff';
-        clone.querySelectorAll('.pagina').forEach(p => { p.style.width = '794px'; p.style.margin = '0'; p.style.border = '0'; p.style.borderRadius = '0'; p.style.boxShadow = 'none'; });
-        palco.appendChild(clone);
-        document.body.appendChild(palco);
-        // html2canvas falha ao rasterizar SVG com largura percentual (vira
-        // branco). Com o clone já renderizado a 794px, fixamos cada SVG no
-        // seu tamanho real — preservando a largura da coluna no documento.
-        clone.querySelectorAll('svg').forEach(svg => {
-          const r = svg.getBoundingClientRect();
-          let w = r.width, h = r.height;
-          if (!(w > 0 && h > 0)) {
-            const vb = (svg.getAttribute('viewBox') || '').trim().split(/\s+/);
-            w = parseFloat(vb[2]); h = parseFloat(vb[3]);
-          }
-          if (w > 0 && h > 0) {
-            svg.setAttribute('width', Math.round(w));
-            svg.setAttribute('height', Math.round(h));
-            svg.style.width = Math.round(w) + 'px';
-            svg.style.height = Math.round(h) + 'px';
-            svg.style.maxWidth = 'none';
-            svg.style.minHeight = '0';
-          }
-        });
-        const nome = `relatorio-${state.comissao.toLowerCase()}-${new Date().toISOString().slice(0, 10)}.pdf`;
-        try {
-          await html2pdf().set({
-            margin: 0,
-            filename: nome,
-            image: { type: 'jpeg', quality: 0.94 },
-            html2canvas: { scale: 2, useCORS: true, scrollX: 0, scrollY: 0, backgroundColor: '#ffffff', windowWidth: 794, windowHeight: 1123 },
-            jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait', compress: true },
-            pagebreak: { mode: ['css'], avoid: ['.doc-tabela', '.grafico-caixa', '.doc-metrica', '.doc-alerta', '.doc-assinaturas'] }
-          }).from(clone).save();
-          toast('PDF gerado em A4.', 'sucesso', 'PDF');
-        } finally {
-          palco.remove();
-        }
-      } catch (erro) {
-        console.error(erro);
-        toast(erro.message || 'Não foi possível gerar o PDF.', 'erro', 'PDF');
       } finally {
         botao.disabled = false;
         botao.innerHTML = conteudoOriginal;

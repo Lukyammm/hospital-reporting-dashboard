@@ -1272,20 +1272,28 @@
       return `<svg class="spark" viewBox="0 0 ${W} ${H}" role="img" aria-hidden="true">${base}${linhas}${ult}</svg>`;
     }
 
+    // periodos define as colunas (células) do heatmap. Quando a tabela é quebrada
+    // em folhas (muitos meses), cada folha recebe só o seu bloco de colunas, mas a
+    // sparkline e o Δ p.p. devem refletir o recorte INTEIRO — senão cada folha
+    // reiniciaria a tendência no seu subconjunto (e uma folha final de 1 mês daria
+    // Δ = 0), contradizendo o cabeçalho "P períodos no recorte". opts.periodosTendencia
+    // carrega a lista completa nesse caso; sem ele, a tendência usa as próprias colunas.
     function tabelaEvolucaoIndicadores(periodos, opts) {
       opts = opts || {};
       if (periodos.length < 2 && !opts.forcar) return `<div class="doc-recorte" style="margin:0">A evolução exige pelo menos dois períodos no recorte.</div>`;
+      const periodosTend = opts.periodosTendencia || periodos;
       const cabMeses = periodos.map(p => `<th class="num col-mes">${esc(rotuloPeriodo(p.ano, p.mes))}</th>`).join('');
       const indicadores = periodos[0].rel.indicadores;
       const linhas = indicadores.map((ind, idx) => {
         const serie = periodos.map(p => { const c = p.rel.indicadores[idx]; return (c && c.avaliados) ? c.percentual : null; });
         const cels = serie.map(v => { const { bg, fg } = corGradiente(v); return `<td class="num cel-mapa" style="background:${bg};color:${fg}">${v == null ? '—' : fmtPct(v)}</td>`; }).join('');
-        const [ini, fim] = tendenciaIndicador(periodos, idx);
+        const serieTend = periodosTend.map(p => { const c = p.rel.indicadores[idx]; return (c && c.avaliados) ? c.percentual : null; });
+        const [ini, fim] = tendenciaIndicador(periodosTend, idx);
         const d = (ini != null && fim != null) ? fim - ini : 0;
         // mesma cor do p.p.: vermelho quando desce, verde quando sobe, cinza quando estável
         const corLinha = d < 0 ? '#b42318' : d > 0 ? '#15803d' : '#5d6f73';
         const dotLinha = d < 0 ? '#8f1b12' : d > 0 ? '#0f5c2e' : '#45545a';
-        const spark = `<td class="col-spark">${sparklineIndicador(serie, corLinha, dotLinha)}</td>`;
+        const spark = `<td class="col-spark">${sparklineIndicador(serieTend, corLinha, dotLinha)}</td>`;
         const delta = celulaTendencia(ini, fim);
         return `<tr><th scope="row" class="col-ind">${esc(ind.nome)}</th>${cels}${spark}${delta}</tr>`;
       }).join('');
@@ -1585,7 +1593,7 @@
       const anexoBSecao = (bloco, parte) => `
         <section class="doc-secao anexo-compacto">
           <div class="doc-secao-cab"><h3>Anexo B. Evolução do desempenho dos indicadores</h3><span class="doc-secao-nota">${P} períodos no recorte${parte ? ` · ${parte}` : ''}</span></div>
-          ${tabelaEvolucaoIndicadores(bloco, { forcar: true })}
+          ${tabelaEvolucaoIndicadores(bloco, { forcar: true, periodosTendencia: periodos })}
         </section>`;
       const paginasAnexoB = [];
       if (P < 2) {

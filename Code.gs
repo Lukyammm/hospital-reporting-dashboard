@@ -146,7 +146,7 @@ function doGet(e) {
     template.appUrl = ScriptApp.getService().getUrl();
     return template
       .evaluate()
-      .setTitle('Relatório Analítico da CRP')
+      .setTitle('Relatório Analítico — CRP e CRO')
       .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
   } catch (erro) {
     registrarErro('html-route', erro);

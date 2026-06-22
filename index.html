@@ -2,7 +2,7 @@
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8">
-  <title>Relatório Analítico da CRP</title>
+  <title>Relatório Analítico — CRP e CRO</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -728,6 +728,16 @@
     };
     const ordenarMes = (a, b) => (MES_ORDEM[a] || 99) - (MES_ORDEM[b] || 99) || a.localeCompare(b, 'pt-BR');
     const ordenarAno = (a, b) => Number(a) - Number(b) || a.localeCompare(b, 'pt-BR');
+    // Ordena objetos { ano, mes } por ano e depois por mês. Ano não numérico
+    // ("Não informado") e mês desconhecido vão para o fim de forma estável, em
+    // vez de gerar NaN no comparador — que deixaria a ordenação indefinida.
+    const compararPeriodo = (a, b) => {
+      const anoA = Number(a.ano), anoB = Number(b.ano);
+      const ra = Number.isNaN(anoA) ? Infinity : anoA;
+      const rb = Number.isNaN(anoB) ? Infinity : anoB;
+      if (ra !== rb) return ra - rb;
+      return (MES_ORDEM[a.mes] || 99) - (MES_ORDEM[b.mes] || 99);
+    };
 
     const FILTROS_CRP = [
       { id: 'anos', rotulo: 'Ano', curto: 'Ano', idx: R.ano, ordenar: ordenarAno },
@@ -959,7 +969,7 @@
       // ("Não informado" etc.) continuam nos totais e no filtro de mês.
       const evolucao = Object.values(evolucaoMap)
         .filter(e => MES_ORDEM[e.mes])
-        .sort((a, b) => (Number(a.ano) - Number(b.ano)) || (MES_ORDEM[a.mes] - MES_ORDEM[b.mes]))
+        .sort(compararPeriodo)
         .map(e => ({ ...e, percentual: percentual(e.conformes, e.naoConformes) || 0 }));
 
       const setores = Object.values(setoresMap)
@@ -1369,7 +1379,7 @@
         (grupos[chave] = grupos[chave] || { ano, mes, regs: [] }).regs.push(r);
       });
       return Object.values(grupos)
-        .sort((a, b) => (Number(a.ano) - Number(b.ano)) || (MES_ORDEM[a.mes] - MES_ORDEM[b.mes]))
+        .sort(compararPeriodo)
         .map(g => ({ ano: g.ano, mes: g.mes, rel: agregar(g.regs) }));
     }
 
@@ -1774,7 +1784,7 @@
       });
 
       const evolucao = Object.values(evoMap)
-        .sort((a, b) => (Number(a.ano) - Number(b.ano)) || (MES_ORDEM[a.mes] - MES_ORDEM[b.mes]))
+        .sort(compararPeriodo)
         .map(e => ({
           ano: e.ano, mes: e.mes, total: e.total, analisados: e.analisados, londres: e.londres,
           taxaAnalisados: e.total ? Number(((e.analisados / e.total) * 100).toFixed(1)) : null,
@@ -2290,6 +2300,7 @@
       });
       const info = comissaoInfo();
       $('topo-titulo').textContent = info.titulo;
+      document.title = info.titulo;
       $('nota-comissao').innerHTML = nova === 'CRO'
         ? 'Comissão <b>CRO</b> · Revisão de Óbitos (análise dos óbitos e perfil epidemiológico).'
         : 'Comissão <b>CRP</b> · Revisão de Prontuários (conformidade dos registros).';

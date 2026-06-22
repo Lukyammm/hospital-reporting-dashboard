@@ -1289,9 +1289,26 @@ function faixaEtariaCRO(valorIdade, valorFaixa) {
   return faixa;
 }
 
+// Subconjunto público da configuração da CRO entregue pela rota api=dados.
+// Espelha o cuidado de montarPayloadDados (CRP): expõe só o que o documento
+// precisa (meta, imagens e textos) e nunca o ID da planilha nem os campos de
+// auditoria (atualizadoEm/atualizadoPor — este último é o e-mail do admin),
+// que ficam restritos à rota autenticada api=configrel / tela Administração.
+function configPublicaCRO(cfg) {
+  cfg = cfg || {};
+  return {
+    comissao: 'CRO',
+    metaInstitucional: cfg.metaInstitucional != null ? cfg.metaInstitucional : META_CRO_AVALIACAO,
+    logoUrl: cfg.logoUrl || LOGO_PADRAO,
+    rodapeUrl: cfg.rodapeUrl || RODAPE_PADRAO,
+    textosPadrao: cfg.textosPadrao
+  };
+}
+
 function montarPayloadDadosCRO(forcarRefresh) {
   const cfgCRP = obterConfigRel(forcarRefresh === true);
   const cfg = obterConfigRelCRO(forcarRefresh === true, cfgCRP);
+  const configPublica = configPublicaCRO(cfg);
 
   const id = (cfg.planilhaIdCRO && String(cfg.planilhaIdCRO).trim()) || PLANILHAS.relatoriosCRO || cfgCRP.planilhaId || PLANILHAS.relatorios;
   const ss = abrirPlanilhaPorIdCache(id, 'do relatório CRO');
@@ -1301,7 +1318,7 @@ function montarPayloadDadosCRO(forcarRefresh) {
     return {
       success: true,
       geradoEm: carimboAgora(),
-      config: cfg,
+      config: configPublica,
       base: {
         comissao: 'CRO', aba: '', totalRegistros: 0,
         alertasEstrutura: ['Base da CRO não encontrada. Esperado uma aba como "Distribuição e análises dos Óbitos" ou "CRO".'],
@@ -1329,7 +1346,7 @@ function montarPayloadDadosCRO(forcarRefresh) {
     return {
       success: true,
       geradoEm: carimboAgora(),
-      config: cfg,
+      config: configPublica,
       base: {
         comissao: 'CRO',
         aba: sh.getName(),
@@ -1387,7 +1404,7 @@ function montarPayloadDadosCRO(forcarRefresh) {
   return {
     success: true,
     geradoEm: carimboAgora(),
-    config: cfg,
+    config: configPublica,
     base: {
       comissao: 'CRO',
       aba: sh.getName(),

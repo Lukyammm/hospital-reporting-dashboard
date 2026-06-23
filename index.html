@@ -1497,6 +1497,65 @@
       </section>`;
     }
 
+    function getMesBimestre(mes) {
+      if (mes >= 1 && mes <= 2) return 1;
+      if (mes >= 3 && mes <= 4) return 2;
+      if (mes >= 5 && mes <= 6) return 3;
+      if (mes >= 7 && mes <= 8) return 4;
+      if (mes >= 9 && mes <= 10) return 5;
+      if (mes >= 11 && mes <= 12) return 6;
+      return null;
+    }
+
+    function tabelaPlanoAcao(periodos, planoAcao) {
+      if (!planoAcao || !planoAcao.length) {
+        return '<p class="doc-recorte" style="margin:0">Plano de ação não disponível.</p>';
+      }
+
+      const bimestresNoRecorte = new Set();
+      periodos.forEach(p => {
+        const bim = getMesBimestre(p.mes);
+        if (bim) bimestresNoRecorte.add(bim);
+      });
+
+      const acoesFiltradasPorBimestre = {};
+      planoAcao.forEach(acao => {
+        const bim = getMesBimestre(acao.mes);
+        if (bim && bimestresNoRecorte.has(bim)) {
+          if (!acoesFiltradasPorBimestre[bim]) acoesFiltradasPorBimestre[bim] = [];
+          acoesFiltradasPorBimestre[bim].push(acao);
+        }
+      });
+
+      const bimetresOrdenados = Object.keys(acoesFiltradasPorBimestre).map(Number).sort((a, b) => a - b);
+
+      if (!bimetresOrdenados.length) {
+        return '<p class="doc-recorte" style="margin:0">Nenhuma ação planejada nos períodos selecionados.</p>';
+      }
+
+      const linhas = [];
+      bimetresOrdenados.forEach(bim => {
+        const acoes = acoesFiltradasPorBimestre[bim];
+        const mesInicio = (bim * 2) - 1;
+        const mesFim = bim * 2;
+        const ano = acoes.length > 0 ? acoes[0].ano : '';
+        const rotulo = `${MESES_CANONICOS[mesInicio]} — ${MESES_CANONICOS[mesFim]} ${ano}`;
+
+        acoes.forEach((acao, idx) => {
+          if (idx === 0) {
+            linhas.push(`<tr><td rowspan="${acoes.length}" style="font-weight:bold;background:#f0f0f0;vertical-align:top">${esc(rotulo)}</td><td>${esc(acao.acao)}</td><td>${esc(acao.responsavel)}</td></tr>`);
+          } else {
+            linhas.push(`<tr><td>${esc(acao.acao)}</td><td>${esc(acao.responsavel)}</td></tr>`);
+          }
+        });
+      });
+
+      return `<div class="doc-tabela"><table>
+        <thead><tr><th style="width:140px">Período</th><th>Ações (O que faremos para melhorar?)</th><th style="width:150px">Responsável</th></tr></thead>
+        <tbody>${linhas.join('')}</tbody>
+      </table></div>`;
+    }
+
     function renderDocumento(rel) {
       const tokens = tokensAtuais(rel);
       const deltaOk = rel.diferencaMeta >= 0;
@@ -1581,12 +1640,19 @@
         ${secaoAusentes(rel, periodos)}`;
 
       // Página 4 — setores, plano de ação e conclusão.
+      const secaoPlano = `<section class="doc-secao">
+        <div class="doc-secao-cab"><h3>6. Plano de ação recomendado</h3></div>
+        ${tabelaPlanoAcao(periodos, state.dados?.planoAcao || [])}
+        <div class="doc-texto" contenteditable="true" spellcheck="true" data-texto="plano" aria-label="Texto editável: Plano de ação recomendado" style="margin-top:1rem"></div>
+        <button class="botao-restaurar no-print ${state.textos['plano'].manual ? 'editado' : ''}" type="button" data-restaurar="plano" title="Restaurar texto automático desta seção" style="margin-top:0.5rem">${state.textos['plano'].manual ? '✎ editado · restaurar' : '↺ automático'}</button>
+      </section>`;
+
       const pagina4 = `
         <section class="doc-secao">
           <div class="doc-secao-cab"><h3>5. Setores com maior oportunidade de melhoria</h3></div>
           ${tabelaSetores(rel, periodos)}
         </section>
-        ${secaoTexto(6, 'plano')}
+        ${secaoPlano}
         ${secaoTexto(7, 'conclusao')}
         <div class="doc-assinaturas">
           <div class="assinatura"><div class="linha-ass">Presidente da Comissão de Revisão de Prontuários</div></div>

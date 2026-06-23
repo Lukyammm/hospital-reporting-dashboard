@@ -2179,11 +2179,12 @@
         </section>
         ${comorbNota}`;
 
-      // Página 4 — texto de indicadores + gráficos de evolução (linhas).
-      const paginasIndicadores = [
-        secaoTexto(3, 'indicadores'),
-        ...graficosEvolucaoCRO(rel)
-      ];
+      // Página 4 — texto de indicadores + 1ª página de gráficos juntos na mesma folha.
+      // Antes o texto ficava sozinho numa folha e os gráficos vinham na seguinte.
+      const grafInd = graficosEvolucaoCRO(rel);
+      const paginasIndicadores = grafInd.length > 0
+        ? [secaoTexto(3, 'indicadores') + grafInd[0], ...grafInd.slice(1)]
+        : [secaoTexto(3, 'indicadores')];
 
       // Tabela de evolução paginada: cabe junto de ações+conclusão até ~12
       // meses (caso comum); acima disso ganha folhas dedicadas e a última folha

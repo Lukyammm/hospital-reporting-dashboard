@@ -1936,12 +1936,20 @@
       // Rótulos de valor: sempre acima da linha (o topo tem folga), com
       // supressão por colisão horizontal (1º e último preservados).
       const mostraValores = serie.length <= 24;
+      const valW = 38, valGap = 4;
+      let valDir = -Infinity;
       const valores = !mostraValores ? '' : serie.map((e, i) => {
         if (e.valor == null) return '';
         const px = pts[i][0], anc = ancora(i);
-        const desloc = i % 2 === 0 ? -11 : 18;
-        const vy = Math.max(13, Math.min(H - 32, pts[i][1] + desloc));
-        return `<text x="${px}" y="${vy.toFixed(1)}" text-anchor="${anc}" font-size="12.5" font-weight="800" fill="#0b5a54">${fmtRot(e.valor)}%</text>`;
+        const esq = anc === 'start' ? px : anc === 'end' ? px - valW : px - valW / 2;
+        if (i !== 0 && i !== ultimo && esq - valDir < valGap) return '';
+        valDir = esq + valW;
+        const vy = 18 + (i % 2) * 15;
+        const guiaY = Math.max(vy + 6, pts[i][1] - 10);
+        const guia = guiaY < pts[i][1] - 3
+          ? `<line x1="${px.toFixed(1)}" y1="${(vy + 3).toFixed(1)}" x2="${px.toFixed(1)}" y2="${guiaY.toFixed(1)}" stroke="#c7d6d4" stroke-width="1"/>`
+          : '';
+        return `${guia}<text x="${px}" y="${vy.toFixed(1)}" text-anchor="${anc}" font-size="12" font-weight="800" fill="#0b5a54">${fmtRot(e.valor)}%</text>`;
       }).join('');
 
       // Rótulos do eixo X (dois passes anti-colisão): 1º e último sempre;

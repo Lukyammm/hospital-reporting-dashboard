@@ -1084,48 +1084,60 @@ function numeroOuNull(valor) {
 }
 
 function obterPlanoDeAcaoDados(ss) {
-  const sh = ss.getSheetByName('Plano de Ação');
-  if (!sh) {
-    return { sucesso: false, acoes: [] };
-  }
-
-  const ultimaLinha = Math.max(sh.getLastRow(), 1);
-  const values = sh.getRange(1, 1, ultimaLinha, 14).getValues();
-
-  const acoes = [];
-  let mesAtual = null;
-  let anoAtual = null;
-
-  for (let i = 0; i < values.length; i++) {
-    const row = values[i];
-    const colA = row[0];
-    const colI = row[8];
-    const colL = row[11];
-
-    if (colA && typeof colA === 'object' && colA.getTime) {
-      const data = new Date(colA);
-      mesAtual = data.getMonth() + 1;
-      anoAtual = data.getFullYear();
-    } else if (colA && String(colA).match(/^\d{4}-\d{2}-\d{2}/)) {
-      const data = new Date(colA);
-      mesAtual = data.getMonth() + 1;
-      anoAtual = data.getFullYear();
+  try {
+    const sh = ss.getSheetByName('Plano de Ação');
+    if (!sh) {
+      const abas = ss.getSheets().map(s => s.getName()).join(', ');
+      return { sucesso: false, acoes: [], debug: 'Aba não encontrada. Abas disponíveis: ' + abas };
     }
 
-    const acao = String(colI || '').trim();
-    const responsavel = String(colL || '').trim();
+    const ultimaLinha = Math.max(sh.getLastRow(), 1);
+    const totalCols = Math.max(sh.getLastColumn(), 12);
+    const values = sh.getRange(1, 1, ultimaLinha, totalCols).getValues();
 
-    if (acao && acao !== 'AÇÕES (O QUE FAREMOS PARA MELHORAR?)' && mesAtual && anoAtual) {
-      acoes.push({
-        mes: mesAtual,
-        ano: anoAtual,
-        acao: acao,
-        responsavel: responsavel
-      });
+    const acoes = [];
+    let mesAtual = null;
+    let anoAtual = null;
+    const debugColA = [];
+
+    for (let i = 0; i < values.length; i++) {
+      const row = values[i];
+      const colA = row[0];
+      const colI = row.length > 8 ? row[8] : '';
+      const colL = row.length > 11 ? row[11] : '';
+
+      if (i < 10) debugColA.push(typeof colA + ':' + String(colA).slice(0, 30));
+
+      if (colA) {
+        let data = null;
+        if (typeof colA === 'object' && colA !== null && typeof colA.getMonth === 'function') {
+          data = colA;
+        } else if (typeof colA === 'number' && colA > 1) {
+          // número serial do Google Sheets (dias desde 30/12/1899)
+          data = new Date((colA - 25569) * 86400000);
+        } else {
+          const str = String(colA).trim();
+          if (str.match(/^\d{4}[-\/]\d{2}/)) data = new Date(str);
+        }
+        if (data && !isNaN(data.getTime())) {
+          mesAtual = data.getMonth() + 1;
+          anoAtual = data.getFullYear();
+        }
+      }
+
+      const acao = String(colI || '').trim();
+      const responsavel = String(colL || '').trim();
+      const acaoNorm = acao.toUpperCase().replace(/\s+/g, ' ');
+
+      if (acao && !acaoNorm.startsWith('AÇÕES') && !acaoNorm.startsWith('ACOES') && mesAtual && anoAtual) {
+        acoes.push({ mes: mesAtual, ano: anoAtual, acao, responsavel });
+      }
     }
-  }
 
-  return { sucesso: true, acoes: acoes };
+    return { sucesso: true, acoes, debug: 'linhas:' + ultimaLinha + ' | colA[0-9]:' + debugColA.join(' | ') };
+  } catch (e) {
+    return { sucesso: false, acoes: [], debug: 'Erro: ' + String(e.message || e) };
+  }
 }
 
 function montarPayloadDados(forcarRefresh) {
@@ -1174,7 +1186,8 @@ function montarPayloadDados(forcarRefresh) {
       alertasEstrutura: base.alertasEstrutura || [],
       registros: registros
     },
-    planoAcao: plano.acoes || []
+    planoAcao: plano.acoes || [],
+    planoAcaoDebug: plano.debug || ''
   };
 }
 

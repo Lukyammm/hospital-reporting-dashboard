@@ -1497,6 +1497,11 @@
       </section>`;
     }
 
+    const MESES_CANONICOS = {
+      1: 'Janeiro', 2: 'Fevereiro', 3: 'Março', 4: 'Abril', 5: 'Maio', 6: 'Junho',
+      7: 'Julho', 8: 'Agosto', 9: 'Setembro', 10: 'Outubro', 11: 'Novembro', 12: 'Dezembro'
+    };
+
     function getMesBimestre(mes) {
       if (mes >= 1 && mes <= 2) return 1;
       if (mes >= 3 && mes <= 4) return 2;
@@ -1507,9 +1512,10 @@
       return null;
     }
 
-    function tabelaPlanoAcao(periodos, planoAcao) {
+    function tabelaPlanoAcao(periodos, planoAcao, debug) {
       if (!planoAcao || !planoAcao.length) {
-        return '<p class="doc-recorte" style="margin:0">Plano de ação não disponível.</p>';
+        const debugMsg = debug ? `<br><small style="color:#888;font-size:10px">debug: ${esc(debug)}</small>` : '';
+        return `<p class="doc-recorte" style="margin:0">Plano de ação não disponível.${debugMsg}</p>`;
       }
 
       const bimestresNoRecorte = new Set();
@@ -1642,7 +1648,7 @@
       // Página 4 — setores, plano de ação e conclusão.
       const secaoPlano = `<section class="doc-secao">
         <div class="doc-secao-cab"><h3>6. Plano de ação recomendado</h3></div>
-        ${tabelaPlanoAcao(periodos, state.dados?.planoAcao || [])}
+        ${tabelaPlanoAcao(periodos, state.dados?.planoAcao || [], state.dados?.planoAcaoDebug || '')}
         <div class="doc-texto" contenteditable="true" spellcheck="true" data-texto="plano" aria-label="Texto editável: Plano de ação recomendado" style="margin-top:1rem"></div>
         <button class="botao-restaurar no-print ${state.textos['plano'].manual ? 'editado' : ''}" type="button" data-restaurar="plano" title="Restaurar texto automático desta seção" style="margin-top:0.5rem">${state.textos['plano'].manual ? '✎ editado · restaurar' : '↺ automático'}</button>
       </section>`;

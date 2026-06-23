@@ -1117,7 +1117,14 @@ function obterPlanoDeAcaoDados(ss) {
           data = new Date((colA - 25569) * 86400000);
         } else {
           const str = String(colA).trim();
-          if (str.match(/^\d{4}[-\/]\d{2}/)) data = new Date(str);
+          // DD/MM/AAAA (formato brasileiro): mês é o 2º grupo.
+          const br = str.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+          if (br) {
+            mesAtual = Number(br[2]);
+            anoAtual = Number(br[3]);
+          } else if (str.match(/^\d{4}[-\/]\d{2}/)) {
+            data = new Date(str);
+          }
         }
         if (data && !isNaN(data.getTime())) {
           mesAtual = data.getMonth() + 1;

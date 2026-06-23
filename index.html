@@ -377,6 +377,7 @@
     .mini-classif { display: flex; gap: 1px; height: 12px; min-width: 70px; max-width: 130px; border-radius: 4px; overflow: hidden; background: #e9eeed; }
     .mini-classif > i { display: block; height: 100%; min-width: 1px; }
     .doc-tabela tr.linha-total td { font-weight: 800; color: var(--tinta); background: #f3f7f6; border-top: 1.5px solid var(--linha); }
+    .doc-tabela tr.bim-inicio td { border-top: 2px solid #999 !important; }
     .doc-secao-nota { font-size: 10px; font-weight: 600; color: var(--suave); white-space: nowrap; }
     /* ===== Anexo B: heatmap de evolução ===== */
     .tabela-mapa { overflow-x: auto; }
@@ -1549,10 +1550,9 @@
         const ano = acoes.length > 0 ? acoes[0].ano : '';
         const rotulo = `${MESES_CANONICOS[mesInicio]} — ${MESES_CANONICOS[mesFim]} ${ano}`;
 
-        const sep = 'border-top:2px solid #bbb';
         acoes.forEach((acao, idx) => {
           if (idx === 0) {
-            linhas.push(`<tr style="${sep}"><td rowspan="${acoes.length}" style="font-weight:bold;background:#f0f0f0;vertical-align:top;${sep}">${esc(rotulo)}</td><td style="${sep}">${esc(acao.acao)}</td><td style="${sep}">${esc(acao.responsavel)}</td></tr>`);
+            linhas.push(`<tr class="bim-inicio"><td rowspan="${acoes.length}" style="font-weight:bold;background:#f0f0f0;vertical-align:top">${esc(rotulo)}</td><td>${esc(acao.acao)}</td><td>${esc(acao.responsavel)}</td></tr>`);
           } else {
             linhas.push(`<tr><td>${esc(acao.acao)}</td><td>${esc(acao.responsavel)}</td></tr>`);
           }

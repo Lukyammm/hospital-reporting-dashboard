@@ -1083,12 +1083,58 @@ function numeroOuNull(valor) {
   return Number.isNaN(numero) ? null : numero;
 }
 
+function obterPlanoDeAcaoDados(ss) {
+  const sh = ss.getSheetByName('Plano de Ação');
+  if (!sh) {
+    return { sucesso: false, acoes: [] };
+  }
+
+  const ultimaLinha = Math.max(sh.getLastRow(), 1);
+  const values = sh.getRange(1, 1, ultimaLinha, 14).getValues();
+
+  const acoes = [];
+  let mesAtual = null;
+  let anoAtual = null;
+
+  for (let i = 0; i < values.length; i++) {
+    const row = values[i];
+    const colA = row[0];
+    const colI = row[8];
+    const colL = row[11];
+
+    if (colA && typeof colA === 'object' && colA.getTime) {
+      const data = new Date(colA);
+      mesAtual = data.getMonth() + 1;
+      anoAtual = data.getFullYear();
+    } else if (colA && String(colA).match(/^\d{4}-\d{2}-\d{2}/)) {
+      const data = new Date(colA);
+      mesAtual = data.getMonth() + 1;
+      anoAtual = data.getFullYear();
+    }
+
+    const acao = String(colI || '').trim();
+    const responsavel = String(colL || '').trim();
+
+    if (acao && acao !== 'AÇÕES (O QUE FAREMOS PARA MELHORAR?)' && mesAtual && anoAtual) {
+      acoes.push({
+        mes: mesAtual,
+        ano: anoAtual,
+        acao: acao,
+        responsavel: responsavel
+      });
+    }
+  }
+
+  return { sucesso: true, acoes: acoes };
+}
+
 function montarPayloadDados(forcarRefresh) {
   const cfg = obterConfigRel(forcarRefresh === true);
   const ss = abrirPlanilhaRelatorio(cfg);
   const base = obterLinhasRelatorio(ss, 'CRP', cfg);
   const termos = montarTermosClassificacao(cfg);
   const col = RELATORIO_CRP_COLUNAS;
+  const plano = obterPlanoDeAcaoDados(ss);
 
   const registros = base.linhas.map(row => {
     let flags = '';
@@ -1127,7 +1173,8 @@ function montarPayloadDados(forcarRefresh) {
       totalRegistros: registros.length,
       alertasEstrutura: base.alertasEstrutura || [],
       registros: registros
-    }
+    },
+    planoAcao: plano.acoes || []
   };
 }
 

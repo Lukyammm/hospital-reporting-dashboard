@@ -1549,9 +1549,10 @@
         const ano = acoes.length > 0 ? acoes[0].ano : '';
         const rotulo = `${MESES_CANONICOS[mesInicio]} — ${MESES_CANONICOS[mesFim]} ${ano}`;
 
+        const sep = 'border-top:2px solid #bbb';
         acoes.forEach((acao, idx) => {
           if (idx === 0) {
-            linhas.push(`<tr><td rowspan="${acoes.length}" style="font-weight:bold;background:#f0f0f0;vertical-align:top">${esc(rotulo)}</td><td>${esc(acao.acao)}</td><td>${esc(acao.responsavel)}</td></tr>`);
+            linhas.push(`<tr style="${sep}"><td rowspan="${acoes.length}" style="font-weight:bold;background:#f0f0f0;vertical-align:top;${sep}">${esc(rotulo)}</td><td style="${sep}">${esc(acao.acao)}</td><td style="${sep}">${esc(acao.responsavel)}</td></tr>`);
           } else {
             linhas.push(`<tr><td>${esc(acao.acao)}</td><td>${esc(acao.responsavel)}</td></tr>`);
           }

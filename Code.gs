@@ -965,61 +965,67 @@ function obterTextosPersonalizadosRel(comissao) {
 
 function salvarTextosPersonalizadosRel(comissao, textos) {
   return executarRota('rpc-textos-salvar', function() {
-    const ss = obterPlanilhaConfiguracaoRel(PLANILHAS.relatorios);
-    let sh = ss.getSheetByName(TEXTOS_REL_SHEET);
-    if (!sh) {
-      sh = ss.insertSheet(TEXTOS_REL_SHEET);
-      sh.getRange('A1:E1').setValues([['Comissão', 'Chave', 'Texto', 'Atualizado em', 'Por']]);
-      sh.setFrozenRows(1);
-      try { sh.setTabColor('#7c3aed'); } catch (_) {}
-    }
-    const comissaoNorm = String(comissao || 'CRP').toUpperCase();
-    const usuario = emailUsuarioAtualRel() || 'anônimo';
-    const carimbo = carimboAgora();
-    const lastRow = sh.getLastRow();
-    const existente = lastRow > 1 ? sh.getRange(2, 1, lastRow - 1, 2).getValues() : [];
+    return executarComLockConfigRel('rpc-textos-salvar-lock', function() {
+      const ss = obterPlanilhaConfiguracaoRel(PLANILHAS.relatorios);
+      let sh = ss.getSheetByName(TEXTOS_REL_SHEET);
+      if (!sh) {
+        sh = ss.insertSheet(TEXTOS_REL_SHEET);
+        sh.getRange('A1:E1').setValues([['Comissão', 'Chave', 'Texto', 'Atualizado em', 'Por']]);
+        sh.setFrozenRows(1);
+        try { sh.setTabColor('#7c3aed'); } catch (_) {}
+      }
+      const comissaoNorm = String(comissao || 'CRP').toUpperCase();
+      const usuario = emailUsuarioAtualRel() || 'anônimo';
+      const carimbo = carimboAgora();
+      // Re-read inside the lock to get the authoritative row positions.
+      const lastRow = sh.getLastRow();
+      const existente = lastRow > 1 ? sh.getRange(2, 1, lastRow - 1, 2).getValues() : [];
 
-    Object.keys(textos || {}).forEach(function(chave) {
-      if (!chave) return;
-      const texto = textos[chave];
-      let linha = -1;
-      for (let i = 0; i < existente.length; i++) {
-        if (String(existente[i][0]).trim().toUpperCase() === comissaoNorm && String(existente[i][1]).trim() === chave) {
-          linha = i + 2;
-          break;
+      Object.keys(textos || {}).forEach(function(chave) {
+        if (!chave) return;
+        const texto = textos[chave];
+        let linha = -1;
+        for (let i = 0; i < existente.length; i++) {
+          if (String(existente[i][0]).trim().toUpperCase() === comissaoNorm && String(existente[i][1]).trim() === chave) {
+            linha = i + 2;
+            break;
+          }
         }
-      }
-      if (linha > 0) {
-        sh.getRange(linha, 3, 1, 3).setValues([[texto, carimbo, usuario]]);
-      } else {
-        sh.appendRow([comissaoNorm, chave, texto, carimbo, usuario]);
-        existente.push([comissaoNorm, chave]);
-      }
+        if (linha > 0) {
+          sh.getRange(linha, 3, 1, 3).setValues([[texto, carimbo, usuario]]);
+        } else {
+          sh.appendRow([comissaoNorm, chave, texto, carimbo, usuario]);
+          existente.push([comissaoNorm, chave]);
+        }
+      });
+      return { success: true };
     });
-    return { success: true };
   });
 }
 
 function limparTextosPersonalizadosRel(comissao, chaves) {
   return executarRota('rpc-textos-limpar', function() {
-    const ss = obterPlanilhaConfiguracaoRel(PLANILHAS.relatorios);
-    const sh = ss.getSheetByName(TEXTOS_REL_SHEET);
-    if (!sh || sh.getLastRow() < 2) return { success: true };
-    const comissaoNorm = String(comissao || 'CRP').toUpperCase();
-    const chavesArr = Array.isArray(chaves) ? chaves.map(String) : [String(chaves)];
-    const chavesSet = {};
-    chavesArr.forEach(function(c) { chavesSet[c] = true; });
-    const dados = sh.getRange(2, 1, sh.getLastRow() - 1, 2).getValues();
-    const paraApagar = [];
-    for (let i = 0; i < dados.length; i++) {
-      if (String(dados[i][0]).trim().toUpperCase() === comissaoNorm && chavesSet[String(dados[i][1]).trim()]) {
-        paraApagar.push(i + 2);
+    return executarComLockConfigRel('rpc-textos-limpar-lock', function() {
+      const ss = obterPlanilhaConfiguracaoRel(PLANILHAS.relatorios);
+      const sh = ss.getSheetByName(TEXTOS_REL_SHEET);
+      if (!sh || sh.getLastRow() < 2) return { success: true };
+      const comissaoNorm = String(comissao || 'CRP').toUpperCase();
+      const chavesArr = Array.isArray(chaves) ? chaves.map(String) : [String(chaves)];
+      const chavesSet = {};
+      chavesArr.forEach(function(c) { chavesSet[c] = true; });
+      // Re-read inside the lock so row indices are authoritative at delete time.
+      const dados = sh.getRange(2, 1, sh.getLastRow() - 1, 2).getValues();
+      const paraApagar = [];
+      for (let i = 0; i < dados.length; i++) {
+        if (String(dados[i][0]).trim().toUpperCase() === comissaoNorm && chavesSet[String(dados[i][1]).trim()]) {
+          paraApagar.push(i + 2);
+        }
       }
-    }
-    for (let i = paraApagar.length - 1; i >= 0; i--) {
-      sh.deleteRow(paraApagar[i]);
-    }
-    return { success: true };
+      for (let i = paraApagar.length - 1; i >= 0; i--) {
+        sh.deleteRow(paraApagar[i]);
+      }
+      return { success: true };
+    });
   });
 }
 

@@ -811,14 +811,17 @@
       if (!el) return;
       el.className = 'texto-status no-print' + (status ? ' ' + status : '');
       el.textContent = msg || '';
-      if (status === 'salvo') setTimeout(() => { if (el.textContent === (msg || '')) { el.className = 'texto-status no-print'; el.textContent = ''; } }, 3000);
+      // Auto-clear: 'salvo' after 3s, 'erro-salvar' after 5s, 'salvando' after 30s (safety fallback).
+      const delay = status === 'salvo' ? 3000 : status === 'erro-salvar' ? 5000 : status === 'salvando' ? 30000 : 0;
+      if (delay) setTimeout(() => { if (el.textContent === (msg || '')) { el.className = 'texto-status no-print'; el.textContent = ''; } }, delay);
     }
 
-    // Cria debounce por chave para salvar no backend apenas a chave editada.
+    // Debounce per-key: saves only the edited section after 3s of inactivity.
     const _debounceBackend = {};
     function agendarSalvarNoBackend(chave) {
       clearTimeout(_debounceBackend[chave]);
       _debounceBackend[chave] = setTimeout(async () => {
+        delete _debounceBackend[chave]; // prevent key accumulation
         if (!state.textos[chave] || !state.textos[chave].manual) return;
         marcarStatusTexto(chave, 'salvando', 'Salvando...');
         try {
@@ -1789,9 +1792,9 @@
           marcarStatusTexto(chave, 'salvando', 'Restaurando...');
           try {
             await rpcTextos('limpar', state.comissao, [chave]);
-            marcarStatusTexto(chave, '', '');
+            marcarStatusTexto(chave, 'salvo', 'Restaurado ✓');
           } catch (_) {
-            marcarStatusTexto(chave, '', '');
+            marcarStatusTexto(chave, 'erro-salvar', 'Restaurado localmente');
           }
           toast(`Texto de "${TITULOS_TEXTO[chave]}" voltou ao automático.`, 'info', 'Texto');
         });

@@ -279,6 +279,8 @@ const CONFIG_REL_CRO_SHEET = 'CRO_REL_CONFIG';
 const CONFIG_REL_CRO_LOG_SHEET = 'CRO_REL_CONFIG_LOG';
 const CONFIG_REL_CRO_CACHE_KEY = 'CRO_REL_CONFIG_CACHE_V1';
 const TEXTOS_REL_SHEET = 'REL_TEXTOS';
+const DADOS_CRO_CACHE_KEY = 'CRO_DADOS_CACHE_V1';
+const DADOS_CRO_CACHE_TTL = 300; // 5 minutos
 
 const TEXTOS_PADRAO_REL = {
   intro: 'Este relatório apresenta a análise consolidada da comissão {comissao} para o período {periodo}, considerando {setores}. O objetivo é sintetizar o desempenho dos registros avaliados, evidenciar conformidades e não conformidades e apoiar decisões de melhoria contínua.',
@@ -913,6 +915,7 @@ function salvarConfigRelAdmin(novaConfig) {
 
     registrarLogRelSemLock(usuario, 'Configuracao do relatorio atualizada', mergedCRP);
     registrarLogRelCROSemLock(usuario, 'Configuracao da CRO atualizada', mergedCRO);
+    try { CacheService.getScriptCache().remove(DADOS_CRO_CACHE_KEY); } catch (_) {}
     return { success: true, config: combinarConfigsRelAdmin(mergedCRP, mergedCRO), mensagem: 'Configuracoes salvas com sucesso.' };
   }));
 }
@@ -948,8 +951,10 @@ function obterTextosPersonalizadosRel(comissao) {
   try {
     const ss = obterPlanilhaConfiguracaoRel(PLANILHAS.relatorios);
     const sh = ss.getSheetByName(TEXTOS_REL_SHEET);
-    if (!sh || sh.getLastRow() < 2) return {};
-    const dados = sh.getRange(2, 1, sh.getLastRow() - 1, 3).getValues();
+    if (!sh) return {};
+    const all = sh.getDataRange().getValues();
+    if (all.length < 2) return {};
+    const dados = all.slice(1).map(function(r) { return [r[0], r[1], r[2]]; });
     const comissaoNorm = String(comissao || 'CRP').toUpperCase();
     const resultado = {};
     dados.forEach(function(row) {
@@ -1496,11 +1501,12 @@ function obterIndicadoresGerenciadosCRO(ss) {
     return resultado;
   }
 
-  const ultimaLinha = Math.max(sh.getLastRow(), 1);
-  if (ultimaLinha < 2) return resultado;
+  // getDataRange() reads dimensions and data in a single API call.
+  const all = sh.getDataRange().getValues();
+  if (all.length < 2) return resultado;
 
-  // W:Y = período, numerador (óbitos > 24h), denominador (saídas).
-  const values = sh.getRange(1, 23, ultimaLinha, 3).getValues();
+  // W:Y = col 23-25 (0-indexed: 22-24) — período, numerador, denominador.
+  const values = all.map(function(row) { return [row[22], row[23], row[24]]; });
   for (let i = 1; i < values.length; i++) {
     const row = values[i];
     const periodoBruto = row[0];
@@ -1525,6 +1531,14 @@ function obterIndicadoresGerenciadosCRO(ss) {
 }
 
 function montarPayloadDadosCRO(forcarRefresh) {
+  // Fast path: return cached payload when not forcing a refresh.
+  if (!forcarRefresh) {
+    try {
+      const raw = CacheService.getScriptCache().get(DADOS_CRO_CACHE_KEY);
+      if (raw) return JSON.parse(raw);
+    } catch (_) {}
+  }
+
   const cfgCRP = obterConfigRel(forcarRefresh === true);
   const cfg = obterConfigRelCRO(forcarRefresh === true, cfgCRP);
   const configPublica = configPublicaCRO(cfg);
@@ -1549,21 +1563,16 @@ function montarPayloadDadosCRO(forcarRefresh) {
     };
   }
 
-  const ultimaLinha = Math.max(sh.getLastRow(), 1);
-  const ultimaColunaPlanilha = Math.max(sh.getLastColumn(), 1);
+  // Single API call: read everything at once, then detect header in memory.
+  const values = sh.getDataRange().getValues();
+  const ultimaLinha = values.length;
   const linhasBuscaCabecalho = Math.min(ultimaLinha, 30);
-  const colunasBuscaCabecalho = Math.min(ultimaColunaPlanilha, 80);
-  let amostraCabecalho = sh.getRange(1, 1, linhasBuscaCabecalho, colunasBuscaCabecalho).getValues();
-  let mapaInicial = mapearColunasCRO(amostraCabecalho, linhasBuscaCabecalho);
-
-  if (mapaInicial.achados < 6 && colunasBuscaCabecalho < ultimaColunaPlanilha) {
-    amostraCabecalho = sh.getRange(1, 1, linhasBuscaCabecalho, ultimaColunaPlanilha).getValues();
-    mapaInicial = mapearColunasCRO(amostraCabecalho, linhasBuscaCabecalho);
-  }
 
   const alertas = [];
-  if (mapaInicial.achados < 6) {
-    alertas.push(`A base da CRO foi localizada em "${sh.getName()}", mas só ${mapaInicial.achados} colunas conhecidas foram reconhecidas no cabeçalho.`);
+  const { linha: linhaHeader, mapa, achados } = mapearColunasCRO(values, linhasBuscaCabecalho);
+
+  if (achados < 6) {
+    alertas.push(`A base da CRO foi localizada em "${sh.getName()}", mas só ${achados} colunas conhecidas foram reconhecidas no cabeçalho.`);
     alertas.push('A leitura foi interrompida para evitar varrer a planilha inteira. Confira os cabeçalhos nas primeiras 30 linhas.');
     return {
       success: true,
@@ -1574,19 +1583,13 @@ function montarPayloadDadosCRO(forcarRefresh) {
         aba: sh.getName(),
         totalRegistros: 0,
         alertasEstrutura: alertas,
-        registros: []
-      }
+        registros: [],
+        indicadoresGerenciados: indicadoresGerenciados
+      },
+      textosPersonalizados: obterTextosPersonalizadosRel('CRO')
     };
   }
 
-  const maiorColunaMapeada = Object.keys(mapaInicial.mapa).reduce((max, chave) => Math.max(max, mapaInicial.mapa[chave] || 0), 0);
-  const ultimaColuna = Math.min(ultimaColunaPlanilha, Math.max(colunasBuscaCabecalho, maiorColunaMapeada + 1));
-  const values = sh.getRange(1, 1, ultimaLinha, ultimaColuna).getValues();
-  const { linha: linhaHeader, mapa, achados } = mapearColunasCRO(values, linhasBuscaCabecalho);
-
-  if (achados < 6) {
-    alertas.push(`A base da CRO foi localizada em "${sh.getName()}", mas só ${achados} colunas conhecidas foram reconhecidas no cabeçalho.`);
-  }
   ['unidadeObito', 'avaliacao1', 'mes'].forEach(chave => {
     if (mapa[chave] == null) alertas.push(`Coluna "${chave}" não encontrada no cabeçalho da base da CRO.`);
   });
@@ -1638,6 +1641,14 @@ function montarPayloadDadosCRO(forcarRefresh) {
     },
     textosPersonalizados: obterTextosPersonalizadosRel('CRO')
   };
+
+  // Cache the payload so repeat loads within 5 min skip all Sheets reads.
+  try {
+    const serialized = JSON.stringify(payload);
+    CacheService.getScriptCache().put(DADOS_CRO_CACHE_KEY, serialized, DADOS_CRO_CACHE_TTL);
+  } catch (_) { /* payload too large for cache — skip silently */ }
+
+  return payload;
 }
 
 function obterDadosRelatorioCRO(opcoes) {

@@ -1142,7 +1142,7 @@
       const mostraValores = evolucao.length <= 13;
       const marcadores = evolucao.map((e, i) =>
         `<circle cx="${pts[i][0]}" cy="${pts[i][1]}" r="4.5" fill="#0f766e" stroke="#ffffff" stroke-width="2"/>` +
-        (mostraValores ? `<text x="${pts[i][0]}" y="${pts[i][1] - 12}" text-anchor="${ancora(i)}" font-size="15" font-weight="800" fill="#0b5a54">${fmtRot(e.percentual)}%</text>` : '')).join('');
+        (mostraValores ? `<text x="${pts[i][0]}" y="${pts[i][1] - 12}" text-anchor="${ancora(i)}" font-size="15" font-weight="800" fill="#0b5a54" stroke="#fff" stroke-width="3" paint-order="stroke">${fmtRot(e.percentual)}%</text>` : '')).join('');
 
       // Afina os rótulos para no máximo ~12 no eixo, sempre mantendo a virada
       // de ano visível, de modo que muitos meses não poluam a base do gráfico.
@@ -1506,7 +1506,7 @@
         const yConf = base - hConf, yNao = yConf - hNao;
         const rConf = hConf > 0 ? `<rect x="${x.toFixed(1)}" y="${yConf.toFixed(1)}" width="${bw.toFixed(1)}" height="${hConf.toFixed(1)}" fill="#15803d"><title>${esc(d.rotulo)} · conformes ${fmtNum(d.conf)}</title></rect>` : '';
         const rNao = hNao > 0 ? `<rect x="${x.toFixed(1)}" y="${yNao.toFixed(1)}" width="${bw.toFixed(1)}" height="${hNao.toFixed(1)}" fill="#b42318"><title>${esc(d.rotulo)} · não conformes ${fmtNum(d.nao)}</title></rect>` : '';
-        const lblPct = d.total ? `<text x="${cx(i).toFixed(1)}" y="${(yNao - 6).toFixed(1)}" text-anchor="middle" font-size="15" font-weight="800" fill="#0b5a54">${fmtPct(d.pct)}</text>` : '';
+        const lblPct = d.total ? `<text x="${cx(i).toFixed(1)}" y="${(yNao - 6).toFixed(1)}" text-anchor="middle" font-size="15" font-weight="800" fill="#0b5a54" stroke="#fff" stroke-width="3" paint-order="stroke">${fmtPct(d.pct)}</text>` : '';
         const lblPer = (i % passo === 0) ? `<text x="${ax(i).toFixed(1)}" y="${H - 12}" text-anchor="${ancora(i)}" font-size="14" font-weight="600" fill="#5d6f73">${esc(d.rotulo)}</text>` : '';
         return rConf + rNao + lblPct + lblPer;
       }).join('');
@@ -2104,7 +2104,7 @@
         if (metaGeo && px > metaGeo.pillX - 12 && vy > metaGeo.yMeta + 1 && vy < metaGeo.yMeta + 22) {
           vy = metaGeo.yMeta - 7;
         }
-        return `<text x="${px}" y="${vy.toFixed(1)}" text-anchor="${anc}" font-size="12" font-weight="800" fill="#0b5a54">${fmtRot(e.valor)}%</text>`;
+        return `<text x="${px}" y="${vy.toFixed(1)}" text-anchor="${anc}" font-size="12" font-weight="800" fill="#0b5a54" stroke="#fff" stroke-width="3" paint-order="stroke">${fmtRot(e.valor)}%</text>`;
       }).join('');
 
       // Rótulos do eixo X (dois passes anti-colisão): 1º e último sempre;

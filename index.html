@@ -2138,7 +2138,7 @@
 
     function svgLinhasMultiplasCRO(series, opcoes) {
       opcoes = opcoes || {};
-      const W = 520, H = 224, mx = 34, mt = 38, mb = 34, mr = 18;
+      const W = 520, H = 210, mx = 34, mt = 16, mb = 34, mr = 18;
       const aw = W - mx - mr, ah = H - mt - mb;
       const pontos = series.reduce((acc, s) => acc.concat((s.dados || []).filter(p => p.valor != null)), []);
       if (!pontos.length) return `<div style="display:grid;place-items:center;height:${H}px;color:var(--suave);font-size:11px">Sem dados no recorte selecionado.</div>`;
@@ -2155,12 +2155,6 @@
         `<line x1="${mx}" y1="${y(v).toFixed(1)}" x2="${W - mr}" y2="${y(v).toFixed(1)}" stroke="${v === 0 ? '#d3dddb' : '#eef3f2'}" stroke-width="1"/>` +
         `<text x="${mx - 7}" y="${(y(v) + 4).toFixed(1)}" text-anchor="end" font-size="11" font-weight="600" fill="#8fa0a3">${Math.round(v)}</text>`).join('');
 
-      const legenda = series.map((s, i) => {
-        const x0 = mx + i * 138;
-        return `<line x1="${x0}" y1="16" x2="${x0 + 14}" y2="16" stroke="${s.cor}" stroke-width="2.4"/>` +
-          `<text x="${x0 + 19}" y="19" font-size="8.6" font-weight="800" fill="#33413f">${esc(s.nome)}</text>`;
-      }).join('');
-
       const linhas = series.map(s => {
         const pts = (s.dados || []).map((p, i) => p.valor == null ? null : [+x(i).toFixed(1), +y(p.valor).toFixed(1)]);
         const segs = []; let atual = [];
@@ -2176,7 +2170,10 @@
       const rotulos = base.map((p, i) =>
         `<text x="${i === 0 ? mx : i === ultimo ? W - mr : x(i)}" y="${H - 12}" text-anchor="${ancora(i)}" font-size="11.5" font-weight="700" fill="#5d6f73">${esc(String(p.mes || '').slice(0, 3))}</text>`).join('');
 
-      return `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(opcoes.label || 'Series mensais da CRO')}">${grade}${legenda}${linhas}${rotulos}</svg>`;
+      const svg = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(opcoes.label || 'Series mensais da CRO')}">${grade}${linhas}${rotulos}</svg>`;
+      const legenda = `<div class="legenda">${series.map(s =>
+        `<span><i style="background:${s.cor}"></i>${esc(s.nome)}</span>`).join('')}</div>`;
+      return svg + legenda;
     }
 
     /* ===== Tokens e textos da CRO ===== */
@@ -2234,9 +2231,9 @@
       const graficos = [
           temMort ? caixaGraficoCRO('Taxa de mortalidade institucional', svgLinhaCRO(serieMortalidade, null), true) : '',
           temEvol ? caixaGraficoCRO('Estratificação da primeira análise', svgLinhasMultiplasCRO([
-            { nome: 'JUSTIF./INEVITÁVEL', cor: '#2638ff', dados: serieJust },
-            { nome: 'A ESCLARECER', cor: '#ef1d1d', dados: serieEsc },
-            { nome: 'OPORT. MELHORIA', cor: '#f28c00', dados: serieOport }
+            { nome: 'Justificado / inevitável', cor: '#2563eb', dados: serieJust },
+            { nome: 'A esclarecer', cor: '#dc2626', dados: serieEsc },
+            { nome: 'Oportunidade de melhoria', cor: '#ea580c', dados: serieOport }
           ], { label: 'Estratificação da primeira análise' }), true) : '',
           temEvol ? caixaGraficoCRO('Taxa de óbitos a esclarecer avaliados', svgLinhaCRO(serieEsclarecerAval, null), true) : '',
           temEvol ? caixaGraficoCRO('Taxa de avaliação de óbitos (1ª análise)', svgLinhaCRO(serieAval, rel.metaInstitucional, 'META ' + String(rel.metaInstitucional).replace('.', ',') + '%'), true) : '',

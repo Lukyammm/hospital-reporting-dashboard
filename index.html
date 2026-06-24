@@ -138,6 +138,10 @@
     .resumo-celula { border: 1px solid var(--linha); border-radius: 9px; padding: 8px 10px; }
     .resumo-celula span { display: block; font-size: 11px; font-weight: 600; color: var(--suave); }
     .resumo-celula strong { display: block; font-size: 18px; font-weight: 800; letter-spacing: -.02em; }
+    .resumo-celula.celula-elo { border-left: 3px solid #b45709; }
+    .resumo-celula.celula-evento strong { color: #b45709; }
+    .resumo-celula.celula-evento .evento-fora { display: block; margin-top: 4px; font-size: 10px; font-weight: 700; color: var(--suave); }
+    .resumo-celula.celula-evento .evento-fora i { display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: #a6b4b6; margin-right: 4px; vertical-align: middle; }
     .aviso-estrutura {
       display: none;
       gap: 8px;
@@ -307,6 +311,12 @@
     .doc-metrica { border: 1px solid var(--linha); border-radius: 9px; padding: 9px 10px; background: #fcfdfd; break-inside: avoid; }
     .doc-metrica span { display: block; color: var(--suave); font-size: 8.6px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; }
     .doc-metrica strong { display: block; margin-top: 4px; font-size: 17px; line-height: 1; letter-spacing: -.02em; font-weight: 800; }
+    /* Vínculo visual entre "A esclarecer (Londres)" e "Eventos adversos":
+       faixa lateral âmbar (tema do Protocolo de Londres / a esclarecer). */
+    .doc-metrica.metrica-elo { border-left: 3px solid #b45709; }
+    .doc-metrica.metrica-evento strong { color: #b45709; }
+    .doc-metrica.metrica-evento .evento-fora { display: block; margin-top: 5px; font-size: 9.2px; font-weight: 800; letter-spacing: .02em; text-transform: none; color: var(--suave); }
+    .doc-metrica.metrica-evento .evento-fora i { display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: #a6b4b6; margin-right: 4px; vertical-align: middle; }
     .doc-legendas { margin: 14px 0 0; }
     .doc-legendas-titulo { font-size: 8.6px; font-weight: 800; letter-spacing: .08em; color: var(--suave); text-transform: uppercase; margin: 0 0 6px; }
     .doc-legenda { position: relative; padding: 0 0 0 13px; margin: 0 0 5px; font-size: 9.4px; line-height: 1.42; color: var(--suave); break-inside: avoid; }
@@ -725,7 +735,7 @@
     // Índices posicionais de cada registro do dataset compacto da CRP (ver Code.gs).
     const R = { ano: 0, mes: 1, status: 2, unidade: 3, eixo: 4, categoria: 5, satisfacao: 6, flags: 7, num: 8, den: 9, res: 10 };
     // Índices posicionais do dataset da CRO (ver montarPayloadDadosCRO no Code.gs).
-    const RC = { ano: 0, mes: 1, unidade: 2, avaliacao: 3, evento: 4, sexo: 5, faixa: 6, macro: 7, origem: 8, comorb: 9, dias: 10, idade: 11, status: 12 };
+    const RC = { ano: 0, mes: 1, unidade: 2, avaliacao: 3, evento: 4, sexo: 5, faixa: 6, macro: 7, origem: 8, comorb: 9, dias: 10, idade: 11, status: 12, prontuario: 13 };
 
     const MES_ORDEM = {
       'Janeiro': 1, 'Fevereiro': 2, 'Março': 3, 'Abril': 4, 'Maio': 5, 'Junho': 6,
@@ -1857,6 +1867,13 @@
         t.indexOf('JUSTIFIC') !== -1 || t.indexOf('INEVIT') !== -1 || t.indexOf('OPORTUN') !== -1 || t.indexOf('MELHORIA') !== -1;
     }
     function obitoLondres(avaliacao) { return normTxt(avaliacao).indexOf('LONDRES') !== -1; }
+    // Óbito "a esclarecer": olha tanto a 1ª avaliação quanto o status, casando
+    // ESCLARECER ou LONDRES (Protocolo de Londres) em qualquer um dos campos.
+    function obitoEsclarecer(r) {
+      return obitoLondres(r[RC.avaliacao])
+        || categoriaPrimeiraAnalise(r[RC.avaliacao]) === 'esclarecer'
+        || categoriaPrimeiraAnalise(r[RC.status]) === 'esclarecer';
+    }
     function categoriaPrimeiraAnalise(avaliacao) {
       const t = normTxt(avaliacao);
       if (!t) return '';
@@ -1865,12 +1882,6 @@
       if (t.indexOf('JUSTIFIC') !== -1 || t.indexOf('INEVIT') !== -1 || t.indexOf('EVITAVEL') !== -1) return 'justificado';
       return '';
     }
-    function obitoComEvento(evento) {
-      const t = normTxt(evento);
-      if (!t || t === 'NAO' || t === 'N' || t === 'N/A' || t.indexOf('NAO ') === 0 || t.indexOf('SEM EVENTO') !== -1) return false;
-      return t === 'SIM' || t === 'S' || t.indexOf('EVENTO') !== -1 || t.indexOf('ADVERS') !== -1 || t.indexOf('GRAVE') !== -1 || t.indexOf('MODERAD') !== -1;
-    }
-
     function distribuicaoSimples(regs, idx, ordenarPorOrdem) {
       const mapa = {};
       regs.forEach(r => { const v = r[idx] || 'Não informado'; mapa[v] = (mapa[v] || 0) + 1; });
@@ -1929,13 +1940,21 @@
     function agregarCRO(regs) {
       const cfg = state.dados.config;
       const total = regs.length;
-      let analisados = 0, naoAnalisados = 0, londres = 0, eventos = 0;
+      // Conjunto de prontuários com notificação de evento adverso qualificado
+      // (TIPO CLASSIFICAÇÃO grave/óbito/never event), vindo da base NOTIVISA.
+      const notif = new Set((((state.dados || {}).base || {}).notificacoesQualificadas) || []);
+      let analisados = 0, naoAnalisados = 0, londres = 0, eventos = 0, eventosForaEsclarecer = 0;
       const evoMap = {};
       regs.forEach(r => {
         const an = obitoAnalisado(r[RC.avaliacao]);
         if (an) analisados++; else naoAnalisados++;
         if (obitoLondres(r[RC.avaliacao])) londres++;
-        if (obitoComEvento(r[RC.evento])) eventos++;
+        // Evento adverso = óbito com notificação qualificada. Conta como evento
+        // do indicador só quando o óbito é "a esclarecer"; os demais entram no
+        // indicador menor de notificações fora de "a esclarecer".
+        if (r[RC.prontuario] && notif.has(r[RC.prontuario])) {
+          if (obitoEsclarecer(r)) eventos++; else eventosForaEsclarecer++;
+        }
         const ano = r[RC.ano], mes = r[RC.mes];
         if (MES_ORDEM[mes]) {
           const chave = ano + ' ' + mes;
@@ -1963,7 +1982,7 @@
       const meta = Number(cfg.metaInstitucional || 100);
       const taxaAnalisados = total ? Number(((analisados / total) * 100).toFixed(1)) : null;
       return {
-        total, analisados, naoAnalisados, londres, eventos,
+        total, analisados, naoAnalisados, londres, eventos, eventosForaEsclarecer,
         taxaAnalisados, diferencaMeta: taxaAnalisados == null ? null : Number((taxaAnalisados - meta).toFixed(1)),
         taxaLondres: total ? Number(((londres / total) * 100).toFixed(1)) : null,
         metaInstitucional: meta,
@@ -2297,8 +2316,8 @@
           <article class="doc-metrica"><span>Óbitos</span><strong>${fmtNum(rel.total)}</strong></article>
           <article class="doc-metrica"><span>Analisados (1ª aval.)</span><strong style="color:var(--brand)">${fmtNum(rel.analisados)}</strong></article>
           <article class="doc-metrica"><span>Taxa de avaliação</span><strong>${fmtPct(rel.taxaAnalisados)}</strong></article>
-          <article class="doc-metrica"><span>A esclarecer (Londres)</span><strong>${fmtNum(rel.londres)}</strong></article>
-          <article class="doc-metrica"><span>Eventos adversos</span><strong style="color:var(--vermelho)">${fmtNum(rel.eventos)}</strong></article>
+          <article class="doc-metrica metrica-elo"><span>A esclarecer (Londres)</span><strong>${fmtNum(rel.londres)}</strong></article>
+          <article class="doc-metrica metrica-elo metrica-evento"><span>Eventos adversos</span><strong>${fmtNum(rel.eventos)}</strong><small class="evento-fora"><i></i>${fmtNum(rel.eventosForaEsclarecer || 0)} fora de "a esclarecer"</small></article>
         </section>
         ${secaoTexto(1, 'apresentacao')}
         ${secaoTexto(2, 'epidemiologia')}
@@ -2391,8 +2410,8 @@
         <div class="barra-meta"><i style="width:${Math.max(0, Math.min(100, rel.taxaAnalisados || 0))}%"></i><b style="left:${Math.max(0, Math.min(100, rel.metaInstitucional))}%"></b></div>
         <div class="resumo-grade">
           <div class="resumo-celula"><span>Analisados</span><strong style="color:var(--brand)">${fmtNum(rel.analisados)}</strong></div>
-          <div class="resumo-celula"><span>A esclarecer</span><strong>${fmtNum(rel.londres)}</strong></div>
-          <div class="resumo-celula"><span>Eventos adversos</span><strong style="color:var(--vermelho)">${fmtNum(rel.eventos)}</strong></div>
+          <div class="resumo-celula celula-elo"><span>A esclarecer</span><strong>${fmtNum(rel.londres)}</strong></div>
+          <div class="resumo-celula celula-elo celula-evento"><span>Eventos adversos</span><strong>${fmtNum(rel.eventos)}</strong><small class="evento-fora"><i></i>${fmtNum(rel.eventosForaEsclarecer || 0)} fora de "a esclarecer"</small></div>
           <div class="resumo-celula"><span>Não analisados</span><strong>${fmtNum(rel.naoAnalisados)}</strong></div>
         </div>
         ${(state.dados.base.alertasEstrutura || []).length ? `<div class="aviso-estrutura ativo"><span aria-hidden="true">⚠</span><span>${(state.dados.base.alertasEstrutura || []).length} alerta(s) de estrutura na base — detalhes no documento.</span></div>` : ''}`;

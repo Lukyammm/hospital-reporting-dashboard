@@ -25,7 +25,10 @@ const PLANILHAS = {
   relatorios: '1DjE-1Gx33RfWPkUtUW883-5SM2NVdeuDsq4wQ0XxGUw',
   // Planilha de gerenciamento das análises dos óbitos (CRO). A base da CRO fica
   // numa planilha própria; pode ser sobrescrita por cfg.planilhaIdCRO.
-  relatoriosCRO: '1Tqit0LGFH9-5WZVNj3mhJZdBxw1bpm2TUxeXL2WDMy8'
+  relatoriosCRO: '1Tqit0LGFH9-5WZVNj3mhJZdBxw1bpm2TUxeXL2WDMy8',
+  // Planilha de notificações (NOTIVISA). A CRO cruza o prontuário do óbito com
+  // as notificações para contar eventos adversos qualificados.
+  notificacoesCRO: '1FoHjXEgjiGMoJRzJGIN7NwVXE5Y3annqV75cn12G_qE'
 };
 const ABA_RELATORIO_CRP = 'BASE_DADOS(NÃOEDITAR)';
 const ABA_RELATORIO_CRO = 'CRO';
@@ -1347,6 +1350,20 @@ const RELATORIO_CRO_CABECALHOS = [
   { chave: 'dataObito',      termos: ['DATA OBITO', 'DATA DO OBITO'] }
 ];
 
+// Base de notificações (NOTIVISA) cruzada com a CRO. Mapeia só o que importa
+// para o cruzamento: o prontuário e o tipo de classificação do evento.
+const NOTIFICA_CRO_ABAS = [
+  'BASE DE DADOS - NOTIFICA', 'BASE DE DADOS NOTIFICA', 'BASE DE DADOS-NOTIFICA',
+  'NOTIFICA', 'NOTIFICAÇÕES', 'NOTIFICACOES'
+];
+const NOTIFICA_CRO_CABECALHOS = [
+  { chave: 'prontuario',        termos: ['PRONTUARIO', 'PRONT'] },
+  { chave: 'tipoClassificacao', termos: ['TIPO CLASSIFICACAO', 'TIPO DE CLASSIFICACAO', 'CLASSIFICACAO'] }
+];
+// Tipos de classificação que contam como evento adverso (normalizados: sem
+// acento, maiúsculo). Só contam quando o óbito da CRO também é "a esclarecer".
+const NOTIFICA_CRO_TIPOS_EVENTO = ['EVENTO ADVERSO GRAVE', 'EVENTO ADVERSO OBITO', 'NEVER EVENT'];
+
 const TEXTOS_PADRAO_CRO = {
   apresentacao: 'No período {periodo}, ocorreram {totalObitos} óbitos no HUC, sendo {taxaAnalisados} deles analisados pela Comissão de Revisão de Óbitos (CRO). Na primeira avaliação, {londres} óbito(s) foram classificados como "A esclarecer" e encaminhados a uma segunda avaliação, usando como ferramenta de investigação o Protocolo de Londres — que considera os fatores institucionais, ambientais, tecnológicos, individuais dos profissionais e do próprio paciente. Foram identificados {eventosAdversos} óbito(s) com eventos adversos graves/moderados que contribuíram, direta ou indiretamente, para o desfecho.',
   epidemiologia: 'No recorte {periodo}, a maioria dos óbitos ocorreu em {unidadeTop} ({unidadeTopPct} do total). Quanto ao perfil, {sexoMasculino} eram do sexo masculino e {sexoFeminino} do feminino, com predomínio da faixa etária {faixaTop}. Em relação à procedência, {macroTop} concentrou a maior parte dos casos. As comorbidades mais frequentes entre os óbitos foram {comorbidadesTop}.',
@@ -1415,6 +1432,71 @@ function obterAbaRelatorioCRO(ss, cfg) {
     if (sh) return sh;
   }
   return null;
+}
+
+// Normaliza prontuário para o cruzamento CRO × notificações: maiúsculo, sem
+// espaços e sem o sufixo ".0" que o Sheets às vezes acrescenta a números.
+function normalizarProntuarioCRO(valor) {
+  let t = String(valor == null ? '' : valor).trim().toUpperCase().replace(/\s+/g, '');
+  t = t.replace(/\.0+$/, '');
+  return t;
+}
+
+function mapearColunasNotifica(values, limiteLinhas) {
+  const limite = Math.min(values.length, limiteLinhas || 8);
+  let melhor = null;
+  for (let r = 0; r < limite; r++) {
+    const headerNorm = (values[r] || []).map(c => normalizarCabecalho(c));
+    const mapa = {};
+    NOTIFICA_CRO_CABECALHOS.forEach(def => {
+      for (let c = 0; c < headerNorm.length; c++) {
+        if (mapa[def.chave] != null) break;
+        if (!headerNorm[c]) continue;
+        if (def.termos.some(t => cabecalhoCROContemTermo(headerNorm[c], t))) { mapa[def.chave] = c; break; }
+      }
+    });
+    const achados = Object.keys(mapa).length;
+    if (!melhor || achados > melhor.achados) melhor = { linha: r, mapa, achados };
+    if (achados >= NOTIFICA_CRO_CABECALHOS.length) break;
+  }
+  return melhor || { linha: 0, mapa: {}, achados: 0 };
+}
+
+// Lê a base de notificações e devolve os prontuários (normalizados) com uma
+// classificação que conta como evento adverso. A leitura é tolerante: qualquer
+// falha vira um alerta de estrutura e devolve lista vazia, sem derrubar o
+// relatório da CRO.
+function obterNotificacoesQualificadasCRO(cfg) {
+  const alertas = [];
+  const id = (cfg && cfg.planilhaIdNotificaCRO && String(cfg.planilhaIdNotificaCRO).trim()) || PLANILHAS.notificacoesCRO;
+  try {
+    const ss = abrirPlanilhaPorIdCache(id, 'de notificações da CRO');
+    const nomes = (cfg && cfg.abaNotificaCRO ? [cfg.abaNotificaCRO] : []).concat(NOTIFICA_CRO_ABAS);
+    let sh = null;
+    for (let i = 0; i < nomes.length; i++) { sh = ss.getSheetByName(nomes[i]); if (sh) break; }
+    if (!sh) {
+      alertas.push('Aba de notificações não encontrada (esperado "BASE DE DADOS - NOTIFICA"). Eventos adversos não puderam ser cruzados.');
+      return { prontuarios: [], total: 0, alertas: alertas };
+    }
+    const values = sh.getDataRange().getValues();
+    const { linha, mapa } = mapearColunasNotifica(values, Math.min(values.length, 30));
+    if (mapa.prontuario == null || mapa.tipoClassificacao == null) {
+      alertas.push(`Colunas "PRONTUÁRIO" e/ou "TIPO CLASSIFICAÇÃO" não reconhecidas na aba "${sh.getName()}".`);
+      return { prontuarios: [], total: 0, alertas: alertas };
+    }
+    const vistos = {};
+    for (let r = linha + 1; r < values.length; r++) {
+      const tipo = normalizarCabecalho(values[r][mapa.tipoClassificacao]);
+      if (!tipo || NOTIFICA_CRO_TIPOS_EVENTO.indexOf(tipo) === -1) continue;
+      const pront = normalizarProntuarioCRO(values[r][mapa.prontuario]);
+      if (pront) vistos[pront] = true;
+    }
+    const prontuarios = Object.keys(vistos);
+    return { prontuarios: prontuarios, total: prontuarios.length, alertas: alertas };
+  } catch (erro) {
+    alertas.push('Falha ao ler a base de notificações: ' + (erro && erro.message ? erro.message : erro));
+    return { prontuarios: [], total: 0, alertas: alertas };
+  }
 }
 
 function diasEntreDatas(inicio, fim) {
@@ -1623,9 +1705,15 @@ function montarPayloadDadosCRO(forcarRefresh) {
       limparValorCRO(valorCol(row, 'comorbidades')),
       dias,
       idadeNum,
-      normalizarTexto(valorCol(row, 'status') || row[3]) || ''
+      normalizarTexto(valorCol(row, 'status') || row[3]) || '',
+      normalizarProntuarioCRO(prontuario)
     ]);
   }
+
+  // Cruzamento com a base de notificações (NOTIVISA): prontuários com evento
+  // adverso qualificado. O casamento e a regra "só conta se a esclarecer"
+  // ficam no cliente (onde mora a semântica de classificação da CRO).
+  const notifica = obterNotificacoesQualificadasCRO(cfg);
 
   return {
     success: true,
@@ -1635,9 +1723,11 @@ function montarPayloadDadosCRO(forcarRefresh) {
       comissao: 'CRO',
       aba: sh.getName(),
       totalRegistros: registros.length,
-      alertasEstrutura: alertas.concat(indicadoresGerenciados.alertas || []),
+      alertasEstrutura: alertas.concat(indicadoresGerenciados.alertas || []).concat(notifica.alertas || []),
       registros: registros,
-      indicadoresGerenciados: indicadoresGerenciados
+      indicadoresGerenciados: indicadoresGerenciados,
+      notificacoesQualificadas: notifica.prontuarios,
+      notificacoesTotal: notifica.total
     },
     textosPersonalizados: obterTextosPersonalizadosRel('CRO')
   };

@@ -1952,24 +1952,31 @@
       // (TIPO CLASSIFICAÇÃO grave/óbito/never event), vindo da base NOTIVISA.
       const notif = new Set((((state.dados || {}).base || {}).notificacoesQualificadas) || []);
       let analisados = 0, naoAnalisados = 0, londres = 0, eventos = 0, eventosForaEsclarecer = 0;
+      let esclarecerTotal = 0, esclarecerAvaliado = 0;
       const evoMap = {};
       regs.forEach(r => {
         const an = obitoAnalisado(r[RC.avaliacao]);
         if (an) analisados++; else naoAnalisados++;
         if (obitoLondres(r[RC.avaliacao])) londres++;
+        // "A esclarecer" (status ou avaliação1 indicando Londres/esclarecer):
+        // conta o total e quantos, dentro desse total, já tiveram a 1ª
+        // avaliação concluída — é essa razão que dá a taxa de avaliados.
+        const esc = obitoEsclarecer(r);
+        if (esc) { esclarecerTotal++; if (an) esclarecerAvaliado++; }
         // Evento adverso = óbito com notificação qualificada. Conta como evento
         // do indicador só quando o óbito é "a esclarecer"; os demais entram no
         // indicador menor de notificações fora de "a esclarecer".
         if (r[RC.prontuario] && notif.has(r[RC.prontuario])) {
-          if (obitoEsclarecer(r)) eventos++; else eventosForaEsclarecer++;
+          if (esc) eventos++; else eventosForaEsclarecer++;
         }
         const ano = r[RC.ano], mes = r[RC.mes];
         if (MES_ORDEM[mes]) {
           const chave = ano + ' ' + mes;
-          if (!evoMap[chave]) evoMap[chave] = { ano, mes, total: 0, analisados: 0, londres: 0, justificado: 0, esclarecer: 0, oportunidade: 0 };
+          if (!evoMap[chave]) evoMap[chave] = { ano, mes, total: 0, analisados: 0, londres: 0, justificado: 0, esclarecer: 0, oportunidade: 0, esclarecerTotal: 0, esclarecerAvaliado: 0 };
           evoMap[chave].total++;
           if (an) evoMap[chave].analisados++;
           if (obitoLondres(r[RC.avaliacao])) evoMap[chave].londres++;
+          if (esc) { evoMap[chave].esclarecerTotal++; if (an) evoMap[chave].esclarecerAvaliado++; }
           const cat = categoriaPrimeiraAnalise(r[RC.status]);
           if (cat && evoMap[chave][cat] != null) evoMap[chave][cat]++;
         }
@@ -1981,8 +1988,8 @@
           ano: e.ano, mes: e.mes, total: e.total, analisados: e.analisados, londres: e.londres,
           justificado: e.justificado, esclarecer: e.esclarecer, oportunidade: e.oportunidade,
           taxaAnalisados: e.total ? Number(((e.analisados / e.total) * 100).toFixed(1)) : null,
-          taxaEsclarecerAvaliados: e.analisados
-            ? Number(((e.londres / e.analisados) * 100).toFixed(1))
+          taxaEsclarecerAvaliados: e.esclarecerTotal
+            ? Number(((e.esclarecerAvaliado / e.esclarecerTotal) * 100).toFixed(1))
             : null
         }));
 
@@ -1991,7 +1998,7 @@
       return {
         total, analisados, naoAnalisados, londres, eventos, eventosForaEsclarecer,
         taxaAnalisados, diferencaMeta: taxaAnalisados == null ? null : Number((taxaAnalisados - meta).toFixed(1)),
-        taxaLondres: analisados ? Number(((londres / analisados) * 100).toFixed(1)) : null,
+        taxaLondres: esclarecerTotal ? Number(((esclarecerAvaliado / esclarecerTotal) * 100).toFixed(1)) : null,
         metaInstitucional: meta,
         evolucao,
         mortalidadeInstitucional: mortalidadeInstitucionalFiltrada(),

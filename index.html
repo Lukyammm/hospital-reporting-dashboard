@@ -1983,7 +1983,7 @@
       return {
         total, analisados, naoAnalisados, londres, eventos, eventosForaEsclarecer,
         taxaAnalisados, diferencaMeta: taxaAnalisados == null ? null : Number((taxaAnalisados - meta).toFixed(1)),
-        taxaLondres: total ? Number(((londres / total) * 100).toFixed(1)) : null,
+        taxaLondres: analisados ? Number(((londres / analisados) * 100).toFixed(1)) : null,
         metaInstitucional: meta,
         evolucao,
         mortalidadeInstitucional: mortalidadeInstitucionalFiltrada(),

@@ -1589,32 +1589,40 @@
         return `<p class="doc-recorte" style="margin:0">Plano de ação não disponível.${debugMsg}</p>`;
       }
 
+      // Chave = ano+bimestre (não só o bimestre) — senão maio/25 e maio/26
+      // caem no mesmo balde e a tabela mostra só um dos dois anos.
       const bimestresNoRecorte = new Set();
       periodos.forEach(p => {
         // p.mes vem como NOME do mês ("Janeiro"); converte para número 1-12.
         const numMes = MES_ORDEM[p.mes] || Number(p.mes);
         const bim = getMesBimestre(numMes);
-        if (bim) bimestresNoRecorte.add(bim);
+        if (bim) bimestresNoRecorte.add(p.ano + '-' + bim);
       });
 
       const acoesFiltradasPorBimestre = {};
       planoAcao.forEach(acao => {
         const bim = getMesBimestre(acao.mes);
-        if (bim && bimestresNoRecorte.has(bim)) {
-          if (!acoesFiltradasPorBimestre[bim]) acoesFiltradasPorBimestre[bim] = [];
-          acoesFiltradasPorBimestre[bim].push(acao);
+        const chave = acao.ano + '-' + bim;
+        if (bim && bimestresNoRecorte.has(chave)) {
+          if (!acoesFiltradasPorBimestre[chave]) acoesFiltradasPorBimestre[chave] = [];
+          acoesFiltradasPorBimestre[chave].push(acao);
         }
       });
 
-      const bimetresOrdenados = Object.keys(acoesFiltradasPorBimestre).map(Number).sort((a, b) => a - b);
+      const bimestresOrdenados = Object.keys(acoesFiltradasPorBimestre).sort((a, b) => {
+        const [anoA, bimA] = a.split('-').map(Number);
+        const [anoB, bimB] = b.split('-').map(Number);
+        return anoA - anoB || bimA - bimB;
+      });
 
-      if (!bimetresOrdenados.length) {
+      if (!bimestresOrdenados.length) {
         return '<p class="doc-recorte" style="margin:0">Nenhuma ação planejada nos períodos selecionados.</p>';
       }
 
       const linhas = [];
-      bimetresOrdenados.forEach(bim => {
-        const acoes = acoesFiltradasPorBimestre[bim];
+      bimestresOrdenados.forEach(chave => {
+        const acoes = acoesFiltradasPorBimestre[chave];
+        const bim = Number(chave.split('-')[1]);
         const mesInicio = (bim * 2) - 1;
         const mesFim = bim * 2;
         const ano = acoes.length > 0 ? acoes[0].ano : '';

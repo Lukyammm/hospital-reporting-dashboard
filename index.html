@@ -2368,6 +2368,7 @@
         </div>`;
       const fechamento = `
         ${secaoTexto(4, 'acoes')}
+        ${tabelaPlanoAcao(rel.evolucao, state.dados?.planoAcao || [], state.dados?.planoAcaoDebug || '')}
         ${secaoTexto(5, 'conclusaoCRO')}
         ${assinatura}`;
 

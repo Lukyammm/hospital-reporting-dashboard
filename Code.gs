@@ -1181,6 +1181,63 @@ function numeroOuNull(valor) {
   return Number.isNaN(numero) ? null : numero;
 }
 
+// Lê uma aba de plano de ação no formato: coluna A = data (funciona como
+// carimbo — linhas sem data herdam o mês/ano da última linha preenchida),
+// coluna I = ação. A coluna do responsável varia por aba, daí o parâmetro.
+function lerPlanoDeAcaoDaAba(sh, colResponsavelIdx) {
+  const ultimaLinha = Math.max(sh.getLastRow(), 1);
+  const totalCols = Math.max(sh.getLastColumn(), 12);
+  const values = sh.getRange(1, 1, ultimaLinha, totalCols).getValues();
+
+  const acoes = [];
+  let mesAtual = null;
+  let anoAtual = null;
+  const debugColA = [];
+
+  for (let i = 0; i < values.length; i++) {
+    const row = values[i];
+    const colA = row[0];
+    const colI = row.length > 8 ? row[8] : '';
+    const colResp = row.length > colResponsavelIdx ? row[colResponsavelIdx] : '';
+
+    if (i < 10) debugColA.push(typeof colA + ':' + String(colA).slice(0, 30));
+
+    if (colA) {
+      let data = null;
+      if (typeof colA === 'object' && colA !== null && typeof colA.getMonth === 'function') {
+        data = colA;
+      } else if (typeof colA === 'number' && colA > 1) {
+        // número serial do Google Sheets (dias desde 30/12/1899)
+        data = new Date((colA - 25569) * 86400000);
+      } else {
+        const str = String(colA).trim();
+        // DD/MM/AAAA (formato brasileiro): mês é o 2º grupo.
+        const br = str.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+        if (br) {
+          mesAtual = Number(br[2]);
+          anoAtual = Number(br[3]);
+        } else if (str.match(/^\d{4}[-\/]\d{2}/)) {
+          data = new Date(str);
+        }
+      }
+      if (data && !isNaN(data.getTime())) {
+        mesAtual = data.getMonth() + 1;
+        anoAtual = data.getFullYear();
+      }
+    }
+
+    const acao = String(colI || '').trim();
+    const responsavel = String(colResp || '').trim();
+    const acaoNorm = acao.toUpperCase().replace(/\s+/g, ' ');
+
+    if (acao && !acaoNorm.startsWith('AÇÕES') && !acaoNorm.startsWith('ACOES') && mesAtual && anoAtual) {
+      acoes.push({ mes: mesAtual, ano: anoAtual, acao, responsavel });
+    }
+  }
+
+  return { sucesso: true, acoes, debug: 'linhas:' + ultimaLinha + ' | colA[0-9]:' + debugColA.join(' | ') };
+}
+
 function obterPlanoDeAcaoDados(ss) {
   try {
     const sh = ss.getSheetByName('Plano de Ação');
@@ -1188,58 +1245,23 @@ function obterPlanoDeAcaoDados(ss) {
       const abas = ss.getSheets().map(s => s.getName()).join(', ');
       return { sucesso: false, acoes: [], debug: 'Aba não encontrada. Abas disponíveis: ' + abas };
     }
+    return lerPlanoDeAcaoDaAba(sh, 11); // coluna L
+  } catch (e) {
+    return { sucesso: false, acoes: [], debug: 'Erro: ' + String(e.message || e) };
+  }
+}
 
-    const ultimaLinha = Math.max(sh.getLastRow(), 1);
-    const totalCols = Math.max(sh.getLastColumn(), 12);
-    const values = sh.getRange(1, 1, ultimaLinha, totalCols).getValues();
-
-    const acoes = [];
-    let mesAtual = null;
-    let anoAtual = null;
-    const debugColA = [];
-
-    for (let i = 0; i < values.length; i++) {
-      const row = values[i];
-      const colA = row[0];
-      const colI = row.length > 8 ? row[8] : '';
-      const colL = row.length > 11 ? row[11] : '';
-
-      if (i < 10) debugColA.push(typeof colA + ':' + String(colA).slice(0, 30));
-
-      if (colA) {
-        let data = null;
-        if (typeof colA === 'object' && colA !== null && typeof colA.getMonth === 'function') {
-          data = colA;
-        } else if (typeof colA === 'number' && colA > 1) {
-          // número serial do Google Sheets (dias desde 30/12/1899)
-          data = new Date((colA - 25569) * 86400000);
-        } else {
-          const str = String(colA).trim();
-          // DD/MM/AAAA (formato brasileiro): mês é o 2º grupo.
-          const br = str.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/);
-          if (br) {
-            mesAtual = Number(br[2]);
-            anoAtual = Number(br[3]);
-          } else if (str.match(/^\d{4}[-\/]\d{2}/)) {
-            data = new Date(str);
-          }
-        }
-        if (data && !isNaN(data.getTime())) {
-          mesAtual = data.getMonth() + 1;
-          anoAtual = data.getFullYear();
-        }
-      }
-
-      const acao = String(colI || '').trim();
-      const responsavel = String(colL || '').trim();
-      const acaoNorm = acao.toUpperCase().replace(/\s+/g, ' ');
-
-      if (acao && !acaoNorm.startsWith('AÇÕES') && !acaoNorm.startsWith('ACOES') && mesAtual && anoAtual) {
-        acoes.push({ mes: mesAtual, ano: anoAtual, acao, responsavel });
-      }
+// Plano de ação da CRO: mesma lógica da CRP, mas mora na aba
+// TX_MORTALIDADE_INST (não existe aba "Plano de Ação" própria da CRO) e o
+// responsável fica na coluna K em vez de L.
+function obterPlanoDeAcaoDadosCRO(ss) {
+  try {
+    const sh = ss.getSheetByName(ABA_CRO_MORTALIDADE_INST);
+    if (!sh) {
+      const abas = ss.getSheets().map(s => s.getName()).join(', ');
+      return { sucesso: false, acoes: [], debug: `Aba "${ABA_CRO_MORTALIDADE_INST}" não encontrada. Abas disponíveis: ` + abas };
     }
-
-    return { sucesso: true, acoes, debug: 'linhas:' + ultimaLinha + ' | colA[0-9]:' + debugColA.join(' | ') };
+    return lerPlanoDeAcaoDaAba(sh, 10); // coluna K
   } catch (e) {
     return { sucesso: false, acoes: [], debug: 'Erro: ' + String(e.message || e) };
   }
@@ -1629,6 +1651,7 @@ function montarPayloadDadosCRO(forcarRefresh) {
   const ss = abrirPlanilhaPorIdCache(id, 'do relatório CRO');
   const sh = obterAbaRelatorioCRO(ss, cfg);
   const indicadoresGerenciados = obterIndicadoresGerenciadosCRO(ss);
+  const planoAcaoCRO = obterPlanoDeAcaoDadosCRO(ss);
 
   if (!sh) {
     return {
@@ -1641,6 +1664,8 @@ function montarPayloadDadosCRO(forcarRefresh) {
         registros: [],
         indicadoresGerenciados: indicadoresGerenciados
       },
+      planoAcao: planoAcaoCRO.acoes || [],
+      planoAcaoDebug: planoAcaoCRO.debug || '',
       textosPersonalizados: obterTextosPersonalizadosRel('CRO')
     };
   }
@@ -1668,6 +1693,8 @@ function montarPayloadDadosCRO(forcarRefresh) {
         registros: [],
         indicadoresGerenciados: indicadoresGerenciados
       },
+      planoAcao: planoAcaoCRO.acoes || [],
+      planoAcaoDebug: planoAcaoCRO.debug || '',
       textosPersonalizados: obterTextosPersonalizadosRel('CRO')
     };
   }
@@ -1729,6 +1756,8 @@ function montarPayloadDadosCRO(forcarRefresh) {
       notificacoesQualificadas: notifica.prontuarios,
       notificacoesTotal: notifica.total
     },
+    planoAcao: planoAcaoCRO.acoes || [],
+    planoAcaoDebug: planoAcaoCRO.debug || '',
     textosPersonalizados: obterTextosPersonalizadosRel('CRO')
   };
 

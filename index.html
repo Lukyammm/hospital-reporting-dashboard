@@ -1973,7 +1973,6 @@
           ano: e.ano, mes: e.mes, total: e.total, analisados: e.analisados, londres: e.londres,
           justificado: e.justificado, esclarecer: e.esclarecer, oportunidade: e.oportunidade,
           taxaAnalisados: e.total ? Number(((e.analisados / e.total) * 100).toFixed(1)) : null,
-          taxaLondres: e.total ? Number(((e.londres / e.total) * 100).toFixed(1)) : null,
           taxaEsclarecerAvaliados: e.analisados
             ? Number(((e.londres / e.analisados) * 100).toFixed(1))
             : null
@@ -2246,7 +2245,6 @@
     // Gráficos de evolução (linhas) da CRO.
     function graficosEvolucaoCRO(rel) {
       const serieAval = rel.evolucao.map(e => ({ ano: e.ano, mes: e.mes, valor: e.taxaAnalisados }));
-      const serieLon = rel.evolucao.map(e => ({ ano: e.ano, mes: e.mes, valor: e.taxaLondres }));
       const serieEsclarecerAval = rel.evolucao.map(e => ({ ano: e.ano, mes: e.mes, valor: e.taxaEsclarecerAvaliados }));
       const serieMortalidade = (rel.mortalidadeInstitucional || []).map(e => ({ ano: e.ano, mes: e.mes, valor: e.taxa }));
       const serieJust = rel.evolucao.map(e => ({ ano: e.ano, mes: e.mes, valor: e.total ? Number(((e.justificado / e.total) * 100).toFixed(1)) : null }));
@@ -2261,9 +2259,8 @@
             { nome: 'A esclarecer', cor: '#dc2626', dados: serieEsc },
             { nome: 'Oportunidade de melhoria', cor: '#ea580c', dados: serieOport }
           ], { label: 'Estratificação da primeira análise' }), true) : '',
-          temEvol ? caixaGraficoCRO('Taxa de óbitos a esclarecer avaliados', svgLinhaCRO(serieEsclarecerAval, null), true) : '',
-          temEvol ? caixaGraficoCRO('Taxa de avaliação de óbitos (1ª análise)', svgLinhaCRO(serieAval, rel.metaInstitucional, 'META ' + String(rel.metaInstitucional).replace('.', ',') + '%'), true) : '',
-          temEvol ? caixaGraficoCRO('Taxa de óbitos "a esclarecer" (Protocolo de Londres)', svgLinhaCRO(serieLon, null), true) : ''
+          temEvol ? caixaGraficoCRO('Taxa de óbitos a esclarecer avaliados (Protocolo de Londres)', svgLinhaCRO(serieEsclarecerAval, null), true) : '',
+          temEvol ? caixaGraficoCRO('Taxa de avaliação de óbitos (1ª análise)', svgLinhaCRO(serieAval, rel.metaInstitucional, 'META ' + String(rel.metaInstitucional).replace('.', ',') + '%'), true) : ''
         ].filter(Boolean);
 
       const paginas = [];

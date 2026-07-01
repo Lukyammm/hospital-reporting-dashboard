@@ -387,7 +387,7 @@
     .mini-classif { display: flex; gap: 1px; height: 12px; min-width: 70px; max-width: 130px; border-radius: 4px; overflow: hidden; background: #e9eeed; }
     .mini-classif > i { display: block; height: 100%; min-width: 1px; }
     .doc-tabela tr.linha-total td { font-weight: 800; color: var(--tinta); background: #f3f7f6; border-top: 1.5px solid var(--linha); }
-    .doc-tabela tr.bim-inicio td { border-top: 2px solid #999 !important; }
+    .doc-tabela tr.bim-inicio td { border-top: 1px solid #d0d8d7 !important; padding-top: 8px !important; }
     .texto-status { font-size: 9.5px; font-weight: 500; color: var(--suave); margin-left: 6px; transition: opacity .3s; }
     .texto-status.salvando { color: #b45309; }
     .texto-status.salvo { color: #0f766e; }
@@ -1630,9 +1630,9 @@
 
         acoes.forEach((acao, idx) => {
           if (idx === 0) {
-            linhas.push(`<tr class="bim-inicio"><td rowspan="${acoes.length}" style="font-weight:bold;background:#f0f0f0;vertical-align:top">${esc(rotulo)}</td><td>${esc(acao.acao)}</td><td>${esc(acao.responsavel)}</td></tr>`);
+            linhas.push(`<tr class="bim-inicio"><td rowspan="${acoes.length}" style="font-weight:bold;background:#f0f0f0;vertical-align:top">${esc(rotulo)}</td><td>${esc(acao.acao.toUpperCase())}</td><td>${esc(acao.responsavel.toUpperCase())}</td></tr>`);
           } else {
-            linhas.push(`<tr><td>${esc(acao.acao)}</td><td>${esc(acao.responsavel)}</td></tr>`);
+            linhas.push(`<tr><td>${esc(acao.acao.toUpperCase())}</td><td>${esc(acao.responsavel.toUpperCase())}</td></tr>`);
           }
         });
       });

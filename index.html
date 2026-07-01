@@ -2193,8 +2193,12 @@
       // Rótulo de valor por ponto, pequeno e com borda branca (legível sobre a
       // linha). Séries alternam acima/abaixo do ponto pra separar o texto de
       // "A esclarecer" e "Oportunidade de melhoria", que ficam bem próximas.
-      // Some com muitos meses pra não virar poluição visual no espaço curto.
-      const mostraValores = base.length <= 15;
+      // Some só se o recorte inteiro não couber (>24 meses, igual ao gráfico
+      // de linha única); com muitos meses, colisão horizontal entre rótulos
+      // vizinhos da MESMA série é resolvida pulando o do meio (1º/último
+      // sempre ficam), do mesmo jeito que svgLinhaCRO já faz.
+      const mostraValores = base.length <= 24;
+      const valW = 30, valGap = 3;
       const linhas = series.map((s, si) => {
         const pts = (s.dados || []).map((p, i) => p.valor == null ? null : [+x(i).toFixed(1), +y(p.valor).toFixed(1)]);
         const segs = []; let atual = [];
@@ -2205,18 +2209,41 @@
           : `<polyline points="${seg.map(p => p.join(',')).join(' ')}" fill="none" stroke="${s.cor}" stroke-width="2.4" stroke-linejoin="round" stroke-linecap="round"/>`).join('');
         const circles = pts.map(p => p ? `<circle cx="${p[0]}" cy="${p[1]}" r="3.2" fill="#fff" stroke="${s.cor}" stroke-width="2"/>` : '').join('');
         const acima = si % 2 === 0;
+        let valDir = -Infinity;
         const valores = !mostraValores ? '' : pts.map((p, i) => {
           if (!p) return '';
+          const anc = ancora(i);
+          const esq = anc === 'start' ? p[0] : anc === 'end' ? p[0] - valW : p[0] - valW / 2;
+          if (i !== 0 && i !== ultimo && esq - valDir < valGap) return '';
+          valDir = esq + valW;
           // Evita cortar o texto no topo do gráfico quando o ponto está bem alto.
           const vy = acima ? (p[1] - 6 < 8 ? p[1] + 13 : p[1] - 6) : p[1] + 12;
           const val = String(s.dados[i].valor).replace('.', ',');
-          return `<text x="${p[0]}" y="${vy.toFixed(1)}" text-anchor="${ancora(i)}" font-size="9.5" font-weight="700" fill="${s.cor}" stroke="#fff" stroke-width="2.2" paint-order="stroke">${val}%</text>`;
+          return `<text x="${p[0]}" y="${vy.toFixed(1)}" text-anchor="${anc}" font-size="9.5" font-weight="700" fill="${s.cor}" stroke="#fff" stroke-width="2.2" paint-order="stroke">${val}%</text>`;
         }).join('');
         return polylines + circles + valores;
       }).join('');
 
-      const rotulos = base.map((p, i) =>
-        `<text x="${i === 0 ? mx : i === ultimo ? W - mr : x(i)}" y="${H - 12}" text-anchor="${ancora(i)}" font-size="11.5" font-weight="700" fill="#5d6f73">${esc(String(p.mes || '').slice(0, 3))}</text>`).join('');
+      // Rótulos do eixo X com anti-colisão (1º e último sempre; meio só se
+      // não encostar no anterior visível nem no último) — sem isso, recortes
+      // com muitos meses grudam os rótulos ("MaAbr", "Maijun").
+      const labelW = 22, labelGap = 4, xFinal = W - mr;
+      const posicoesMes = base.map((p, i) => {
+        const px = i === 0 ? mx : i === ultimo ? xFinal : x(i);
+        const anc = ancora(i);
+        const esq = anc === 'start' ? px : anc === 'end' ? px - labelW : px - labelW / 2;
+        return { px, anc, esq, dir: esq + labelW, mes: String(p.mes || '').slice(0, 3) };
+      });
+      const ultimoPosMes = posicoesMes[posicoesMes.length - 1];
+      let anteriorDirMes = -Infinity;
+      const rotulos = posicoesMes.map((p, i) => {
+        if (i !== 0 && i !== ultimo) {
+          if (p.esq - anteriorDirMes < labelGap) return '';
+          if (ultimoPosMes.esq - p.dir < labelGap) return '';
+        }
+        anteriorDirMes = p.dir;
+        return `<text x="${p.px}" y="${H - 12}" text-anchor="${p.anc}" font-size="11.5" font-weight="700" fill="#5d6f73">${esc(p.mes)}</text>`;
+      }).join('');
 
       const svg = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(opcoes.label || 'Series mensais da CRO')}">${grade}${linhas}${rotulos}</svg>`;
       const legenda = `<div class="legenda">${series.map(s =>

@@ -2190,7 +2190,12 @@
         `<line x1="${mx}" y1="${y(v).toFixed(1)}" x2="${W - mr}" y2="${y(v).toFixed(1)}" stroke="${v === 0 ? '#d3dddb' : '#eef3f2'}" stroke-width="1"/>` +
         `<text x="${mx - 7}" y="${(y(v) + 4).toFixed(1)}" text-anchor="end" font-size="11" font-weight="600" fill="#8fa0a3">${Math.round(v)}</text>`).join('');
 
-      const linhas = series.map(s => {
+      // Rótulo de valor por ponto, pequeno e com borda branca (legível sobre a
+      // linha). Séries alternam acima/abaixo do ponto pra separar o texto de
+      // "A esclarecer" e "Oportunidade de melhoria", que ficam bem próximas.
+      // Some com muitos meses pra não virar poluição visual no espaço curto.
+      const mostraValores = base.length <= 15;
+      const linhas = series.map((s, si) => {
         const pts = (s.dados || []).map((p, i) => p.valor == null ? null : [+x(i).toFixed(1), +y(p.valor).toFixed(1)]);
         const segs = []; let atual = [];
         pts.forEach(p => { if (p) atual.push(p); else if (atual.length) { segs.push(atual); atual = []; } });
@@ -2199,7 +2204,15 @@
           ? `<circle cx="${seg[0][0]}" cy="${seg[0][1]}" r="3" fill="${s.cor}"/>`
           : `<polyline points="${seg.map(p => p.join(',')).join(' ')}" fill="none" stroke="${s.cor}" stroke-width="2.4" stroke-linejoin="round" stroke-linecap="round"/>`).join('');
         const circles = pts.map(p => p ? `<circle cx="${p[0]}" cy="${p[1]}" r="3.2" fill="#fff" stroke="${s.cor}" stroke-width="2"/>` : '').join('');
-        return polylines + circles;
+        const acima = si % 2 === 0;
+        const valores = !mostraValores ? '' : pts.map((p, i) => {
+          if (!p) return '';
+          // Evita cortar o texto no topo do gráfico quando o ponto está bem alto.
+          const vy = acima ? (p[1] - 6 < 8 ? p[1] + 13 : p[1] - 6) : p[1] + 12;
+          const val = String(s.dados[i].valor).replace('.', ',');
+          return `<text x="${p[0]}" y="${vy.toFixed(1)}" text-anchor="${ancora(i)}" font-size="9.5" font-weight="700" fill="${s.cor}" stroke="#fff" stroke-width="2.2" paint-order="stroke">${val}%</text>`;
+        }).join('');
+        return polylines + circles + valores;
       }).join('');
 
       const rotulos = base.map((p, i) =>

@@ -2241,9 +2241,9 @@
         pts.forEach(p => { if (p) atual.push(p); else if (atual.length) { segs.push(atual); atual = []; } });
         if (atual.length) segs.push(atual);
         const polylines = segs.map(seg => seg.length === 1
-          ? `<circle cx="${seg[0][0]}" cy="${seg[0][1]}" r="3" fill="${s.cor}"/>`
+          ? `<circle cx="${seg[0][0]}" cy="${seg[0][1]}" r="2.2" fill="${s.cor}"/>`
           : `<polyline points="${seg.map(p => p.join(',')).join(' ')}" fill="none" stroke="${s.cor}" stroke-width="2.4" stroke-linejoin="round" stroke-linecap="round"/>`).join('');
-        const circles = pts.map(p => p ? `<circle cx="${p[0]}" cy="${p[1]}" r="3.2" fill="#fff" stroke="${s.cor}" stroke-width="2"/>` : '').join('');
+        const circles = pts.map(p => p ? `<circle cx="${p[0]}" cy="${p[1]}" r="2.4" fill="#fff" stroke="${s.cor}" stroke-width="1.6"/>` : '').join('');
         const acima = si % 2 === 0;
         let valDir = -Infinity;
         const valores = !mostraValores ? '' : pts.map((p, i) => {
@@ -2254,8 +2254,8 @@
           valDir = esq + valW;
           // Evita cortar o texto no topo do gráfico quando o ponto está bem alto.
           const vy = acima ? (p[1] - 6 < 8 ? p[1] + 13 : p[1] - 6) : p[1] + 12;
-          const val = String(s.dados[i].valor).replace('.', ',');
-          return `<text x="${p[0]}" y="${vy.toFixed(1)}" text-anchor="${anc}" font-size="9.5" font-weight="700" fill="${s.cor}" stroke="#fff" stroke-width="2.2" paint-order="stroke">${val}%</text>`;
+          const val = Math.round(s.dados[i].valor);
+          return `<text x="${p[0]}" y="${vy.toFixed(1)}" text-anchor="${anc}" font-size="8" font-weight="700" fill="${s.cor}" stroke="#fff" stroke-width="2.2" paint-order="stroke">${val}%</text>`;
         }).join('');
         return polylines + circles + valores;
       }).join('');
@@ -2343,7 +2343,7 @@
           temEvol ? caixaGraficoCRO('Estratificação da primeira análise', svgLinhasMultiplasCRO([
             { nome: 'Justificado / inevitável', cor: '#2563eb', dados: serieJust },
             { nome: 'A esclarecer', cor: '#dc2626', dados: serieEsc },
-            { nome: 'Oportunidade de melhoria', cor: '#ea580c', dados: serieOport }
+            { nome: 'Oportunidade de melhoria', cor: '#ca8a04', dados: serieOport }
           ], { label: 'Estratificação da primeira análise' }), true) : '',
           temEvol ? caixaGraficoCRO('Taxa de óbitos a esclarecer avaliados (Protocolo de Londres)', svgLinhaCRO(serieEsclarecerAval, null), true) : '',
           temEvol ? caixaGraficoCRO('Taxa de avaliação de óbitos (1ª análise)', svgLinhaCRO(serieAval, rel.metaInstitucional, 'META ' + String(rel.metaInstitucional).replace('.', ',') + '%'), true) : ''

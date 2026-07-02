@@ -1583,14 +1583,16 @@
       return null;
     }
 
-    function tabelaPlanoAcao(periodos, planoAcao, debug) {
+    // Agrupa o plano de ação por bimestre (ano+bimestre, para não misturar
+    // maio/25 com maio/26) e devolve os grupos já ordenados, sem montar HTML —
+    // isso permite paginar os grupos em blocos que cabem numa folha A4 (ver
+    // dividirGruposPlanoAcao) em vez de despejar tudo numa tabela só.
+    function dadosPlanoAcao(periodos, planoAcao, debug) {
       if (!planoAcao || !planoAcao.length) {
         const debugMsg = debug ? `<br><small style="color:#888;font-size:10px">debug: ${esc(debug)}</small>` : '';
-        return `<p class="doc-recorte" style="margin:0">Plano de ação não disponível.${debugMsg}</p>`;
+        return { grupos: [], mensagemVazia: `Plano de ação não disponível.${debugMsg}` };
       }
 
-      // Chave = ano+bimestre (não só o bimestre) — senão maio/25 e maio/26
-      // caem no mesmo balde e a tabela mostra só um dos dois anos.
       const bimestresNoRecorte = new Set();
       periodos.forEach(p => {
         // p.mes vem como NOME do mês ("Janeiro"); converte para número 1-12.
@@ -1616,31 +1618,65 @@
       });
 
       if (!bimestresOrdenados.length) {
-        return '<p class="doc-recorte" style="margin:0">Nenhuma ação planejada nos períodos selecionados.</p>';
+        return { grupos: [], mensagemVazia: 'Nenhuma ação planejada nos períodos selecionados.' };
       }
 
-      const linhas = [];
-      bimestresOrdenados.forEach(chave => {
+      const grupos = bimestresOrdenados.map(chave => {
         const acoes = acoesFiltradasPorBimestre[chave];
         const bim = Number(chave.split('-')[1]);
         const mesInicio = (bim * 2) - 1;
         const mesFim = bim * 2;
         const ano = acoes.length > 0 ? acoes[0].ano : '';
-        const rotulo = `${MESES_CANONICOS[mesInicio]} — ${MESES_CANONICOS[mesFim]} ${ano}`;
+        return { rotulo: `${MESES_CANONICOS[mesInicio]} — ${MESES_CANONICOS[mesFim]} ${ano}`, acoes };
+      });
+      return { grupos, mensagemVazia: null };
+    }
 
-        acoes.forEach((acao, idx) => {
+    // Divide os grupos (bimestres) em blocos cujo total de linhas cabe no
+    // orçamento informado, sem quebrar um bimestre no meio (o rowspan da
+    // célula "Período" exige que todas as linhas do grupo fiquem juntas).
+    function dividirGruposPlanoAcao(grupos, primeiroOrcamento, proximoOrcamento) {
+      const blocos = [];
+      let atual = [];
+      let linhasAtual = 0;
+      let orcamento = primeiroOrcamento;
+      grupos.forEach(g => {
+        if (atual.length && linhasAtual + g.acoes.length > orcamento) {
+          blocos.push(atual);
+          atual = [];
+          linhasAtual = 0;
+          orcamento = proximoOrcamento;
+        }
+        atual.push(g);
+        linhasAtual += g.acoes.length;
+      });
+      if (atual.length) blocos.push(atual);
+      return blocos;
+    }
+
+    function tabelaPlanoAcaoHtml(grupos) {
+      const linhas = [];
+      grupos.forEach(g => {
+        g.acoes.forEach((acao, idx) => {
           if (idx === 0) {
-            linhas.push(`<tr class="bim-inicio"><td rowspan="${acoes.length}" style="font-weight:bold;background:#f0f0f0;vertical-align:top">${esc(rotulo)}</td><td>${esc(acao.acao.toUpperCase())}</td><td>${esc(acao.responsavel.toUpperCase())}</td></tr>`);
+            linhas.push(`<tr class="bim-inicio"><td rowspan="${g.acoes.length}" style="font-weight:bold;background:#f0f0f0;vertical-align:top">${esc(g.rotulo)}</td><td>${esc(acao.acao.toUpperCase())}</td><td>${esc(acao.responsavel.toUpperCase())}</td></tr>`);
           } else {
             linhas.push(`<tr><td>${esc(acao.acao.toUpperCase())}</td><td>${esc(acao.responsavel.toUpperCase())}</td></tr>`);
           }
         });
       });
-
       return `<div class="doc-tabela"><table>
         <thead><tr><th style="width:140px">Período</th><th>Ações (O que faremos para melhorar?)</th><th style="width:150px">Responsável</th></tr></thead>
         <tbody>${linhas.join('')}</tbody>
       </table></div>`;
+    }
+
+    // Usado pela CRP (secaoPlano, recorte tipicamente pequeno): tabela única,
+    // sem paginação dedicada.
+    function tabelaPlanoAcao(periodos, planoAcao, debug) {
+      const { grupos, mensagemVazia } = dadosPlanoAcao(periodos, planoAcao, debug);
+      if (mensagemVazia) return `<p class="doc-recorte" style="margin:0">${mensagemVazia}</p>`;
+      return tabelaPlanoAcaoHtml(grupos);
     }
 
     function renderDocumento(rel) {
@@ -2404,8 +2440,7 @@
         : [secaoTexto(3, 'indicadores')];
 
       // Tabela de evolução paginada: cabe junto de ações+conclusão até ~12
-      // meses (caso comum); acima disso ganha folhas dedicadas e a última folha
-      // fica com ações+conclusão+assinatura.
+      // meses (caso comum); acima disso ganha folhas dedicadas.
       const evol = rel.evolucao;
       const E = evol.length;
       const INLINE_EVO = 12;   // linhas que cabem junto do texto de ações
@@ -2413,32 +2448,86 @@
       const assinatura = `<div class="doc-assinaturas">
           <div class="assinatura"><div class="linha-ass">Presidente da Comissão de Revisão de Óbitos</div></div>
         </div>`;
-      const fechamento = `
-        ${secaoTexto(4, 'acoes')}
-        ${tabelaPlanoAcao(rel.evolucao, state.dados?.planoAcao || [], state.dados?.planoAcaoDebug || '')}
-        ${secaoTexto(5, 'conclusaoCRO')}
-        ${assinatura}`;
 
       const paginasEvo = [];
-      if (E < 2) {
-        // Sem evolução suficiente: tudo numa folha (igual ao caso atual).
-        paginasEvo.push(fechamento);
-      } else if (E <= INLINE_EVO) {
-        // Tabela curta: junto de ações+conclusão, como antes.
-        paginasEvo.push(`${tabelaEvolucaoCRO(evol, rel)}${fechamento}`);
-      } else {
-        // Muitos meses: tabela em folhas dedicadas; fechamento na última folha.
-        const blocos = [];
-        for (let i = 0; i < E; i += CONT_EVO) blocos.push(evol.slice(i, i + CONT_EVO));
-        blocos.forEach((b, bi) => {
-          const ultimo = bi === blocos.length - 1;
-          const parte = `<section class="doc-secao"><div class="doc-secao-cab"><h3>Evolução por período</h3><span class="doc-secao-nota">${E} períodos no recorte · parte ${bi + 1}/${blocos.length}</span></div>${tabelaEvolucaoCRO(b, rel, { consolidado: ultimo })}</section>`;
-          paginasEvo.push(parte);
-        });
-        paginasEvo.push(fechamento);
+      if (E >= 2) {
+        if (E <= INLINE_EVO) {
+          paginasEvo.push(tabelaEvolucaoCRO(evol, rel));
+        } else {
+          // Muitos meses: tabela em folhas dedicadas.
+          const blocos = [];
+          for (let i = 0; i < E; i += CONT_EVO) blocos.push(evol.slice(i, i + CONT_EVO));
+          blocos.forEach((b, bi) => {
+            const ultimo = bi === blocos.length - 1;
+            paginasEvo.push(`<section class="doc-secao"><div class="doc-secao-cab"><h3>Evolução por período</h3><span class="doc-secao-nota">${E} períodos no recorte · parte ${bi + 1}/${blocos.length}</span></div>${tabelaEvolucaoCRO(b, rel, { consolidado: ultimo })}</section>`);
+          });
+        }
       }
 
-      const corpos = [pagina1, pagina2, pagina3, ...paginasIndicadores, ...paginasEvo];
+      // Plano de ação: quando o recorte cobre muitos bimestres (ex.: "todos
+      // os meses de 2025, 2026") a tabela cresce além de uma folha A4. Como
+      // ".pagina" nunca corta o conteúdo (min-height, sem overflow:hidden — ver
+      // CSS), uma tabela grande demais virava folha em branco no meio e
+      // continuava sem cabeçalho/rodapé do documento. Por isso ela é dividida
+      // em blocos que cabem numa folha, igual à tabela de períodos da CRP
+      // (dividirGruposPlanoAcao/blocosPer).
+      const planoAcaoDados = dadosPlanoAcao(rel.evolucao, state.dados?.planoAcao || [], state.dados?.planoAcaoDebug || '');
+      const totalLinhasAcoes = planoAcaoDados.grupos.reduce((s, g) => s + g.acoes.length, 0);
+      const ROWS_INLINE_ACOES = 14;  // linhas que cabem junto do texto+conclusão
+      const ROWS_CONT_ACOES = 24;    // linhas por folha dedicada de ações
+      const acoesTitulo = `4. ${esc(TITULOS_TEXTO['acoes'])}`;
+      const botaoAcoesHtml = `<button class="botao-restaurar no-print ${state.textos['acoes'].manual ? 'editado' : ''}" type="button" data-restaurar="acoes" title="Restaurar texto automático desta seção">${state.textos['acoes'].manual ? '✎ editado · restaurar' : '↺ automático'}</button><span class="texto-status no-print" data-status-texto="acoes"></span>`;
+      const textoAcoesHtml = `<div class="doc-texto" contenteditable="true" spellcheck="true" data-texto="acoes" aria-label="Texto editável: ${esc(TITULOS_TEXTO['acoes'])}" style="margin-bottom:0.5rem"></div>`;
+
+      let paginasAcoes;
+      if (planoAcaoDados.mensagemVazia) {
+        paginasAcoes = [`<section class="doc-secao">
+          <div class="doc-secao-cab"><h3>${acoesTitulo}</h3>${botaoAcoesHtml}</div>
+          ${textoAcoesHtml}
+          <p class="doc-recorte" style="margin:0">${planoAcaoDados.mensagemVazia}</p>
+        </section>`];
+      } else if (totalLinhasAcoes <= ROWS_INLINE_ACOES) {
+        // Caso comum: tabela curta, tudo numa seção só (comportamento anterior).
+        paginasAcoes = [`<section class="doc-secao">
+          <div class="doc-secao-cab"><h3>${acoesTitulo}</h3>${botaoAcoesHtml}</div>
+          ${textoAcoesHtml}
+          ${tabelaPlanoAcaoHtml(planoAcaoDados.grupos)}
+        </section>`];
+      } else {
+        // Muitos bimestres: cada bloco vira sua própria folha (com
+        // cabeçalho/rodapé do documento aplicados por montarPagina).
+        const blocosAcoes = dividirGruposPlanoAcao(planoAcaoDados.grupos, ROWS_INLINE_ACOES, ROWS_CONT_ACOES);
+        const totalBlocosAcoes = blocosAcoes.length;
+        paginasAcoes = blocosAcoes.map((bloco, bi) => {
+          const primeiro = bi === 0;
+          const nota = totalBlocosAcoes > 1 ? `<span class="doc-secao-nota">parte ${bi + 1}/${totalBlocosAcoes}</span>` : '';
+          return `<section class="doc-secao">
+            <div class="doc-secao-cab">
+              <h3>${acoesTitulo}</h3>
+              ${primeiro ? botaoAcoesHtml : ''}
+              ${nota}
+            </div>
+            ${primeiro ? textoAcoesHtml : ''}
+            ${tabelaPlanoAcaoHtml(bloco)}
+          </section>`;
+        });
+      }
+
+      // Conclusão + assinatura: anexadas à última folha disponível no caso
+      // compacto (comportamento anterior); numa folha própria quando ações
+      // já ocupou blocos dedicados.
+      const fechamentoFinal = `${secaoTexto(5, 'conclusaoCRO')}${assinatura}`;
+      const paginasFinais = [];
+      if (paginasAcoes.length === 1 && paginasEvo.length <= 1) {
+        const evoInline = paginasEvo.pop() || '';
+        paginasFinais.push(`${evoInline}${paginasAcoes[0]}${fechamentoFinal}`);
+      } else {
+        paginasAcoes.forEach((p, i) => {
+          paginasFinais.push(i === paginasAcoes.length - 1 ? `${p}${fechamentoFinal}` : p);
+        });
+      }
+
+      const corpos = [pagina1, pagina2, pagina3, ...paginasIndicadores, ...paginasEvo, ...paginasFinais];
       const total = corpos.length;
       $('documento').innerHTML = corpos.map((c, i) => montarPagina(tokens, i + 1, total, c)).join('');
       ligarTextosEditaveis(tokens, () => tokensAtuaisCRO(agregarCRO(registrosFiltrados())));

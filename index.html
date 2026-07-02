@@ -2229,12 +2229,9 @@
       // Rótulo de valor por ponto, pequeno e com borda branca (legível sobre a
       // linha). Séries alternam acima/abaixo do ponto pra separar o texto de
       // "A esclarecer" e "Oportunidade de melhoria", que ficam bem próximas.
-      // Some só se o recorte inteiro não couber (>24 meses, igual ao gráfico
-      // de linha única); com muitos meses, colisão horizontal entre rótulos
-      // vizinhos da MESMA série é resolvida pulando o do meio (1º/último
-      // sempre ficam), do mesmo jeito que svgLinhaCRO já faz.
-      const mostraValores = base.length <= 24;
-      const valW = 30, valGap = 3;
+      // Todo ponto sempre mostra seu valor — sem pular rótulos por colisão —
+      // a pedido explícito, mesmo que em recortes com muitos meses os textos
+      // fiquem mais apertados horizontalmente.
       const linhas = series.map((s, si) => {
         const pts = (s.dados || []).map((p, i) => p.valor == null ? null : [+x(i).toFixed(1), +y(p.valor).toFixed(1)]);
         const segs = []; let atual = [];
@@ -2245,13 +2242,9 @@
           : `<polyline points="${seg.map(p => p.join(',')).join(' ')}" fill="none" stroke="${s.cor}" stroke-width="2.4" stroke-linejoin="round" stroke-linecap="round"/>`).join('');
         const circles = pts.map(p => p ? `<circle cx="${p[0]}" cy="${p[1]}" r="2.4" fill="#fff" stroke="${s.cor}" stroke-width="1.6"/>` : '').join('');
         const acima = si % 2 === 0;
-        let valDir = -Infinity;
-        const valores = !mostraValores ? '' : pts.map((p, i) => {
+        const valores = pts.map((p, i) => {
           if (!p) return '';
           const anc = ancora(i);
-          const esq = anc === 'start' ? p[0] : anc === 'end' ? p[0] - valW : p[0] - valW / 2;
-          if (i !== 0 && i !== ultimo && esq - valDir < valGap) return '';
-          valDir = esq + valW;
           // Evita cortar o texto no topo do gráfico quando o ponto está bem alto.
           const vy = acima ? (p[1] - 6 < 8 ? p[1] + 13 : p[1] - 6) : p[1] + 12;
           const val = Math.round(s.dados[i].valor);

@@ -548,6 +548,15 @@
     @media print {
       @page { size: A4 portrait; margin: 0; }
       html, body { width: 210mm; background: #fff !important; }
+      /* Navegadores descartam cores de fundo na impressão por padrão. Sem
+         isto, as barras de distribuição por conformidade (mini-classif),
+         selos %, barras de meta e legendas — que são fundos coloridos —
+         somem no PDF, aparecendo só na tela. Força a impressão fiel das
+         cores em toda a folha (prefixo -webkit- p/ Chrome/Safari). */
+      .pagina, .pagina * {
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+      }
       .topo, .lateral, .toasts, .admin-painel, .admin-veu, .veu, .estado, .no-print { display: none !important; }
       .moldura { display: block; max-width: none; padding: 0; margin: 0; }
       .palco { display: block; }

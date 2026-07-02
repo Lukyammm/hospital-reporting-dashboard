@@ -990,7 +990,19 @@
       return regs.filter(r => FILTROS.every(f => {
         if (f.id === ignorarId) return true;
         const sel = state.sel[f.id];
-        return !sel.size || sel.has(r[f.idx]);
+        if (!sel.size) return true;
+
+        // Para filtros de mês, quando há múltiplos anos selecionados, comparar com chave ano+mês
+        const isFiltroMes = f.id === 'mesesCRO' || f.id === 'meses';
+        const chaveAnos = f.id === 'mesesCRO' ? 'anosCRO' : 'anos';
+        const anosSelCount = state.sel[chaveAnos]?.size || 0;
+
+        if (isFiltroMes && anosSelCount > 1) {
+          const chaveRegistro = r[f.id === 'mesesCRO' ? RC.ano : R.ano] + ' ' + r[f.idx];
+          return sel.has(chaveRegistro);
+        }
+
+        return sel.has(r[f.idx]);
       }));
     }
 
@@ -1994,8 +2006,21 @@
       const fonte = (((state.dados || {}).base || {}).indicadoresGerenciados || {}).mortalidadeInstitucional || [];
       const anosSel = state.sel.anosCRO || new Set();
       const mesesSel = state.sel.mesesCRO || new Set();
+      const anosSelCount = anosSel.size;
+      const usarChaveAnomeses = anosSelCount > 1;
+
       return fonte
-        .filter(item => (!anosSel.size || anosSel.has(item.ano)) && (!mesesSel.size || mesesSel.has(item.mes)))
+        .filter(item => {
+          if (anosSel.size && !anosSel.has(item.ano)) return false;
+          if (!mesesSel.size) return true;
+
+          if (usarChaveAnomeses) {
+            const chave = item.ano + ' ' + item.mes;
+            return mesesSel.has(chave);
+          } else {
+            return mesesSel.has(item.mes);
+          }
+        })
         .filter(item => MES_ORDEM[item.mes])
         .sort(compararPeriodo);
     }
@@ -2304,7 +2329,12 @@
     /* ===== Tokens e textos da CRO ===== */
     function periodoTextoCRO() {
       const anos = [...state.sel.anosCRO];
-      const meses = [...state.sel.mesesCRO].sort(ordenarMes);
+      const mesesRaw = [...state.sel.mesesCRO];
+      // Se há chaves de "ano mes" (quando múltiplos anos selecionados), extrair apenas os meses
+      const meses = mesesRaw.map(m => {
+        const partes = m.split(' ');
+        return partes.length > 1 ? partes[1] : m; // Se contém espaço, pegar a segunda parte (mês)
+      }).sort(ordenarMes);
       const txtAnos = anos.length ? anos.sort().join(', ') : 'todos os anos';
       const txtMeses = meses.length ? meses.join(', ') : 'todos os meses';
       return `${txtMeses} de ${txtAnos}`;
@@ -2649,13 +2679,47 @@
       });
     }
 
+    // Formata valor de filtro de mês para exibição legível
+    // Se é "ano mes", retorna "mes ano"; se é apenas "mes", retorna como está
+    function formatarValorFiltroMes(valor) {
+      const partes = valor.split(' ');
+      if (partes.length === 2 && /^\d{4}$/.test(partes[0])) {
+        return `${partes[1]} ${partes[0]}`;
+      }
+      return valor;
+    }
+
     function opcoesFiltro(def) {
       // Contagem facetada: as opções refletem o recorte definido pelos OUTROS filtros.
       const base = registrosFiltrados(def.id);
       const contagem = {};
-      base.forEach(r => { contagem[r[def.idx]] = (contagem[r[def.idx]] || 0) + 1; });
+
+      // Para filtros de mês, quando há múltiplos anos selecionados, criar chaves ano+mês
+      const isFiltroMes = def.id === 'mesesCRO' || def.id === 'meses';
+      const chaveAnos = def.id === 'mesesCRO' ? 'anosCRO' : 'anos';
+      const anosSelCount = state.sel[chaveAnos]?.size || 0;
+      const usarChaveAnomeses = isFiltroMes && anosSelCount > 1;
+
+      base.forEach(r => {
+        let chave;
+        if (usarChaveAnomeses) {
+          chave = r[def.id === 'mesesCRO' ? RC.ano : R.ano] + ' ' + r[def.idx];
+        } else {
+          chave = r[def.idx];
+        }
+        contagem[chave] = (contagem[chave] || 0) + 1;
+      });
+
       const ordenar = def.ordenar || ((a, b) => a.localeCompare(b, 'pt-BR'));
-      return Object.keys(contagem).sort(ordenar).map(valor => ({ valor, qtd: contagem[valor] }));
+      return Object.keys(contagem).sort((a, b) => {
+        if (usarChaveAnomeses) {
+          const [anoA, mesA] = a.split(' ');
+          const [anoB, mesB] = b.split(' ');
+          const cmpAno = Number(anoB) - Number(anoA); // ano decrescente
+          return cmpAno !== 0 ? cmpAno : (MES_ORDEM[mesA] || 99) - (MES_ORDEM[mesB] || 99);
+        }
+        return ordenar(a, b);
+      }).map(valor => ({ valor, qtd: contagem[valor] }));
     }
 
     function renderListaFiltro(id, consulta = '') {
@@ -2664,13 +2728,20 @@
       const def = FILTROS.find(f => f.id === id);
       const lista = filtro.querySelector('.filtro-lista');
       const q = String(consulta || '').trim().toLowerCase();
-      const opcoes = opcoesFiltro(def).filter(o => !q || o.valor.toLowerCase().includes(q));
-      lista.innerHTML = opcoes.length ? opcoes.map(o => `
+      const isFiltroMes = id === 'mesesCRO' || id === 'meses';
+      const opcoes = opcoesFiltro(def).filter(o => {
+        const buscarEm = isFiltroMes ? formatarValorFiltroMes(o.valor) : o.valor;
+        return !q || buscarEm.toLowerCase().includes(q);
+      });
+      lista.innerHTML = opcoes.length ? opcoes.map(o => {
+        const textoExibicao = isFiltroMes ? formatarValorFiltroMes(o.valor) : o.valor;
+        return `
         <label class="filtro-opcao">
           <input type="checkbox" value="${esc(o.valor)}" ${state.sel[id].has(o.valor) ? 'checked' : ''}>
-          <span class="texto">${esc(o.valor)}</span>
+          <span class="texto">${esc(textoExibicao)}</span>
           <span class="qtd">${fmtNum(o.qtd)}</span>
-        </label>`).join('') : '<div style="padding:10px;text-align:center;font-size:12px;color:var(--suave)">Nenhuma opção</div>';
+        </label>`;
+      }).join('') : '<div style="padding:10px;text-align:center;font-size:12px;color:var(--suave)">Nenhuma opção</div>';
       lista.querySelectorAll('input').forEach(input => input.addEventListener('change', () => {
         if (input.checked) state.sel[id].add(input.value);
         else state.sel[id].delete(input.value);
@@ -2684,7 +2755,8 @@
         const filtro = document.querySelector(`.filtro[data-filtro="${def.id}"]`);
         if (!filtro) return;
         const valorEl = filtro.querySelector('.filtro-valor');
-        const sel = [...state.sel[def.id]];
+        const isFiltroMes = def.id === 'mesesCRO' || def.id === 'meses';
+        const sel = [...state.sel[def.id]].map(v => isFiltroMes ? formatarValorFiltroMes(v) : v);
         if (!sel.length) { valorEl.textContent = 'Todos'; valorEl.classList.add('vazio'); }
         else { valorEl.textContent = sel.length <= 2 ? sel.join(', ') : `${sel.length} selecionados`; valorEl.classList.remove('vazio'); }
       });
@@ -2694,7 +2766,11 @@
       const chips = [];
       FILTROS.forEach(def => [...state.sel[def.id]].forEach(v => chips.push({ def, valor: v })));
       $('chips').innerHTML = chips.length
-        ? chips.slice(0, 16).map(c => `<span class="chip"><b>${esc(c.def.curto)}</b> ${esc(c.valor)} <button type="button" data-filtro="${c.def.id}" data-valor="${esc(c.valor)}" aria-label="Remover filtro">×</button></span>`).join('') +
+        ? chips.slice(0, 16).map(c => {
+          const isFiltroMes = c.def.id === 'mesesCRO' || c.def.id === 'meses';
+          const textoExibicao = isFiltroMes ? formatarValorFiltroMes(c.valor) : c.valor;
+          return `<span class="chip"><b>${esc(c.def.curto)}</b> ${esc(textoExibicao)} <button type="button" data-filtro="${c.def.id}" data-valor="${esc(c.valor)}" aria-label="Remover filtro">×</button></span>`;
+        }).join('') +
           (chips.length > 16 ? `<span class="chip">+${chips.length - 16}</span>` : '')
         : '<span class="chip">Todos os dados da base</span>';
       $('chips').querySelectorAll('button').forEach(btn => btn.addEventListener('click', () => {

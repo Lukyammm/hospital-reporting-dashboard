@@ -548,6 +548,15 @@
     @media print {
       @page { size: A4 portrait; margin: 0; }
       html, body { width: 210mm; background: #fff !important; }
+      /* Navegadores descartam cores de fundo na impressão por padrão. Sem
+         isto, as barras de distribuição por conformidade (mini-classif),
+         selos %, barras de meta e legendas — que são fundos coloridos —
+         somem no PDF, aparecendo só na tela. Força a impressão fiel das
+         cores em toda a folha (prefixo -webkit- p/ Chrome/Safari). */
+      .pagina, .pagina * {
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+      }
       .topo, .lateral, .toasts, .admin-painel, .admin-veu, .veu, .estado, .no-print { display: none !important; }
       .moldura { display: block; max-width: none; padding: 0; margin: 0; }
       .palco { display: block; }
@@ -2149,10 +2158,10 @@
       const area = segs.filter(s => s.length > 1).map(s =>
         `<polygon points="${s[0][0]},${yBase} ${s.map(p => p.join(',')).join(' ')} ${s[s.length - 1][0]},${yBase}" fill="url(#${uid})"/>`).join('');
       const linha = segs.map(s => s.length === 1
-        ? `<circle cx="${s[0][0]}" cy="${s[0][1]}" r="3.5" fill="#0f766e"/>`
-        : `<polyline points="${s.map(p => p.join(',')).join(' ')}" fill="none" stroke="#0f766e" stroke-width="2.6" stroke-linejoin="round" stroke-linecap="round"/>`).join('');
+        ? `<circle cx="${s[0][0]}" cy="${s[0][1]}" r="2.8" fill="#0f766e"/>`
+        : `<polyline points="${s.map(p => p.join(',')).join(' ')}" fill="none" stroke="#0f766e" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round"/>`).join('');
       const circulos = serie.map((e, i) => e.valor == null ? '' :
-        `<circle cx="${pts[i][0]}" cy="${pts[i][1]}" r="4.2" fill="#ffffff" stroke="#0f766e" stroke-width="2.4"/>`).join('');
+        `<circle cx="${pts[i][0]}" cy="${pts[i][1]}" r="2.8" fill="#ffffff" stroke="#0f766e" stroke-width="1.8"/>`).join('');
 
       // Geometria da meta (se houver) — calculada antes dos rótulos de valor
       // para que eles desviem da etiqueta da meta.
@@ -2166,27 +2175,37 @@
 
       // Rótulos de valor: junto ao próprio ponto (acima por padrão; abaixo
       // quando o ponto encosta no topo), com supressão por colisão horizontal
-      // (1º e último preservados) e desvio da etiqueta da meta.
+      // (1º e último preservados, checando os dois lados — igual aos rótulos
+      // do eixo X — pra não colar no valor seguinte nem no último) e desvio
+      // da etiqueta da meta.
       const mostraValores = serie.length <= 24;
-      const valW = 38, valGap = 4;
+      const valW = 26, valGap = 3;
+      const ultimoTemValor = pts[ultimo] != null;
+      const ultimoEsqVal = ultimoTemValor ? (() => {
+        const ancUlt = ancora(ultimo), pxUlt = pts[ultimo][0];
+        return ancUlt === 'start' ? pxUlt : ancUlt === 'end' ? pxUlt - valW : pxUlt - valW / 2;
+      })() : Infinity;
       let valDir = -Infinity;
       const valores = !mostraValores ? '' : serie.map((e, i) => {
         if (e.valor == null) return '';
         const px = pts[i][0], py = pts[i][1], anc = ancora(i);
         const esq = anc === 'start' ? px : anc === 'end' ? px - valW : px - valW / 2;
-        if (i !== 0 && i !== ultimo && esq - valDir < valGap) return '';
-        valDir = esq + valW;
-        let vy = py > mt + 18 ? py - 9 : py + 17;
-        // Evita a pílula da meta (que fica logo abaixo da linha tracejada).
-        if (metaGeo && px > metaGeo.pillX - 12 && vy > metaGeo.yMeta + 1 && vy < metaGeo.yMeta + 22) {
-          vy = metaGeo.yMeta - 7;
+        if (i !== 0 && i !== ultimo) {
+          if (esq - valDir < valGap) return '';
+          if (ultimoTemValor && ultimoEsqVal - (esq + valW) < valGap) return '';
         }
-        return `<text x="${px}" y="${vy.toFixed(1)}" text-anchor="${anc}" font-size="12" font-weight="800" fill="#0b5a54" stroke="#fff" stroke-width="3" paint-order="stroke">${fmtRot(e.valor)}%</text>`;
+        valDir = esq + valW;
+        let vy = py > mt + 14 ? py - 7 : py + 13;
+        // Evita a pílula da meta (que fica logo abaixo da linha tracejada).
+        if (metaGeo && px > metaGeo.pillX - 12 && vy > metaGeo.yMeta + 1 && vy < metaGeo.yMeta + 18) {
+          vy = metaGeo.yMeta - 6;
+        }
+        return `<text x="${px}" y="${vy.toFixed(1)}" text-anchor="${anc}" font-size="9.5" font-weight="700" fill="#0b5a54" stroke="#fff" stroke-width="2.2" paint-order="stroke">${fmtRot(e.valor)}%</text>`;
       }).join('');
 
       // Rótulos do eixo X (dois passes anti-colisão): 1º e último sempre;
       // intermediários só se não encostarem no anterior visível nem no último.
-      const labelW = 44, gap = 6, xFinal = W - mr;
+      const labelW = 34, gap = 5, xFinal = W - mr;
       const posicoes = serie.map((e, i) => {
         const px = i === 0 ? mx : i === ultimo ? xFinal : x(i);
         const anc = ancora(i);
@@ -2201,7 +2220,7 @@
           if (ultimoPos.esq - p.dir < gap) return '';
         }
         anteriorDir = p.dir;
-        return `<text x="${p.px}" y="${H - 13}" text-anchor="${p.anc}" font-size="12.5" font-weight="600" fill="#5d6f73">${esc(p.mes)}/${esc(p.aa)}</text>`;
+        return `<text x="${p.px}" y="${H - 13}" text-anchor="${p.anc}" font-size="11" font-weight="600" fill="#5d6f73">${esc(p.mes)}/${esc(p.aa)}</text>`;
       }).join('');
 
       // Linha de meta com a etiqueta no canto direito, logo abaixo da linha.
@@ -2251,9 +2270,9 @@
         pts.forEach(p => { if (p) atual.push(p); else if (atual.length) { segs.push(atual); atual = []; } });
         if (atual.length) segs.push(atual);
         const polylines = segs.map(seg => seg.length === 1
-          ? `<circle cx="${seg[0][0]}" cy="${seg[0][1]}" r="2.2" fill="${s.cor}"/>`
-          : `<polyline points="${seg.map(p => p.join(',')).join(' ')}" fill="none" stroke="${s.cor}" stroke-width="2.4" stroke-linejoin="round" stroke-linecap="round"/>`).join('');
-        const circles = pts.map(p => p ? `<circle cx="${p[0]}" cy="${p[1]}" r="2.4" fill="#fff" stroke="${s.cor}" stroke-width="1.6"/>` : '').join('');
+          ? `<circle cx="${seg[0][0]}" cy="${seg[0][1]}" r="2.4" fill="${s.cor}"/>`
+          : `<polyline points="${seg.map(p => p.join(',')).join(' ')}" fill="none" stroke="${s.cor}" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round"/>`).join('');
+        const circles = pts.map(p => p ? `<circle cx="${p[0]}" cy="${p[1]}" r="2.6" fill="#fff" stroke="${s.cor}" stroke-width="1.6"/>` : '').join('');
         const acima = si % 2 === 0;
         const valores = pts.map((p, i) => {
           if (!p) return '';
